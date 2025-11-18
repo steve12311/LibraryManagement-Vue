@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import {h, onMounted, ref, resolveComponent, useTemplateRef} from "vue";
-import {get} from "../api/request.ts";
-import type {Page, PageInfo, Response, Role} from "../utils/Common.ts";
+import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef} from "vue";
 import type {TableColumn} from "@nuxt/ui";
 import moment from "moment/moment";
+import RoleAPI, {type RolePageQuery, type RolePageVO} from "../api/role-api.ts"
+
+onMounted(() => {
+  handleQuery()
+})
 
 const UCheckbox = resolveComponent('UCheckbox')
 const USwitch = resolveComponent('USwitch')
@@ -13,15 +16,15 @@ const UTooltip = resolveComponent('UTooltip')
 
 const table = useTemplateRef("table")
 const columnVisibility = ref({
-  roleId: false,
+  id: false,
 })
-const pagination = ref<Page>({
+const total = ref(0);
+const queryParams = reactive<RolePageQuery>({
   pageNum: 1,
   pageSize: 10,
-  total: 0,
-})
-const dataList = ref<Role[]>([])
-const columns = ref<TableColumn<Role>[]>([
+});
+const roleList = ref<RolePageVO[]>();
+const columns = ref<TableColumn<RolePageVO>[]>([
   {
     id: "select",
     header: ({table}) => {
@@ -43,18 +46,18 @@ const columns = ref<TableColumn<Role>[]>([
     }
   },
   {
-    id: "roleId",
-    accessorKey: "roleId",
+    id: "id",
+    accessorKey: "id",
     header: "角色ID",
   },
   {
-    id: "roleName",
-    accessorKey: "roleName",
+    id: "name",
+    accessorKey: "name",
     header: "角色名称",
   },
   {
-    id: "roleKey",
-    accessorKey: "roleKey",
+    id: "code",
+    accessorKey: "code",
     header: "权限字符",
   },
   {
@@ -62,7 +65,7 @@ const columns = ref<TableColumn<Role>[]>([
     header: "状态",
     cell: ({row}) => {
       return h(USwitch, {
-        modelValue: row.original.status === "0",
+        modelValue: row.original.status === 1,
         "onUpdate:modelValue": (value: boolean) => {
           console.log(value)
         }
@@ -79,7 +82,7 @@ const columns = ref<TableColumn<Role>[]>([
     accessorKey: "userId",
     header: "操作",
     cell: ({row}) => {
-      if (row.original.roleId === 0) {
+      if (Number(row.original.id) === 1) {
         return h('div', undefined, undefined);
       }
       return h(UFieldGroup, undefined, () => [
@@ -100,29 +103,35 @@ const columns = ref<TableColumn<Role>[]>([
   }
 ])
 
-onMounted(() => {
-  getRoleList()
-})
+// 获取数据
+async function fetchData() {
+  try {
 
-async function getRoleList() {
-  const {data} = await get<Response<PageInfo<Role>>>('/system/role/list', {
-    params: pagination.value,
-  })
-  dataList.value = data.data.records
-  pagination.value.total = data.data.total
+    const data = await RoleAPI.getPage(queryParams)
+    roleList.value = data.list;
+    total.value = data.total;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+// 查询（重置页码后获取数据）
+function handleQuery() {
+  queryParams.pageNum = 1;
+  fetchData();
 }
 </script>
 
 <template>
   <UCard>
     <template #header>
-      <ActionGroup @flush="getRoleList" :table="table"/>
+      <ActionGroup @flush="handleQuery" :table="table"/>
     </template>
-    <UTable ref="table" v-model:column-visibility="columnVisibility" sticky :data="dataList" :columns="columns"/>
+    <UTable ref="table" v-model:column-visibility="columnVisibility" sticky :data="roleList" :columns="columns"/>
     <template #footer>
       <div class="flex justify-center border-default pt-4">
-        <UPagination v-model:page="pagination.pageNum" :total="pagination.total"
-                     :items-per-page="pagination.pageSize"/>
+        <UPagination v-model:page="queryParams.pageNum" :total="total"
+                     :items-per-page="queryParams.pageSize" @update:page="fetchData"/>
       </div>
     </template>
   </UCard>

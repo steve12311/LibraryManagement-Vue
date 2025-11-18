@@ -2,10 +2,11 @@
 import {ref, watchEffect} from "vue";
 import type {BreadcrumbItem, DropdownMenuItem} from '@nuxt/ui'
 import {useRouter} from "vue-router";
-import {useStore} from "../store/store.ts";
+import {useUserStore} from "../store";
+import MenuAPI from "../api/menu-api.ts";
 
 const router = useRouter()
-const store = useStore()
+const userStore = useUserStore()
 
 const items = ref<BreadcrumbItem[]>([])
 const dropItems = ref<DropdownMenuItem[][]>([
@@ -20,10 +21,6 @@ const dropItems = ref<DropdownMenuItem[][]>([
       label: "退出登录",
       icon: "i-lucide-log-out",
       kbds: ["shift", "meta", "q"],
-      onSelect: () => {
-        store.token = ""
-        router.push({name: "Login"})
-      }
     }
   ]
 ])
@@ -33,7 +30,7 @@ watchEffect(() => {
       .filter(route => route.meta?.title && route.meta.title !== '')
       .map(route => ({
         label: route.meta.title as string,
-        ...(route.meta.isRouter === true && {to: route.path})
+        to: route.path
       }))
 })
 </script>
@@ -48,7 +45,7 @@ watchEffect(() => {
       <template #default="{ collapsed }">
         <UNavigationMenu
             :collapsed="collapsed"
-            :items="store.menus"
+            :items="MenuAPI.getMenus()"
             orientation="vertical"
         />
       </template>
@@ -56,9 +53,9 @@ watchEffect(() => {
         <UDropdownMenu :items="dropItems">
           <UButton
               :avatar="{
-          src: store.user?.avatar
+          src: userStore.userInfo.avatar
         }"
-              :label="collapsed ? undefined : `${store.user?.nickName}`"
+              :label="collapsed ? undefined : `${userStore.userInfo.nickname}`"
               color="neutral"
               variant="ghost"
               class="w-full"
@@ -80,7 +77,7 @@ watchEffect(() => {
           </UBreadcrumb>
         </template>
       </UDashboardNavbar>
-      <div class="h-full p-4">
+      <div class="w-full h-200 p-4 overflow-scroll box-border">
         <RouterView/>
       </div>
     </div>

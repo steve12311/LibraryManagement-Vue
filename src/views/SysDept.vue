@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {get} from "../api/request.ts";
-import type {Dept, PageInfo, Response} from "../utils/Common.ts";
+import type {Dept, Response} from "../utils/Common.ts";
 import {h, onMounted, ref, resolveComponent, useTemplateRef} from "vue";
 import type {TableColumn} from "@nuxt/ui";
 import moment from "moment";
@@ -87,8 +87,8 @@ onMounted(() => {
 })
 
 async function getDepList() {
-  const {data} = await get<Response<PageInfo<Dept>>>('/system/dept/list',)
-  dataList.value = data.data.records
+  const {data} = await get<Response<Dept[]>>('/system/dept/list',)
+  dataList.value = data.data
 }
 </script>
 

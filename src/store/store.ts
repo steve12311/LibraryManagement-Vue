@@ -8,6 +8,8 @@ const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 
 const useStore = defineStore("main", () => {
+    const accessToken = ref("")
+    const refreshToken = ref("")
     const token = ref("")
     const originalRouter = ref<Router[]>([])
     const menus = ref<NavigationMenuItem[]>()
@@ -24,6 +26,8 @@ const useStore = defineStore("main", () => {
         permissions,
         isDefaultModifyPwd,
         isPasswordExpired,
+        accessToken,
+        refreshToken,
     }
 }, {
     persist: true,

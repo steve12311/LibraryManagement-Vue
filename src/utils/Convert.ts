@@ -5,13 +5,14 @@ import type {NavigationMenuItem} from "@nuxt/ui";
 const componentMap: any = {
     'pages/Home.vue': () => import('../pages/Home.vue'),
     "pages/Library.vue": () => import("../pages/Home.vue"),
-    'view/SysUser.vue': () => import('../view/SysUser.vue'),
-    'view/SysRole.vue': () => import('../view/SysRole.vue'),
-    'view/SysDept.vue': () => import('../view/SysDept.vue'),
-    "view/SysMenu.vue": () => import('../view/SysMenu.vue'),
-    "view/SysPost.vue": () => import('../view/SysPost.vue'),
-    "view/LibStock.vue": () => import('../view/LibStock.vue'),
-    "view/LibBorrow.vue": () => import('../view/LibBorrow.vue'),
+    'view/SysUser.vue': () => import('../views/SysUser.vue'),
+    'view/SysRole.vue': () => import('../views/SysRole.vue'),
+    'view/SysDept.vue': () => import('../views/SysDept.vue'),
+    "view/SysMenu.vue": () => import('../views/SysMenu.vue'),
+    "view/LibStock.vue": () => import('../views/LibStock.vue'),
+    "view/LibBorrow.vue": () => import('../views/LibBorrow.vue'),
+    "view/LibPublish.vue": () => import('../views/LibPublish.vue'),
+    "view/LibCategory.vue": () => import('../views/LibCategory.vue'),
     // 添加其他组件...
 };
 
