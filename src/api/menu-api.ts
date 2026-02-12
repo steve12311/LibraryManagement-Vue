@@ -56,9 +56,24 @@ const MenuAPI = {
         });
     },
     /** 获取菜单表单数据 */
-    getFormData(id: string) {
+    getFormData(id: number) {
         return request<any, MenuForm>({url: `${MENU_BASE_URL}/${id}/form`, method: "get"});
     },
+
+    /** 新增菜单 */
+    create(data: MenuForm) {
+        return request({url: `${MENU_BASE_URL}`, method: "post", data});
+    },
+
+    /** 修改菜单 */
+    update(id: number, data: MenuForm) {
+        return request({url: `${MENU_BASE_URL}/${id}`, method: "put", data});
+    },
+    delete(deleteIds: number[]) {
+        // 将数组转为字符串，以逗号分隔
+        const deleteIdsStr = deleteIds.join(",");
+        return request({url: `${MENU_BASE_URL}/${deleteIdsStr}`, method: "delete"});
+    }
 }
 
 // 辅助方法：处理子路由转换
@@ -105,11 +120,11 @@ export interface MenuVO {
     /** ICON */
     icon?: string;
     /** 菜单ID */
-    id?: string;
+    id?: number;
     /** 菜单名称 */
     name?: string;
     /** 父菜单ID */
-    parentId?: string;
+    parentId?: number;
     /** 按钮权限标识 */
     perm?: string;
     /** 跳转路径 */
@@ -160,17 +175,17 @@ export interface Meta {
 }
 
 export interface PermitForm {
-    id?: string;
+    id?: number;
     label?: string;
-    parentId?: string;
+    parentId?: number;
     value?: string;
 }
 
 export interface MenuForm {
     /** 菜单ID */
-    id?: string;
+    id?: number;
     /** 父菜单ID */
-    parentId?: string;
+    parentId?: number;
     /** 菜单名称 */
     name?: string;
     /** 是否可见(1-是 0-否) */

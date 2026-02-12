@@ -8,24 +8,21 @@ const emits = defineEmits<{
 }>()
 withDefaults(defineProps<{
   table: any,
-  addDisabled?: boolean,
-  deleteDisabled?: boolean,
-  modifyDisabled?: boolean,
-}>(), {
-  addDisabled: false,
-  deleteDisabled: false,
-  modifyDisabled: false,
-})
+}>(), {})
 </script>
 
 <template>
   <div class="flex justify-between">
     <div class="flex gap-4">
-      <UButton icon="i-lucide-plus" :disabled="addDisabled" @click="emits('addRow')" variant="subtle" label="新增"/>
-      <UButton icon="i-lucide-clipboard-pen-line" :disabled="modifyDisabled" @click="emits('modifyRow')"
+      <UButton icon="i-lucide-plus" @click="emits('addRow')" variant="subtle" label="新增"/>
+      <UButton icon="i-lucide-clipboard-pen-line"
+               :disabled="(table?.tableApi?.getFilteredSelectedRowModel().flatRows.length??0)!==1"
+               @click="emits('modifyRow')"
                variant="subtle" label="修改"
                color="info"/>
-      <UButton icon="i-lucide-trash-2" variant="subtle" :disabled="deleteDisabled" @click="emits('deleteRow')"
+      <UButton icon="i-lucide-trash-2" variant="subtle"
+               :disabled="table?.tableApi?.getFilteredSelectedRowModel().flatRows.length===0"
+               @click="emits('deleteRow')"
                label="删除" color="error"/>
     </div>
     <div class="flex gap-4">
