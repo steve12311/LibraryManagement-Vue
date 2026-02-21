@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import {get} from "../api/request.ts"
-import {h, onMounted, ref, resolveComponent} from "vue";
-import type {Response} from "../utils/Common.ts";
+import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef} from "vue";
 import type {TableColumn} from "@nuxt/ui";
-import moment from "moment/moment";
+import categoryApi, {type CategoryQuery, type CategoryVO} from "../api/category-api.ts";
 
 const UButton = resolveComponent('UButton')
 
-const dataList = ref<any>([])
+const categoryList = ref<CategoryVO[]>([])
 const columns = ref<TableColumn<any>[]>([
   {
     accessorKey: "categoryId",
@@ -36,31 +34,40 @@ const columns = ref<TableColumn<any>[]>([
         row.getValue('categoryName') as string
       ])
     }
-  },
-  {
-    accessorKey: "createTime",
-    header: "创建日期",
-    cell: ({row}) => moment(row.original.createTime).format("YYYY-MM-DD HH:mm:ss"),
   }
 ])
 const columnVisibility = ref({
   categoryId: false
 })
+const table = useTemplateRef("table")
+const query = reactive<CategoryQuery>({})
 
 onMounted(() => {
-  getCategoryList()
+  handleQuery()
 })
 
-async function getCategoryList() {
-  const {data} = await get<Response<any>>("lib/category/list")
-  dataList.value = data.data
+function handleQuery() {
+  categoryApi.getList(query)
+      .then((data) => {
+        categoryList.value = data
+      })
+      .catch((error) => {
+        console.error(error)
+      })
 }
 </script>
 
 <template>
   <UCard>
-    <template #header>2222</template>
-    <UTable :column-visibility="columnVisibility" :data="dataList" :columns="columns"
+    <template #header>
+      <ActionGroup :table="table" @flush="handleQuery">
+        <UForm @submit="handleQuery" class="w-full">
+          <UInput v-model="query.categoryName" icon="i-lucide-search" size="md" variant="outline"
+                  placeholder="请输入搜索内容..."/>
+        </UForm>
+      </ActionGroup>
+    </template>
+    <UTable ref="table" :column-visibility="columnVisibility" :data="categoryList" :columns="columns"
             :get-sub-rows="(row)=>row.children"
             :ui="{
       base: 'border-separate border-spacing-0',
