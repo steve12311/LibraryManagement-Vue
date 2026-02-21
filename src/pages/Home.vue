@@ -40,7 +40,7 @@ watchEffect(() => {
     <UDashboardSidebar collapsible resizable :ui="{ footer: 'border-t border-default' }">
       <template #header="{ collapsed }">
         <Logo/>
-        <div v-if="!collapsed" class="font-bold text-xl">图书管理系统</div>
+        <div v-if="!collapsed" class="font-bold text-xl">智慧图书</div>
       </template>
       <template #default="{ collapsed }">
         <UNavigationMenu
