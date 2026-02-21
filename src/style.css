@@ -1,2 +1,3 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+@import "markstream-vue/index.css";

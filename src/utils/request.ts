@@ -46,7 +46,7 @@ httpRequest.interceptors.response.use(
     (response: AxiosResponse<ApiResponse>) => {
         const toast = useToast()
         // 如果响应是二进制数据，则直接返回response对象（用于文件下载、Excel导出、图片显示等）
-        if (response.config.responseType === "blob" || response.config.responseType === "arraybuffer") {
+        if (response.config.responseType === "stream" || response.config.responseType === "blob" || response.config.responseType === "arraybuffer") {
             return response;
         }
 
