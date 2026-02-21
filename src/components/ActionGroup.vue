@@ -1,11 +1,7 @@
 <script setup lang="ts">
 
-const emits = defineEmits<{
-  addRow: [],
-  deleteRow: [],
-  modifyRow: []
-  flush: [],
-}>()
+const emits = defineEmits(['addRow', 'deleteRow', 'modifyRow', 'flush'])
+
 withDefaults(defineProps<{
   table: any,
 }>(), {})
@@ -14,16 +10,18 @@ withDefaults(defineProps<{
 <template>
   <div class="flex justify-between">
     <div class="flex gap-4">
-      <UButton icon="i-lucide-plus" @click="emits('addRow')" variant="subtle" label="新增"/>
-      <UButton icon="i-lucide-clipboard-pen-line"
-               :disabled="(table?.tableApi?.getFilteredSelectedRowModel().flatRows.length??0)!==1"
-               @click="emits('modifyRow')"
-               variant="subtle" label="修改"
-               color="info"/>
-      <UButton icon="i-lucide-trash-2" variant="subtle"
-               :disabled="table?.tableApi?.getFilteredSelectedRowModel().flatRows.length===0"
-               @click="emits('deleteRow')"
-               label="删除" color="error"/>
+      <slot>
+        <UButton icon="i-lucide-plus" @click="emits('addRow')" variant="subtle" label="新增"/>
+        <UButton icon="i-lucide-clipboard-pen-line"
+                 :disabled="(table?.tableApi?.getFilteredSelectedRowModel().flatRows.length??0)!==1"
+                 @click="emits('modifyRow')"
+                 variant="subtle" label="修改"
+                 color="info"/>
+        <UButton icon="i-lucide-trash-2" variant="subtle"
+                 :disabled="table?.tableApi?.getFilteredSelectedRowModel().flatRows.length===0"
+                 @click="emits('deleteRow')"
+                 label="删除" color="error"/>
+      </slot>
     </div>
     <div class="flex gap-4">
       <UTooltip text="刷新" :delay-duration="0">
@@ -52,6 +50,7 @@ withDefaults(defineProps<{
 "
       >
         <UButton label="显示/隐藏列" color="neutral" variant="outline" trailing-icon="i-lucide-chevron-down"/>
+        <slot name="behind"></slot>
       </UDropdownMenu>
     </div>
   </div>
