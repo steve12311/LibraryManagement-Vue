@@ -1,5 +1,5 @@
 import axios, {type AxiosResponse} from "axios";
-import {useStore} from "../store/store.ts";
+import {useStore} from "@/store/store.ts";
 
 const store = useStore();
 const instance = axios.create({

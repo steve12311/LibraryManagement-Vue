@@ -2,7 +2,7 @@
 import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef} from "vue";
 import type {TableColumn} from "@nuxt/ui";
 import moment from "moment/moment";
-import RoleAPI, {type RolePageQuery, type RolePageVO} from "../api/role-api.ts"
+import RoleAPI, {type RolePageQuery, type RolePageVO} from "@/api/role-api.ts"
 
 onMounted(() => {
   handleQuery()

@@ -1,19 +1,27 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, useTemplateRef} from "vue";
-import type {SelectItem, TableColumn, TableRow} from "@nuxt/ui";
+import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
+import type {SelectItem, SelectMenuItem, StepperItem, TableColumn, TableRow} from "@nuxt/ui";
 import moment from "moment/moment";
-import stockApi, {type StockPageVO, type StockQuery} from "../api/stock-api.ts";
-import FileApi from "../api/file-api.ts";
-import {type UIMessage} from 'ai'
-import {getTextFromMessage} from "@nuxt/ui/utils/ai";
-import {AIChat} from "../utils/Chat.ts";
-import Markdown from "markstream-vue"
+import stockApi, {type StockForm, type StockPageVO, type StockQuery} from "@/api/stock-api.ts";
+import bookApi, {type BookForm} from "@/api/book-api.ts";
+import FileApi from "@/api/file-api.ts";
+import categoryApi from "@/api/category-api.ts";
+import publishApi from "@/api/publish-api.ts";
+import {ElDialog, ElTreeSelect} from "element-plus";
+import {CalendarDate} from "@internationalized/date";
+import StockOutDialog from "@/components/lib-stock/StockOutDialog.vue";
+import EditBookDialog from "@/components/lib-stock/EditBookDialog.vue";
+import StockDetailDialog from "@/components/lib-stock/StockDetailDialog.vue";
+
+const UButton = resolveComponent('UButton')
+const UTooltip = resolveComponent('UTooltip')
 
 onMounted(() => {
   handleQuery()
 })
 
-const chat = new AIChat({})
+const date = new Date()
+const toast = useToast()
 const pageDate = ref<StockPageVO[]>([])
 const currentSelectedStock = ref<StockPageVO>()
 const fieldItems = ref<SelectItem[]>([
@@ -32,14 +40,17 @@ const fieldItems = ref<SelectItem[]>([
 ])
 const total = ref(0);
 const open = ref(false)
-const openAISidebar = ref(false)
+const openEditBookDialog = ref(false)
+const openStockOutDialog = ref(false)
 const queryParams = reactive<StockQuery>({
   pageNum: 1,
   pageSize: 10,
   field: "name"
 })
-const inputMessage = ref("")
 const table = useTemplateRef("table")
+const publishOptions = ref<SelectMenuItem[]>([])
+const categoryTreeOptions = ref<OptionType[]>([])
+const loadingOptions = ref(false)
 const columns = ref<TableColumn<any>[]>([
   {
     id: "bookImage",
@@ -93,9 +104,85 @@ const columns = ref<TableColumn<any>[]>([
     accessorKey: "createTime",
     header: "入库日期",
     cell: ({row}) => moment(row.original.createTime).format("YYYY-MM-DD HH:mm:ss"),
+  },
+  {
+    id: "active",
+    header: "操作",
+    cell: ({row}) => h('div', undefined, [
+      h(UTooltip, {text: "修改", delayDuration: 0}, () => [
+        h(UButton, {
+          icon: "i-lucide-clipboard-pen-line",
+          variant: "ghost",
+          loading: loadingEditBook.value,
+          onClick: (ev: Event) => {
+            ev.stopPropagation();
+            openEditBookModal(row.original.isbn)
+          }
+        }),
+      ]),
+      h(UTooltip, {text: "出库", delayDuration: 0}, () => [
+        h(UButton, {
+          icon: "i-lucide-archive-restore", variant: "ghost", onClick: (ev: Event) => {
+            ev.stopPropagation();
+            openStockOutModal(row.original.isbn)
+          }
+        }),
+      ])
+    ])
   }
 ])
-const copied = ref(false)
+const loadingEditBook = ref(false)
+const submittingEditBook = ref(false)
+const editingIsbn = ref("")
+const stockOutIsbn = ref("")
+const stockOutNumber = ref(0)
+const submittingStockOut = ref(false)
+const openEntryStepper = ref(false)
+const isbnExists = ref(false)
+const checkingISBN = ref(false)
+const submittingStock = ref(false)
+const entryStepper = useTemplateRef("entryStepper")
+const entryStepperItems = ref<StepperItem[]>([
+  {
+    title: "ISBN",
+  },
+  {
+    title: "书籍详情",
+  },
+  {
+    title: "检查"
+  }
+])
+const initialStockFormData: StockForm = {
+  author: "",
+  categoryId: void 0,
+  cover: void 0,
+  intro: "",
+  isbn: "",
+  name: "",
+  pressId: void 0,
+  price: 0,
+  publishTime: date,
+  stock: 0
+}
+const state = ref<StockForm>({...initialStockFormData})
+const coverModel = ref<File>()
+const inputDate = useTemplateRef("inputDate")
+const publishTime = shallowRef(new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate()))
+const initialEditBookFormData: BookForm = {
+  isbn: "",
+  cover: "",
+  name: "",
+  intro: "",
+  author: "",
+  pressId: 0,
+  publishTime: date,
+  categoryId: 0,
+  price: 0,
+}
+const editBookState = ref<BookForm>({...initialEditBookFormData})
+const editBookCoverModel = ref<File>()
+const editBookPublishTime = shallowRef(new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate()))
 
 // 查询（重置页码后获取数据）
 function handleQuery() {
@@ -128,108 +215,397 @@ async function fetchImage(originalUrl: string | undefined) {
   }
 }
 
-function sendMessage(e: Event) {
-  e.preventDefault()
-  if (inputMessage.value.trim() === "") {
-    return;
+function toCalendarDate(value?: Date | string) {
+  const target = value ? new Date(value) : new Date()
+  return new CalendarDate(target.getFullYear(), target.getMonth() + 1, target.getDate())
+}
+
+function getCoverFileFromModel(model?: File): File | undefined {
+  if (!model) return void 0
+  const value = model as any
+  if (value instanceof File) return value
+  if (value?.file instanceof File) return value.file
+  if (value?.raw instanceof File) return value.raw
+  if (Array.isArray(value) && value.length > 0) {
+    const first = value[0]
+    if (first instanceof File) return first
+    if (first?.file instanceof File) return first.file
+    if (first?.raw instanceof File) return first.raw
   }
-  chat.sendMessage(inputMessage.value)
-  inputMessage.value = ""
+  return void 0
 }
 
-async function copy(_: MouseEvent, message: UIMessage) {
-  console.log(message)
-  await navigator.clipboard.writeText(getTextFromMessage(message))
-  copied.value = true
-
-  setTimeout(() => {
-    copied.value = false
-  }, 2000)
+function getCoverFile(): File | undefined {
+  return getCoverFileFromModel(coverModel.value)
 }
+
+function resetEntryForm() {
+  state.value = {...initialStockFormData}
+  coverModel.value = void 0
+  isbnExists.value = false
+  checkingISBN.value = false
+  submittingStock.value = false
+  publishTime.value = toCalendarDate()
+}
+
+function resetEditBookForm() {
+  editBookState.value = {...initialEditBookFormData}
+  editBookCoverModel.value = void 0
+  editBookPublishTime.value = toCalendarDate()
+  submittingEditBook.value = false
+  editingIsbn.value = ""
+}
+
+function resetStockOutForm() {
+  stockOutIsbn.value = ""
+  stockOutNumber.value = 0
+  submittingStockOut.value = false
+}
+
+watch(openEntryStepper, (isOpen) => {
+  if (isOpen) {
+    resetEntryForm()
+  }
+})
+
+watch(openEditBookDialog, (isOpen) => {
+  if (!isOpen) {
+    resetEditBookForm()
+  }
+})
+
+watch(openStockOutDialog, (isOpen) => {
+  if (!isOpen) {
+    resetStockOutForm()
+  }
+})
+
+async function fetchPublishOptions() {
+  try {
+    publishOptions.value = await publishApi.getOptions()
+  } catch (e) {
+    console.log(e)
+  }
+}
+
+async function fetchCategoryOptions() {
+  try {
+    categoryTreeOptions.value = await categoryApi.getOptions()
+  } catch (e) {
+    console.log(e)
+  }
+}
+
+async function openEntryModal() {
+  loadingOptions.value = true
+  try {
+    await Promise.all([fetchPublishOptions(), fetchCategoryOptions()])
+    openEntryStepper.value = true
+  } finally {
+    loadingOptions.value = false
+  }
+}
+
+async function openEditBookModal(isbn: string) {
+  if (!isbn) return
+  loadingEditBook.value = true
+  try {
+    const [_, __, formData] = await Promise.all([
+      fetchPublishOptions(),
+      fetchCategoryOptions(),
+      bookApi.getFormData(isbn)
+    ])
+    editingIsbn.value = isbn
+    editBookState.value = {...formData}
+    editBookPublishTime.value = toCalendarDate(formData.publishTime)
+    editBookCoverModel.value = void 0
+    openEditBookDialog.value = true
+  } catch (e) {
+    console.log(e)
+  } finally {
+    loadingEditBook.value = false
+  }
+}
+
+async function submitEditBook() {
+  if (!editingIsbn.value) {
+    toast.add({title: "错误", description: "ISBN不能为空", color: "error"})
+    return
+  }
+
+  const payload: BookForm = {
+    ...editBookState.value,
+    isbn: editingIsbn.value,
+    publishTime: new Date(editBookPublishTime.value.toString())
+  }
+
+  try {
+    submittingEditBook.value = true
+    const file = getCoverFileFromModel(editBookCoverModel.value)
+    if (file) {
+      const {url} = await FileApi.uploadFile(file)
+      payload.cover = url
+    }
+    await bookApi.update(payload)
+    toast.add({title: "成功", description: "修改成功", color: "success"})
+    openEditBookDialog.value = false
+    await fetchData()
+  } catch (e) {
+    console.log(e)
+  } finally {
+    submittingEditBook.value = false
+  }
+}
+
+function openStockOutModal(isbn: string) {
+  stockOutIsbn.value = isbn
+  stockOutNumber.value = 0
+  openStockOutDialog.value = true
+}
+
+async function submitStockOut() {
+  if (!stockOutIsbn.value) {
+    toast.add({title: "错误", description: "ISBN不能为空", color: "error"})
+    return
+  }
+  if (stockOutNumber.value < 0) {
+    toast.add({title: "错误", description: "出库数量不能小于0", color: "error"})
+    return
+  }
+
+  try {
+    submittingStockOut.value = true
+    const formData = await stockApi.getFormData(stockOutIsbn.value)
+    if (!formData) {
+      toast.add({title: "错误", description: "未找到图书信息", color: "error"})
+      return
+    }
+
+    const payload: StockForm = {
+      ...formData,
+      isbn: stockOutIsbn.value,
+      stock: stockOutNumber.value,
+    }
+    await stockApi.update(payload)
+    toast.add({title: "成功", description: "出库成功", color: "success"})
+    openStockOutDialog.value = false
+    await fetchData()
+  } catch (e) {
+    console.log(e)
+  } finally {
+    submittingStockOut.value = false
+  }
+}
+
+async function nextEntryStep() {
+  if (!entryStepper.value?.hasNext) return
+
+  if (!entryStepper.value.hasPrev) {
+    const isbn = state.value.isbn.trim()
+    if (!isbn) {
+      toast.add({title: "错误", description: "ISBN不能为空", color: "error"})
+      return
+    }
+
+    checkingISBN.value = true
+    try {
+      const formData = await stockApi.getFormData(isbn)
+      isbnExists.value = !!formData
+      state.value = {
+        ...state.value,
+        stock: 0
+      }
+      publishTime.value = toCalendarDate(formData?.publishTime)
+      coverModel.value = void 0
+      entryStepper.value.next()
+    } catch (e) {
+      console.log(e)
+    } finally {
+      checkingISBN.value = false
+    }
+    return
+  }
+
+  entryStepper.value.next()
+}
+
+async function submitStock() {
+  const isbn = state.value.isbn.trim()
+  if (!isbn) {
+    toast.add({title: "错误", description: "ISBN不能为空", color: "error"})
+    return
+  }
+
+  if (state.value.stock <= 0) {
+    toast.add({title: "错误", description: "入库数量必须大于0", color: "error"})
+    return
+  }
+
+  const payload: StockForm = {
+    ...state.value,
+    isbn,
+    publishTime: new Date(publishTime.value.toString())
+  }
+
+  try {
+    submittingStock.value = true
+    if (!isbnExists.value) {
+      const file = getCoverFile()
+      if (file) {
+        const {url} = await FileApi.uploadFile(file)
+        payload.cover = url
+      }
+    }
+    await stockApi.create(payload)
+    toast.add({title: "成功", description: "入库成功", color: "success"})
+    openEntryStepper.value = false
+    await fetchData()
+  } catch (e) {
+    console.log(e)
+  } finally {
+    submittingStock.value = false
+  }
+}
+
 </script>
 
 <template>
-  <UButton class="absolute z-10 right-10 bottom-10" icon="i-lucide-bot" label="智慧咨询" @click="openAISidebar = true"/>
-  <USlideover title="智慧咨询" v-model:open="openAISidebar">
-    <template #body>
-      <UContainer class="flex flex-col gap-4 sm:gap-6" style="min-height: 100%;padding: 0">
-        <UPageCard class="flex-1" spotlight
-                   spotlight-color="primary"
-                   v-if="chat.messages.value && chat.messages.value.length === 0"
-                   title="欢迎使用智慧书籍查询"
-        />
-        <UChatMessages
-            v-else
-            :should-auto-scroll="true"
-            :status="chat.status.value"
-            :user="{
-        variant: 'solid',
-      }"
-            :assistant="{
-        side:'left',
-        variant:'outline',
-        avatar:{
-          icon:'i-lucide-bot'
-        },
-        actions: [
-        {
-          label: 'Copy to clipboard',
-          icon: copied ? 'i-lucide-copy-check' : 'i-lucide-copy',
-          onClick: copy
-        }
-      ]}"
-            :messages="chat.messages.value"
-        >
-          <template #content="{ message }">
-            <Markdown
-                v-if="message.role === 'assistant'"
-                :content="message.parts?.filter(p => p.type === 'text').map(p => p.text).join('') || ''"
-                class="*:first:mt-0 *:last:mb-0"
-            />
-            <div
-                v-else-if="message.role === 'user'"
-                class="whitespace-pre-wrap wrap-break-word"
-                v-text="message.parts?.filter(p => p.type === 'text').map(p => p.text).join('') || ''"
-            />
-          </template>
+  <StockOutDialog
+      v-model:open="openStockOutDialog"
+      v-model:stock-out-number="stockOutNumber"
+      :submitting="submittingStockOut"
+      @submit="submitStockOut"
+  />
+  <EditBookDialog
+      v-model:open="openEditBookDialog"
+      v-model:state="editBookState"
+      v-model:cover-model="editBookCoverModel"
+      v-model:publish-time="editBookPublishTime"
+      :publish-options="publishOptions"
+      :category-tree-options="categoryTreeOptions"
+      :submitting="submittingEditBook"
+      @submit="submitEditBook"
+  />
+  <ElDialog v-model="openEntryStepper" title="图书入库" align-center>
+    <div class="w-full" style="max-height: 70vh;overflow-y: scroll;overflow-x: hidden">
+      <UStepper disabled ref="entryStepper" :items="entryStepperItems">
+        <template #content="{ item }">
+          <div class="w-full">
+            <UForm :state="state" class="flex flex-col gap-y-4">
+              <UFormField class="w-full" label="ISBN" required>
+                <UInput v-model="state.isbn" class="w-full" required :disabled="entryStepper?.hasPrev"/>
+              </UFormField>
+              <template v-if="item.title !== 'ISBN'">
+                <template v-if="isbnExists">
+                  <UAlert
+                      color="warning"
+                      variant="soft"
+                      title="已存在该 ISBN，只允许录入入库数量"
+                  />
+                  <UFormField class="w-full" label="数量">
+                    <UInputNumber v-model="state.stock" :min="0" class="w-full"/>
+                  </UFormField>
+                </template>
+                <template v-else>
+                  <UFormField class="w-full" label="出版日期">
+                    <UInputDate class="w-full" ref="inputDate" v-model="publishTime">
+                      <template #trailing>
+                        <UPopover :reference="inputDate?.inputsRef[3]?.$el">
+                          <UButton
+                              color="neutral"
+                              variant="link"
+                              size="sm"
+                              icon="i-lucide-calendar"
+                              aria-label="Select a date"
+                              class="px-0"
+                          />
 
-          <template #indicator>
-            <UButton
-                class="px-0"
-                color="neutral"
-                variant="link"
-                loading
-                loading-icon="i-lucide-loader"
-                label="思考中..."
-            />
-          </template>
-        </UChatMessages>
-        <UChatPrompt v-model="inputMessage" variant="subtle"
-                     class="sticky bottom-0 [view-transition-name:chat-prompt] z-10"
-                     @submit="sendMessage">
-          <template #footer>
-            <div></div>
-            <UChatPromptSubmit @reload="chat.reload()" @stop="chat.stop()" :status="chat.status.value" color="neutral"
-                               size="sm"/>
-          </template>
-        </UChatPrompt>
-      </UContainer>
-    </template>
-  </USlideover>
-  <UModal v-model:open="open" title="图书详情">
-    <template #body>
-      <div class="flex">
-        <img class="h-fit" :src="currentSelectedStock?.bookImage" :alt="currentSelectedStock?.name">
-        <div>
-          <p class="font-bold">{{ currentSelectedStock?.name }}</p>
-          <p class="text-sm text-gray-500">作者：{{ currentSelectedStock?.author }}</p>
-          <p class="text-sm text-gray-500">出版社：{{ currentSelectedStock?.publishName }}</p>
-          <p class="text-sm text-gray-500">分类：{{ currentSelectedStock?.categoryName }}</p>
-          <p class="text-sm mt-2">简介：{{ currentSelectedStock?.intro }}</p>
-        </div>
+                          <template #content>
+                            <UCalendar v-model="publishTime" class="p-2"/>
+                          </template>
+                        </UPopover>
+                      </template>
+                    </UInputDate>
+                  </UFormField>
+                  <UFormField class="w-full" label="封面">
+                    <UFileUpload
+                        v-model="coverModel"
+                        accept="image/*"
+                        label="上传图片拖到此处"
+                        description="SVG, PNG, JPG or GIF (最大支持2MB)"
+                        class="w-full min-h-48"
+                    />
+                  </UFormField>
+                  <UFieldGroup class="w-full gap-2">
+                    <UFormField class="w-full" label="名称">
+                      <UInput v-model="state.name" class="w-full"/>
+                    </UFormField>
+                    <UFormField class="w-full" label="作者">
+                      <UInput v-model="state.author" class="w-full"/>
+                    </UFormField>
+                  </UFieldGroup>
+                  <UFieldGroup class="w-full gap-2">
+                    <UFormField class="w-full" label="出版社">
+                      <USelect v-model="state.pressId" class="w-full" :items="publishOptions"/>
+                    </UFormField>
+                    <UFormField class="w-full" label="数量">
+                      <UInputNumber v-model="state.stock" :min="0" class="w-full"/>
+                    </UFormField>
+                  </UFieldGroup>
+                  <UFieldGroup class="w-full gap-2">
+                    <UFormField class="w-full" label="价格">
+                      <UInputNumber v-model="state.price" :formatOptions="{
+                      style: 'currency',
+                      currency: 'CNY',
+                      currencyDisplay: 'code',
+                      currencySign: 'accounting'
+                    }" :min="0" :step="0.01" class="w-full"/>
+                    </UFormField>
+                    <UFormField class="w-full" label="分类">
+                      <ElTreeSelect
+                          v-model="state.categoryId"
+                          :data="categoryTreeOptions"
+                          :check-strictly="true"
+                          :render-after-expand="false"
+                          placeholder="选择分类"
+                          class="w-full"
+                      />
+                    </UFormField>
+                  </UFieldGroup>
+                  <UFormField class="w-full" label="简介">
+                    <UTextarea v-model="state.intro" class="w-full" :rows="12"/>
+                  </UFormField>
+                </template>
+              </template>
+            </UForm>
+          </div>
+        </template>
+      </UStepper>
+    </div>
+    <template #footer>
+      <div class="w-full flex gap-2 justify-between mt-4">
+        <UButton
+            leading-icon="i-lucide-arrow-left"
+            :disabled="!entryStepper?.hasPrev"
+            @click="entryStepper?.prev()"
+            label="上一步"
+        />
+        <template v-if="entryStepper?.hasNext">
+          <UButton
+              trailing-icon="i-lucide-arrow-right"
+              :disabled="!entryStepper?.hasNext || checkingISBN"
+              :loading="checkingISBN"
+              @click="nextEntryStep"
+              label="下一步"
+          />
+        </template>
+        <template v-else>
+          <UButton label="完成" :loading="submittingStock" @click="submitStock"/>
+        </template>
       </div>
     </template>
-  </UModal>
+  </ElDialog>
+  <StockDetailDialog v-model:open="open" v-model:stock="currentSelectedStock"/>
   <UCard>
     <template #header>
       <ActionGroup @flush="fetchData" :table="table">
@@ -241,7 +617,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
           </div>
         </UForm>
         <template #behind>
-          <UButton label="入库"/>
+          <UButton @click="openEntryModal" :loading="loadingOptions" label="入库"/>
         </template>
       </ActionGroup>
     </template>

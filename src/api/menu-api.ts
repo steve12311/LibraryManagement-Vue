@@ -1,7 +1,7 @@
-import request from "../utils/request";
-import {MenuTypeEnum} from "../enums/system/menu-enum";
+import request from "@/utils/request";
+import {MenuTypeEnum} from "@/enums/system/menu-enum";
 import type {NavigationMenuItem} from "@nuxt/ui";
-import {usePermissionStoreHook} from "../store/modules/permission-store.ts";
+import {usePermissionStoreHook} from "@/store/modules/permission-store.ts";
 import {computed} from "vue";
 import type {RouteRecordRaw} from "vue-router";
 

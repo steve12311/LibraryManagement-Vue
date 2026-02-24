@@ -1,4 +1,5 @@
-import request from "../utils/request";
+import request from "@/utils/request";
+import type {SelectMenuItem} from "@nuxt/ui";
 
 const USER_BASE_URL = "/api/v1/users";
 
@@ -26,6 +27,12 @@ const UserAPI = {
             params: queryParams,
         });
     },
+    getOptions() {
+        return request<any, SelectMenuItem[]>({
+            url: `${USER_BASE_URL}/options`,
+            method: "get",
+        })
+    }
 }
 
 /** 用户分页对象 */

@@ -2,8 +2,8 @@
 import {onMounted, onUnmounted, reactive, ref} from "vue";
 import * as v from "valibot"
 import {useRoute, useRouter} from "vue-router";
-import AuthAPI, {type LoginFormData} from "../api/auth-api";
-import {useUserStore} from "../store";
+import AuthAPI, {type LoginFormData} from "@/api/auth-api";
+import {useUserStore} from "@/store";
 
 onMounted(() => {
   getCaptcha()

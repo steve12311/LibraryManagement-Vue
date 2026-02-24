@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef, watchEffect} from "vue";
-import MenuAPI, {type MenuForm, type MenuQuery, type MenuVO} from "../api/menu-api.ts";
+import MenuAPI, {type MenuForm, type MenuQuery, type MenuVO} from "@/api/menu-api.ts";
 import type {TableColumn, TableRow} from "@nuxt/ui";
-import {MenuTypeEnum} from "../enums/system/menu-enum.ts";
+import {MenuTypeEnum} from "@/enums/system/menu-enum.ts";
 import {ElTreeSelect, ElDrawer, ElDialog} from "element-plus";
-import WarningModal from "../components/WarningModal.vue";
+import WarningModal from "@/components/WarningModal.vue";
 
 onMounted(() => {
   handleQuery()

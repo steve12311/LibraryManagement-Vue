@@ -1,13 +1,20 @@
-import request from "../utils/request";
+import request from "@/utils/request";
+import type {SelectMenuItem} from "@nuxt/ui";
 
 const PUBLISH_BASE_URL = '/api/v1/publish'
 
-const publishApi = {
+const PublishApi = {
     getPage(queryParams: PublishQuery) {
         return request<any, PageResult<PublishPageVO[]>>({
-            url: `${PUBLISH_BASE_URL}`,
+            url: `${PUBLISH_BASE_URL}/page`,
             method: "get",
             params: queryParams
+        })
+    },
+    getOptions() {
+        return request<any, SelectMenuItem[]>({
+            url: `${PUBLISH_BASE_URL}/options`,
+            method: "get",
         })
     },
     getFormData(id: number) {
@@ -23,9 +30,9 @@ const publishApi = {
             data
         })
     },
-    update(id: number, data: PublishForm) {
+    update(data: PublishForm) {
         return request({
-            url: `${PUBLISH_BASE_URL}/${id}`,
+            url: `${PUBLISH_BASE_URL}`,
             method: "put",
             data
         })
@@ -63,4 +70,4 @@ export interface PublishQuery extends PageQuery {
     keyword?: string
 }
 
-export default publishApi;
+export default PublishApi;

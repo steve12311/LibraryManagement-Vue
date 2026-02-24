@@ -1,4 +1,4 @@
-import request from "../utils/request";
+import request from "@/utils/request";
 
 const ROLE_BASE_URL = "/api/v1/roles";
 const RoleAPI = {

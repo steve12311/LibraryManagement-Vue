@@ -25,6 +25,12 @@ httpRequest.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
         const accessToken = useAuthStoreHook().accessToken;
 
+        // Let axios set proper multipart boundary for FormData
+        if (config.data instanceof FormData) {
+            delete config.headers["Content-Type"];
+            delete config.headers["content-type"];
+        }
+
         // 如果 Authorization 设置为 no-auth，则不携带 Token
         if (config.headers.Authorization !== "no-auth" && accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;

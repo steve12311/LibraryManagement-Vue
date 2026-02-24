@@ -1,4 +1,4 @@
-import request from "../utils/request.ts"
+import request from "@/utils/request.ts"
 
 const AUTH_BASE_URL = "/api/v1/auth";
 

@@ -1,55 +1,115 @@
 <script setup lang="ts">
-import {h, onMounted, ref, resolveComponent} from "vue";
-import type {Page, PageInfo, Response} from "../utils/Common.ts";
-import {get} from "../api/request.ts"
-import type {TableColumn} from "@nuxt/ui";
+import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef} from "vue";
+import type {InputMenuItem, SelectItem, SelectMenuItem, TableColumn} from "@nuxt/ui";
 import moment from "moment";
+import {CalendarDate} from '@internationalized/date'
+import borrowApi, {type BorrowForm, type BorrowPageVO, type BorrowQuery} from "@/api/borrow-api.ts";
+import userApi from "@/api/user-api.ts";
+import bookApi from "@/api/book-api.ts";
+import * as v from 'valibot'
+import {ElMessageBox} from "element-plus";
 
-const UCheckbox = resolveComponent('UCheckbox')
+const UAvatar = resolveComponent('UAvatar')
 const UBadge = resolveComponent('UBadge')
+const UButton = resolveComponent('UButton')
+const UTooltip = resolveComponent('UTooltip')
+const UFieldGroup = resolveComponent('UFieldGroup')
 
-const dataList = ref<any>([])
-const pagination = ref<Page>({
+onMounted(() => {
+  handleQuery()
+})
+
+const toast = useToast()
+const date = new Date()
+const form = useTemplateRef("form")
+const pageData = ref<BorrowPageVO[]>([])
+const table = useTemplateRef("table")
+const inputDate = useTemplateRef('inputDate')
+const queryParams = reactive<BorrowQuery>({
   pageNum: 1,
   pageSize: 10,
-  total: 0,
+  field: "isbn"
 })
-const columns = ref<TableColumn<any>[]>([
+const userOptions = ref<SelectMenuItem[]>([])
+const bookOptions = ref<InputMenuItem[]>([])
+const fieldItems = ref<SelectItem[]>([
   {
-    id: "select",
-    header: ({table}) => {
-      return h(UCheckbox, {
-        modelValue: table.getIsSomePageRowsSelected()
-            ? 'indeterminate'
-            : table.getIsAllPageRowsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-            table.toggleAllPageRowsSelected(!!value),
-        'aria-label': '选择全部'
-      })
-    },
-    cell: ({row}) => {
-      return h(UCheckbox, {
-        modelValue: row.getIsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': '选择单行'
-      })
-    }
+    label: "用户名",
+    value: "username"
   },
+  {
+    label: "ISBN",
+    value: "isbn"
+  },
+  {
+    label: "状态",
+    value: "status"
+  }
+])
+const statusItems = ref<SelectItem[]>([
+  {
+    label: "全部",
+    value: null
+  },
+  {
+    label: "已归还",
+    value: 0
+  },
+  {
+    label: "借阅中",
+    value: 1
+  },
+  {
+    label: "已逾期",
+    value: 2
+  }
+])
+const total = ref(0);
+const open = ref(false)
+const openConfirm = ref(false)
+const delayDay = ref(0)
+const delayForm = useTemplateRef("delayForm")
+const returnTime = shallowRef(new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate()))
+const clickUUID = ref("")
+const initialBorrowFormData = ref<BorrowForm>({
+  isbn: "",
+  userId: "",
+  returnTime: new Date()
+})
+const emptyBorrowFormData = ref({...initialBorrowFormData.value})
+const state = ref({...initialBorrowFormData.value})
+const schema = v.object({
+  isbn: v.pipe(v.string(), v.nonEmpty("ISBN不能为空")),
+  userId: v.pipe(v.string(), v.nonEmpty("借阅用户不能为空")),
+})
+const columns = ref<TableColumn<BorrowPageVO>[]>([
   {
     accessorKey: "borrowId",
     header: "借阅订单"
   },
   {
-    accessorKey: "bookId",
-    header: "书籍ID"
+    accessorKey: "isbn",
+    header: "ISBN"
   },
   {
     accessorKey: "bookName",
     header: "名称"
   },
   {
-    accessorKey: "userName",
-    header: "借阅用户"
+    id: "userInfo",
+    header: "借阅用户",
+    cell: ({row}) => {
+      return h('div', {class: 'flex items-center gap-3'}, [
+        h(UAvatar, {
+          size: "lg",
+          src: row.original.avatar
+        }),
+        h("div", undefined, [
+          h('p', {class: 'font-medium text-highlighted'}, row.original.nickname),
+          h('p', {class: ''}, `@${row.original.username}`)
+        ])
+      ])
+    }
   },
   {
     accessorKey: "returnTime",
@@ -68,58 +128,209 @@ const columns = ref<TableColumn<any>[]>([
               getBorrowText(row.original)
       )
     },
+  },
+  {
+    id: "action",
+    header: "操作",
+    cell: ({row}) => {
+      if (!row.original.realityReturnTime) {
+        return h(UFieldGroup, undefined, () => [
+          h(UTooltip, {text: "延长时间", delayDuration: 0}, () => [
+            h(UButton, {
+              icon: "i-lucide-calendar-clock", variant: "ghost", onClick: () => {
+                openConfirm.value = true
+                clickUUID.value = row.original.borrowId
+              }
+            }, [])
+          ]),
+          h(UTooltip, {text: "归还图书", delayDuration: 0}, () => [
+            h(UButton, {
+              icon: "i-lucide-book-down", variant: "ghost", onClick: () => {
+                ElMessageBox.confirm("还书后不可撤销", "确认还书吗？")
+                    .then(() => {
+                      borrowApi.update(row.original.borrowId, {
+                        realityReturnTime: new Date()
+                      }).then(() => {
+                        fetchData()
+                      })
+                    })
+              }
+            }),
+          ]),
+        ])
+      }
+    }
   }
 ])
 
-onMounted(() => {
-  getBorrowList()
-})
-
-function getBorrowText(row: any) {
+function getBorrowText(row: BorrowPageVO) {
   const returnTime = new Date(moment(row.returnTime).format('YYYY-MM-DD'))
   if (row.realityReturnTime === null) {
-    if (row.payFlag !== 1) {
-      return "未归还"
-    } else {
-      return "已买断"
+    if (returnTime < new Date()) {
+      return "已逾期"
     }
-  }
-  const realityReturnTime = new Date(moment(row.realityReturnTime).format('YYYY-MM-DD'))
-  if (returnTime >= realityReturnTime) {
+    return "借阅中"
+  } else {
     return "已归还"
   }
 }
 
-function getBorrowStatus(row: any) {
+function getBorrowStatus(row: BorrowPageVO) {
   const returnTime = new Date(moment(row.returnTime).format('YYYY-MM-DD'))
   if (row.realityReturnTime === null) {
-    if (row.payFlag !== 1) {
-      return "info"
-    } else {
-      return "neutral"
+    if (returnTime < new Date()) {
+      return "error"
     }
-  }
-  const realityReturnTime = new Date(moment(row.realityReturnTime).format('YYYY-MM-DD'))
-  if (returnTime >= realityReturnTime) {
     return "success"
+  } else {
+    return "neutral"
   }
 }
 
-async function getBorrowList() {
-  const {data} = await get<Response<PageInfo<any>>>("lib/borrow/list", {
-    params: pagination.value,
+function handleQuery() {
+  queryParams.pageNum = 1;
+  fetchData()
+}
+
+async function fetchData() {
+  try {
+    const data = await borrowApi.getPage(queryParams)
+    pageData.value = data.list
+    total.value = data.total
+  } catch (e) {
+    console.log(e)
+  }
+}
+
+async function fetchUserOptions() {
+  try {
+    userOptions.value = await userApi.getOptions()
+  } catch (e) {
+    console.log(e)
+  }
+}
+
+async function fetchBookOptions() {
+  try {
+    bookOptions.value = await bookApi.getOptions()
+  } catch (e) {
+    console.log(e)
+  }
+}
+
+async function openModal() {
+  await fetchUserOptions()
+  await fetchBookOptions()
+  open.value = true
+}
+
+function resetForm() {
+  state.value = {...emptyBorrowFormData.value}
+}
+
+function submitForm() {
+  state.value.returnTime = new Date(returnTime.value.toString())
+  borrowApi.create(state.value)
+      .then(() => {
+        resetForm()
+        toast.add({title: "成功", description: "新增成功", color: "success"})
+        fetchData()
+      })
+}
+
+function submitDelayDay() {
+  const day = new Date()
+  day.setDate(day.getDate() + delayDay.value)
+  borrowApi.update(clickUUID.value, {
+    returnTime: day
+  }).then(() => {
+    toast.add({title: "成功", description: "延期成功", color: "success"})
+    openConfirm.value = false
+    fetchData()
   })
-  dataList.value = data.data.records
-  pagination.value.total = data.data.total
 }
 </script>
 
 <template>
+  <UModal v-model:open="openConfirm" title="延迟还书">
+    <template #body>
+      <UForm @submit="submitDelayDay" ref="delayForm">
+        <UInputNumber v-model="delayDay" :min="0"/>
+      </UForm>
+    </template>
+    <template #footer>
+      <div class="flex justify-end w-full gap-2">
+        <UButton @click="delayForm?.submit()" variant="subtle" color="error" label="确定"/>
+        <UButton variant="solid" label="取消"/>
+      </div>
+    </template>
+  </UModal>
+  <UModal v-model:open="open" title="新增借阅">
+    <template #body>
+      <UForm @submit="submitForm" :schema="schema" :state="state" ref="form" class="gap-y-4">
+        <UFormField name="isbn" class="w-full" label="ISBN" required>
+          <UInputMenu valueKey="value" v-model="state.isbn" virtualize icon="i-lucide-book" class="w-full"
+                      :items="bookOptions"
+                      :ui="{ content: 'min-w-fit' }" required/>
+        </UFormField>
+        <UFieldGroup class="w-full gap-2">
+          <UFormField name="userId" class="w-full" label="借阅用户" required>
+            <USelectMenu valueKey="value" v-model="state.userId" virtualize icon="i-lucide-user" class="w-full"
+                         :items="userOptions"
+                         :ui="{ content: 'min-w-fit' }" required/>
+          </UFormField>
+          <UFormField class="w-full" label="归还日期">
+            <UInputDate class="w-full" ref="inputDate" v-model="returnTime">
+              <template #trailing>
+                <UPopover :reference="inputDate?.inputsRef[3]?.$el">
+                  <UButton
+                      color="neutral"
+                      variant="link"
+                      size="sm"
+                      icon="i-lucide-calendar"
+                      aria-label="Select a date"
+                      class="px-0"
+                  />
+
+                  <template #content>
+                    <UCalendar v-model="returnTime" class="p-2"/>
+                  </template>
+                </UPopover>
+              </template>
+            </UInputDate>
+          </UFormField>
+        </UFieldGroup>
+      </UForm>
+    </template>
+    <template #footer>
+      <div class="flex justify-end w-full gap-2">
+        <UButton @click="form?.submit()" variant="subtle" color="error" label="确定"/>
+        <UButton variant="solid" label="取消"/>
+      </div>
+    </template>
+  </UModal>
   <UCard>
     <template #header>
-      1111
+      <ActionGroup :table="table" @flush="fetchData">
+        <UForm @submit="fetchData" class="w-full">
+          <div class="flex gap-2">
+            <USelect v-model="queryParams.field" defaultValue="name" :items="fieldItems" class="w-25"/>
+            <USelect @change="fetchData" v-model="queryParams.keyword" class="w-40" :items="statusItems"
+                     v-if="queryParams.field === 'status'"/>
+            <UInput v-else v-model="queryParams.keyword" icon="i-lucide-search" size="md" variant="outline"
+                    placeholder="请输入搜索内容..."/>
+          </div>
+        </UForm>
+        <UButton @click="openModal" icon="i-lucide-plus" variant="subtle" label="新增"/>
+      </ActionGroup>
     </template>
-    <UTable :data="dataList" :columns="columns"/>
+    <UTable ref="table" :data="pageData" :columns="columns"/>
+    <template #footer>
+      <div class="flex justify-center border-default pt-4">
+        <UPagination v-model:page="queryParams.pageNum" :total="total"
+                     :items-per-page="queryParams.pageSize" @update:page="fetchData"/>
+      </div>
+    </template>
   </UCard>
 </template>
 

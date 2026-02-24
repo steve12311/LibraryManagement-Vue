@@ -2,7 +2,7 @@
 import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef} from "vue";
 import type {TableColumn} from "@nuxt/ui";
 import moment from "moment";
-import UserAPI, {type UserPageQuery, type UserPageVO} from "../api/user-api.ts"
+import UserAPI, {type UserPageQuery, type UserPageVO} from "@/api/user-api.ts"
 
 onMounted(() => {
   handleQuery()
@@ -52,7 +52,7 @@ const columns = ref<TableColumn<UserPageVO>[]>([
     header: "用户ID",
   },
   {
-    accessorKey: "nickName",
+    id: "userInfo",
     header: "用户信息",
     cell: ({row}) => {
       return h('div', {class: 'flex items-center gap-3'}, [

@@ -2,7 +2,7 @@
 import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef} from "vue";
 import type {SelectItem, TableColumn, TableRow} from "@nuxt/ui";
 import moment from "moment/moment";
-import publishApi, {type PublishForm, type PublishPageVO, type PublishQuery} from "../api/publish-api.ts";
+import publishApi, {type PublishForm, type PublishPageVO, type PublishQuery} from "@/api/publish-api.ts";
 import * as v from 'valibot'
 
 const UCheckbox = resolveComponent('UCheckbox')
@@ -12,7 +12,6 @@ onMounted(() => {
 })
 
 const pageDate = ref<PublishPageVO[]>([])
-const selectedPublish = ref<PublishPageVO>()
 const toast = useToast()
 const total = ref(0);
 const open = ref(false)
@@ -22,7 +21,7 @@ const form = useTemplateRef("form")
 const schema = v.object({
   name: v.pipe(v.string(), v.nonEmpty("名称不可为空")),
 })
-const columns = ref<TableColumn<any>[]>([
+const columns = ref<TableColumn<PublishPageVO>[]>([
   {
     id: "select",
     header: ({table}) => {
@@ -129,7 +128,7 @@ async function editPublish(id: number) {
 async function openModal(type: "add" | "edit") {
   resetForm()
   if (type === "edit") {
-    await editPublish(table.value?.tableApi.getSelectedRowModel().rows[0]!.original.publishId)
+    await editPublish(table.value!.tableApi.getSelectedRowModel().rows[0]!.original.publishId)
   } else {
     addPublish()
   }
@@ -146,7 +145,7 @@ function resetForm() {
 
 function submitForm() {
   if (state.value.id) {
-    publishApi.update(state.value.id, state.value).then(() => {
+    publishApi.update(state.value).then(() => {
       resetForm()
       fetchData()
       toast.add({title: "成功", description: "修改成功", color: "success"})
@@ -158,7 +157,6 @@ function submitForm() {
       toast.add({title: "成功", description: "新增成功", color: "success"})
     })
   }
-  open.value = false
 }
 
 function deletePublish() {

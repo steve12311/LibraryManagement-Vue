@@ -1,11 +1,17 @@
-import request from "../utils/request.ts";
+import request from "@/utils/request.ts";
 
 const CATEGORY_BASE_URL = "/api/v1/category"
 
 const CategoryApi = {
     getList(queryParams: CategoryQuery) {
         return request<any, CategoryVO[]>({url: `${CATEGORY_BASE_URL}`, method: "get", params: queryParams})
-    }
+    },
+    getOptions() {
+        return request<any, OptionType[]>({
+            url: `${CATEGORY_BASE_URL}/options`,
+            method: "get",
+        })
+    },
 }
 
 export interface CategoryVO {

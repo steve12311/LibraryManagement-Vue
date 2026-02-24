@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import {get} from "../api/request.ts";
-import type {Dept, Response} from "../utils/Common.ts";
+import {get} from "@/api/request.ts";
+import type {Dept, Response} from "@/utils/Common.ts";
 import {h, onMounted, ref, resolveComponent, useTemplateRef} from "vue";
 import type {TableColumn} from "@nuxt/ui";
 import moment from "moment";

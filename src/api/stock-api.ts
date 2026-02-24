@@ -1,17 +1,37 @@
-import request from "../utils/request";
+import request from "@/utils/request";
 
 const STOCK_BASE_URL = '/api/v1/stock'
 
-const stockApi = {
+const StockApi = {
     /**
      * 获取库存列表
      * @param queryParams
      */
     getPage(queryParams: StockQuery) {
         return request<any, PageResult<StockPageVO[]>>({
-            url: `${STOCK_BASE_URL}`,
+            url: `${STOCK_BASE_URL}/page`,
             method: "get",
             params: queryParams
+        })
+    },
+    getFormData(isbn: string) {
+        return request<any, StockForm | null>({
+            url: `${STOCK_BASE_URL}/${isbn}`,
+            method: "get",
+        })
+    },
+    create(stockForm: StockForm) {
+        return request({
+            url: `${STOCK_BASE_URL}`,
+            method: "post",
+            data: stockForm
+        })
+    },
+    update(stockForm: StockForm) {
+        return request({
+            url: `${STOCK_BASE_URL}`,
+            method: "put",
+            data: stockForm
         })
     }
 }
@@ -35,4 +55,17 @@ export interface StockQuery extends PageQuery {
     keyword?: string
 }
 
-export default stockApi
+export interface StockForm {
+    isbn: string;
+    cover?: string;
+    name: string;
+    intro: string;
+    author: string;
+    pressId: number | undefined;
+    publishTime: Date;
+    categoryId: number | undefined;
+    price: number;
+    stock: number;
+}
+
+export default StockApi
