@@ -11,7 +11,7 @@
   "dependencies": {
     "@ai-sdk/vue": "^3.0.97",
     "@internationalized/date": "^3.11.0",
-    "@nuxt/ui": "^4.4.0",
+    "@nuxt/ui": "^4.5.0",
     "@tanstack/vue-table": "^8.21.3",
     "@vueuse/core": "^14.2.1",
     "ai": "^6.0.97",

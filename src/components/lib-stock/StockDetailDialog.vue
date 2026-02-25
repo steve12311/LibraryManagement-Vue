@@ -16,6 +16,7 @@ const currentSelectedStock = defineModel<StockPageVO | undefined>('stock')
           <p class="text-sm text-gray-500">作者：{{ currentSelectedStock?.author }}</p>
           <p class="text-sm text-gray-500">出版社：{{ currentSelectedStock?.publishName }}</p>
           <p class="text-sm text-gray-500">分类：{{ currentSelectedStock?.categoryName }}</p>
+          <p class="text-sm text-gray-500">价格：¥ {{ currentSelectedStock?.price }}</p>
           <p class="text-sm mt-2">简介：{{ currentSelectedStock?.intro }}</p>
         </div>
       </div>

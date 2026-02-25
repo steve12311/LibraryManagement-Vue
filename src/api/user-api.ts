@@ -32,7 +32,142 @@ const UserAPI = {
             url: `${USER_BASE_URL}/options`,
             method: "get",
         })
+    },
+    changeStatus(id: string, status: number) {
+        return request({
+            url: `${USER_BASE_URL}/${id}/status`,
+            method: "put",
+            params: {
+                status,
+            },
+        })
+    },
+    getFormData(id: string) {
+        return request<any, UserForm>({
+            url: `${USER_BASE_URL}/${id}/form`,
+            method: "get",
+        })
+    },
+    /*如果不填重置的密码则后端默认会为123456*/
+    resetPassword(id: string, password?: string) {
+        return request({
+            url: `${USER_BASE_URL}/${id}/password/reset`,
+            method: "put",
+            params: {
+                password,
+            }
+        })
+    },
+    /*更改自己的密码*/
+    editPassword(data: PasswordUpdateForm) {
+        return request({
+            url: `${USER_BASE_URL}/password`,
+            method: "put",
+            data: data,
+        })
+    },
+    getProfile() {
+        return request<any, UserProfile>({
+            url: `${USER_BASE_URL}/profile`,
+            method: "get",
+        })
+    },
+    updateProfile(data: UserProfileForm) {
+        return request({
+            url: `${USER_BASE_URL}/profile`,
+            method: "put",
+            data: data,
+        })
+    },
+    create(data: UserForm) {
+        return request({
+            url: `${USER_BASE_URL}`,
+            method: "post",
+            data: data,
+        })
+    },
+    update(id: string, data: UserForm) {
+        return request({
+            url: `${USER_BASE_URL}/${id}`,
+            method: "put",
+            data: data,
+        })
+    },
+    delete(ids: string[]) {
+        const idsStr = ids.join(",");
+        return request({
+            url: `${USER_BASE_URL}/${idsStr}`,
+            method: "delete",
+        })
     }
+}
+
+export interface UserProfileForm {
+    id: number;
+
+    username: string;
+
+    nickname: string;
+
+    avatar: string;
+
+    gender: number;
+
+    mobile: string;
+
+    email: string;
+}
+
+export interface UserProfile {
+    id: number;
+
+    username: string;
+
+    nickname: string;
+
+    avatar: string;
+
+    gender: number;
+
+    mobile: string;
+
+    email: string;
+
+    roleNames: string;
+
+    createTime: Date;
+}
+
+export interface PasswordUpdateForm {
+    oldPassword: string;
+
+    newPassword: string;
+
+    confirmPassword: string;
+}
+
+export interface UserForm {
+    id: number;
+
+    username: string;
+
+    nickname: string;
+
+    mobile: string;
+
+    gender: number;
+
+    avatar: string;
+
+    email: string;
+
+    status: number;
+
+    deptId: number;
+
+    roleIds: number[];
+
+    openId: string;
 }
 
 /** 用户分页对象 */

@@ -4,6 +4,8 @@ import type {BreadcrumbItem, DropdownMenuItem} from '@nuxt/ui'
 import {useRouter} from "vue-router";
 import {useUserStore} from "@/store";
 import MenuAPI from "@/api/menu-api.ts";
+import {ElMessageBox} from "element-plus";
+import authApi from "@/api/auth-api.ts";
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -14,6 +16,9 @@ const dropItems = ref<DropdownMenuItem[][]>([
     {
       label: "个人中心",
       icon: "i-lucide-circle-user",
+      to: {
+        name: "Me"
+      }
     },
   ],
   [
@@ -21,6 +26,18 @@ const dropItems = ref<DropdownMenuItem[][]>([
       label: "退出登录",
       icon: "i-lucide-log-out",
       kbds: ["shift", "meta", "q"],
+      onSelect: () => {
+        ElMessageBox.confirm(
+            "确认退出登录吗？",
+            "警告"
+        ).then(() => {
+          authApi.logout()
+          userStore.resetAllState()
+          router.push({
+            name: "Login",
+          })
+        })
+      }
     }
   ]
 ])
@@ -36,7 +53,7 @@ watchEffect(() => {
 </script>
 
 <template>
-  <UDashboardGroup>
+  <UDashboardGroup class="h-screen overflow-hidden">
     <UDashboardSidebar collapsible resizable :ui="{ footer: 'border-t border-default' }">
       <template #header="{ collapsed }">
         <Logo/>
@@ -64,8 +81,8 @@ watchEffect(() => {
         </UDropdownMenu>
       </template>
     </UDashboardSidebar>
-    <div class="w-full">
-      <UDashboardNavbar>
+    <div class="flex w-full flex-col">
+      <UDashboardNavbar class="shrink-0">
         <template #leading>
           <UDashboardSidebarCollapse/>
         </template>
@@ -77,7 +94,7 @@ watchEffect(() => {
           </UBreadcrumb>
         </template>
       </UDashboardNavbar>
-      <div class="w-full h-200 p-4 overflow-scroll box-border">
+      <div class="flex-1 overflow-auto box-border p-4">
         <RouterView/>
       </div>
     </div>

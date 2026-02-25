@@ -25,8 +25,8 @@ const loginFormData = reactive<LoginFormData>({
 })
 const captchaBase64 = ref("")
 const schema = v.object({
-  username: v.pipe(v.string(), v.minLength(5, "账号最低5个字符")),
-  password: v.pipe(v.string(), v.minLength(8, "密码最低8个字符")),
+  username: v.pipe(v.string(), v.minLength(4, "账号最低4个字符")),
+  password: v.pipe(v.string(), v.minLength(6, "密码最低6个字符")),
   captchaCode: v.pipe(v.string(), v.minLength(4, "请输入合法的验证码")),
 })
 

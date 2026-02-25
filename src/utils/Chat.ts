@@ -78,7 +78,6 @@ export class AIChat {
             }
         })
             .then(() => {
-                console.log(this.messages.value[this.messages.value.length - 1])
                 this.status.value = "ready"
             })
             .catch((error) => {

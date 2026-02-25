@@ -32,6 +32,12 @@ const AuthAPI = {
             },
         });
     },
+    logout(){
+        return request({
+            url: `${AUTH_BASE_URL}/logout`,
+            method: "delete",
+        })
+    }
 }
 
 /** 登录表单数据 */

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import {get} from "@/api/request.ts";
-import type {Dept, Response} from "@/utils/Common.ts";
 import {h, onMounted, ref, resolveComponent, useTemplateRef} from "vue";
 import type {TableColumn} from "@nuxt/ui";
 import moment from "moment";
@@ -10,9 +8,9 @@ const UBadge = resolveComponent('UBadge')
 const UFieldGroup = resolveComponent('UFieldGroup')
 const UTooltip = resolveComponent('UTooltip')
 
-const dataList = ref<Dept[]>([])
+const dataList = ref<any[]>([])
 const table = useTemplateRef("table")
-const columns = ref<TableColumn<Dept>[]>([
+const columns = ref<TableColumn<any>[]>([
   {
     accessorKey: "deptId",
     header: "部门编号",
@@ -87,8 +85,7 @@ onMounted(() => {
 })
 
 async function getDepList() {
-  const {data} = await get<Response<Dept[]>>('/system/dept/list',)
-  dataList.value = data.data
+
 }
 </script>
 

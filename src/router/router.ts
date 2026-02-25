@@ -15,6 +15,9 @@ export const constantRoutes: RouteRecordRaw[] = [
                 component: () => import("../views/Index.vue")
             }
         ]
+    },
+    {
+        path: "/me", name: "Me", meta: {hidden: true}, component: () => import("../pages/Me.vue")
     }
 ]
 

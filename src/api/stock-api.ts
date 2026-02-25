@@ -47,6 +47,7 @@ export interface StockPageVO {
     categoryName: string
     stockNumber: number
     currentNumber: number
+    price: number
     createTime: Date
 }
 

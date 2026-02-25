@@ -1,14 +1,293 @@
 <script setup lang="ts">
-import {ref} from "vue";
-import AISidebar from "@/components/lib-stock/AISidebar.vue";
+import {computed, onBeforeUnmount, onMounted, reactive, ref} from "vue";
+import AISidebar from "@/components/AISidebar.vue";
+import stockApi, {type StockPageVO, type StockQuery} from "@/api/stock-api.ts";
+import FileApi from "@/api/file-api.ts";
+
+interface HomeBookCard extends StockPageVO {
+  coverPreview?: string;
+}
 
 const openAISidebar = ref(false)
+const loading = ref(false)
+const total = ref(0)
+const searchKeyword = ref("")
+const activeKeyword = ref("")
+const books = ref<HomeBookCard[]>([])
+const queryParams = reactive<StockQuery>({
+  pageNum: 1,
+  pageSize: 9,
+  field: "name",
+  keyword: void 0
+})
+const objectUrls = new Set<string>()
+const imageCache = new Map<string, string>()
+const aiHighlights = [
+  {icon: "i-lucide-book-open-check", text: "支持按书名快速定位馆藏"},
+  {icon: "i-lucide-lightbulb", text: "可询问借阅建议与阅读路线"},
+  {icon: "i-lucide-clock-3", text: "随时打开，无需跳转页面"}
+]
+
+const resultText = computed(() => {
+  if (!activeKeyword.value) {
+    return `当前共收录 ${total.value} 本图书`
+  }
+  return `关键词“${activeKeyword.value}”共找到 ${total.value} 本图书`
+})
+
+onMounted(() => {
+  void fetchBooks()
+})
+
+onBeforeUnmount(() => {
+  objectUrls.forEach((url) => URL.revokeObjectURL(url))
+  objectUrls.clear()
+  imageCache.clear()
+})
+
+function normalizeKeyword(value: string) {
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : void 0
+}
+
+function handleSearch() {
+  queryParams.pageNum = 1
+  queryParams.keyword = normalizeKeyword(searchKeyword.value)
+  activeKeyword.value = queryParams.keyword ?? ""
+  void fetchBooks()
+}
+
+function clearSearch() {
+  if (!searchKeyword.value && !activeKeyword.value) {
+    return
+  }
+  queryParams.pageNum = 1
+  queryParams.keyword = void 0
+  searchKeyword.value = ""
+  activeKeyword.value = ""
+  void fetchBooks()
+}
+
+function handlePageChange(page: number) {
+  queryParams.pageNum = page
+  void fetchBooks()
+}
+
+async function fetchBooks() {
+  try {
+    loading.value = true
+    const data = await stockApi.getPage({
+      ...queryParams,
+      keyword: queryParams.keyword
+    })
+    total.value = data.total
+    books.value = await Promise.all(data.list.map(async (book) => {
+      return {
+        ...book,
+        coverPreview: await fetchCover(book.bookImage)
+      }
+    }))
+  } catch (error) {
+    console.log(error)
+    books.value = []
+    total.value = 0
+  } finally {
+    loading.value = false
+  }
+}
+
+async function fetchCover(originalUrl?: string) {
+  if (!originalUrl) {
+    return void 0
+  }
+  const cachedUrl = imageCache.get(originalUrl)
+  if (cachedUrl) {
+    return cachedUrl
+  }
+  try {
+    const blob = await FileApi.getFile(originalUrl)
+    const objectUrl = URL.createObjectURL(blob.data)
+    imageCache.set(originalUrl, objectUrl)
+    objectUrls.add(objectUrl)
+    return objectUrl
+  } catch (error) {
+    console.log(error)
+    return void 0
+  }
+}
+
+function formatDate(date?: Date | string) {
+  if (!date) {
+    return "未知日期"
+  }
+  const currentDate = new Date(date)
+  if (Number.isNaN(currentDate.getTime())) {
+    return "未知日期"
+  }
+  return currentDate.toLocaleDateString("zh-CN")
+}
+
+function getStockLabel(book: HomeBookCard) {
+  if (book.currentNumber <= 0) {
+    return "暂不可借"
+  }
+  return `可借 ${book.currentNumber} 本`
+}
+
+function getStockColor(book: HomeBookCard) {
+  if (book.currentNumber <= 0) {
+    return "error"
+  }
+  if (book.currentNumber <= 3) {
+    return "warning"
+  }
+  return "success"
+}
 </script>
 
 <template>
-  <div class="relative min-h-50">
+  <div class="relative min-h-168 overflow-hidden rounded-2xl border border-default bg-linear-to-b from-cyan-50 via-white to-blue-50">
+    <div class="pointer-events-none absolute -left-20 -top-16 h-64 w-64 rounded-full bg-cyan-300/30 blur-3xl"/>
+    <div class="pointer-events-none absolute -right-16 top-32 h-72 w-72 rounded-full bg-blue-300/25 blur-3xl"/>
+
+    <div class="relative mx-auto flex max-w-7xl flex-col gap-7 px-4 py-8 lg:px-10">
+      <section class="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <div class="hero-panel rounded-2xl border border-default bg-default p-6 shadow-sm">
+          <p class="text-xs font-semibold tracking-[0.25em] text-muted">
+            SMART LIBRARY
+          </p>
+          <h1 class="mt-3 text-3xl font-bold leading-tight text-highlighted">
+            只用一个搜索框，快速找到你要的图书
+          </h1>
+          <p class="mt-2 text-sm text-muted">
+            输入书名后按回车或点击搜索，即可查看库存与可借数量。
+          </p>
+          <form class="mt-6 flex flex-col gap-3 sm:flex-row" @submit.prevent="handleSearch">
+            <UInput
+                v-model="searchKeyword"
+                icon="i-lucide-search"
+                size="xl"
+                class="w-full flex-1"
+                placeholder="例如：活着、三体、数据结构"
+            />
+            <div class="flex gap-2">
+              <UButton type="submit" size="xl" icon="i-lucide-search" :loading="loading">
+                搜索图书
+              </UButton>
+              <UButton
+                  v-if="activeKeyword"
+                  size="xl"
+                  variant="soft"
+                  color="neutral"
+                  icon="i-lucide-rotate-ccw"
+                  @click="clearSearch"
+              >
+                清空
+              </UButton>
+            </div>
+          </form>
+          <p class="mt-4 text-sm text-muted">{{ resultText }}</p>
+        </div>
+
+        <div class="ai-panel rounded-2xl border border-default p-5 shadow-sm">
+          <div class="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-medium text-cyan-700">
+            <UIcon name="i-lucide-bot" class="h-4 w-4"/>
+            智慧咨询
+          </div>
+          <h2 class="mt-4 text-xl font-semibold text-highlighted">
+            不知道读什么？让助手帮你
+          </h2>
+          <p class="mt-2 text-sm text-muted">
+            首页检索找到书，侧边栏继续问推荐、主题阅读和借阅建议。
+          </p>
+          <div class="mt-4 space-y-2">
+            <div
+                v-for="item in aiHighlights"
+                :key="item.text"
+                class="flex items-center gap-2 rounded-lg border border-cyan-100 bg-white/70 px-3 py-2 text-sm text-gray-700"
+            >
+              <UIcon :name="item.icon" class="h-4 w-4 text-cyan-600"/>
+              <span>{{ item.text }}</span>
+            </div>
+          </div>
+          <UButton class="mt-5" icon="i-lucide-sparkles" color="neutral" variant="soft" @click="openAISidebar = true">
+            打开智慧咨询
+          </UButton>
+        </div>
+      </section>
+
+      <section>
+        <div v-if="loading" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div
+              v-for="item in queryParams.pageSize"
+              :key="item"
+              class="h-52 animate-pulse rounded-2xl border border-default bg-default"
+          />
+        </div>
+
+        <div
+            v-else-if="books.length === 0"
+            class="rounded-2xl border border-dashed border-default bg-default p-14 text-center"
+        >
+          <p class="text-lg font-semibold text-highlighted">没有找到相关图书</p>
+          <p class="mt-2 text-sm text-muted">可以换一个更短或更准确的书名再次搜索。</p>
+        </div>
+
+        <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <UCard
+              v-for="(book, index) in books"
+              :key="book.isbn"
+              class="book-card h-full border-cyan-100/80 transition duration-300 hover:-translate-y-1 hover:shadow-lg"
+              :style="{ '--book-delay': `${index * 40}ms` }"
+          >
+            <div class="flex gap-4">
+              <div class="h-28 w-20 shrink-0 overflow-hidden rounded-lg border border-default bg-elevated">
+                <img
+                    v-if="book.coverPreview"
+                    :src="book.coverPreview"
+                    :alt="book.name"
+                    class="h-full w-full object-cover"
+                >
+                <div
+                    v-else
+                    class="flex h-full w-full items-center justify-center px-2 text-center text-xs text-muted"
+                >
+                  暂无封面
+                </div>
+              </div>
+              <div class="min-w-0 flex-1 space-y-2">
+                <p class="book-title text-base font-semibold text-highlighted">{{ book.name }}</p>
+                <p class="text-sm text-muted">作者：{{ book.author || "未知" }}</p>
+                <p class="text-sm text-muted">出版社：{{ book.publishName || "未知" }}</p>
+                <div class="flex items-center gap-2">
+                  <UBadge :color="getStockColor(book)" variant="subtle">{{ getStockLabel(book) }}</UBadge>
+                  <span class="text-xs text-muted">总库存 {{ book.stockNumber }}</span>
+                </div>
+              </div>
+            </div>
+
+            <template #footer>
+              <div class="flex items-center justify-between text-xs text-muted">
+                <span>{{ formatDate(book.publishTime) }}</span>
+                <span>ISBN {{ book.isbn }}</span>
+              </div>
+            </template>
+          </UCard>
+        </div>
+      </section>
+
+      <section v-if="total > queryParams.pageSize" class="flex justify-center">
+        <UPagination
+            v-model:page="queryParams.pageNum"
+            :total="total"
+            :items-per-page="queryParams.pageSize"
+            @update:page="handlePageChange"
+        />
+      </section>
+    </div>
+
     <UButton
-        class="absolute z-10 right-10 bottom-10"
+        class="ai-floating absolute bottom-6 right-6 z-10"
         icon="i-lucide-bot"
         label="智慧咨询"
         @click="openAISidebar = true"
@@ -18,5 +297,42 @@ const openAISidebar = ref(false)
 </template>
 
 <style scoped>
+.hero-panel,
+.ai-panel {
+  animation: fade-up 420ms ease-out both;
+}
 
+.ai-panel {
+  background: linear-gradient(145deg, rgb(240 249 255 / 90%) 0%, rgb(255 255 255 / 96%) 100%);
+}
+
+.book-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.book-card {
+  opacity: 0;
+  animation: fade-up 380ms ease-out forwards;
+  animation-delay: var(--book-delay);
+}
+
+.ai-floating {
+  border: 1px solid rgb(125 211 252 / 55%);
+  background: linear-gradient(120deg, rgb(236 254 255 / 92%) 0%, rgb(224 242 254 / 92%) 100%);
+  box-shadow: 0 14px 28px rgb(56 189 248 / 26%);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>

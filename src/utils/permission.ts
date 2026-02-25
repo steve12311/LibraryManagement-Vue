@@ -1,5 +1,5 @@
 import router from "../router/router";
-import {useUserStore, useUserStoreHook} from "../store";
+import {useUserStore, useUserStoreHook} from "@/store";
 import {usePermissionStore} from "../store/modules/permission-store.ts";
 import type {RouteRecordRaw} from "vue-router";
 
