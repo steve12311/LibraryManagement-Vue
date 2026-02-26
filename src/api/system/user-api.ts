@@ -2,6 +2,9 @@ import request from "@/utils/request";
 import type {SelectMenuItem} from "@nuxt/ui";
 
 const USER_BASE_URL = "/api/v1/users";
+export type UserId = number | string;
+export type UserGender = 0 | 1 | 2;
+export type UserDateValue = string | Date;
 
 const UserAPI = {
     /**
@@ -20,7 +23,7 @@ const UserAPI = {
      *
      * @param queryParams 查询参数
      */
-    getPage(queryParams: UserPageQuery) {
+    getPage(queryParams?: UserPageQuery) {
         return request<any, PageResult<UserPageVO[]>>({
             url: `${USER_BASE_URL}/page`,
             method: "get",
@@ -33,7 +36,7 @@ const UserAPI = {
             method: "get",
         })
     },
-    changeStatus(userId: number | string, status: number) {
+    changeStatus(userId: UserId, status: UserPageStatus) {
         return request<any, string>({
             url: `${USER_BASE_URL}/${userId}/status`,
             method: "put",
@@ -42,20 +45,18 @@ const UserAPI = {
             },
         })
     },
-    getFormData(userId: number | string) {
+    getFormData(userId: UserId) {
         return request<any, UserForm>({
             url: `${USER_BASE_URL}/${userId}/form`,
             method: "get",
         })
     },
     /*如果不填重置的密码则后端默认会为123456*/
-    resetPassword(userId: number | string, password?: string) {
+    resetPassword(userId: UserId, password?: string) {
         return request<any, string>({
             url: `${USER_BASE_URL}/${userId}/password/reset`,
             method: "put",
-            params: {
-                password,
-            }
+            params: password ? {password} : undefined
         })
     },
     /*更改自己的密码*/
@@ -86,15 +87,15 @@ const UserAPI = {
             data: data,
         })
     },
-    update(userId: number | string, data: UserForm) {
+    update(userId: UserId, data: UserForm) {
         return request<any, string>({
             url: `${USER_BASE_URL}/${userId}`,
             method: "put",
             data: data,
         })
     },
-    delete(ids: Array<number | string>) {
-        const idsStr = ids.join(",");
+    delete(ids: UserId[] | UserId) {
+        const idsStr = Array.isArray(ids) ? ids.join(",") : String(ids);
         return request<any, string>({
             url: `${USER_BASE_URL}/${idsStr}`,
             method: "delete",
@@ -103,23 +104,23 @@ const UserAPI = {
 }
 
 export interface UserProfileForm {
-    id: number;
+    id?: UserId;
 
-    username: string;
+    username?: string;
 
     nickname: string;
 
-    avatar: string;
+    avatar?: string;
 
-    gender: number;
+    gender?: UserGender;
 
-    mobile: string;
+    mobile?: string;
 
-    email: string;
+    email?: string;
 }
 
 export interface UserProfile {
-    id: number;
+    id: UserId;
 
     username: string;
 
@@ -127,7 +128,7 @@ export interface UserProfile {
 
     avatar: string;
 
-    gender: number;
+    gender: UserGender;
 
     mobile: string;
 
@@ -135,7 +136,7 @@ export interface UserProfile {
 
     roleNames: string;
 
-    createTime: string | Date;
+    createTime: UserDateValue;
 }
 
 export interface PasswordUpdateForm {
@@ -147,7 +148,7 @@ export interface PasswordUpdateForm {
 }
 
 export interface UserForm {
-    id?: number;
+    id?: UserId;
 
     username: string;
 
@@ -155,15 +156,15 @@ export interface UserForm {
 
     mobile: string;
 
-    gender: number;
+    gender: UserGender;
 
     avatar: string;
 
     email: string;
 
-    status: number;
+    status: UserPageStatus;
 
-    deptId?: number;
+    deptId?: UserId;
 
     roleIds: number[];
 
@@ -181,13 +182,13 @@ export interface UserPageVO {
     /** 用户头像URL */
     avatar?: string;
     /** 创建时间 */
-    createTime?: string | Date;
+    createTime?: UserDateValue;
     /** 部门名称 */
     deptName?: string;
     /** 用户邮箱 */
     email?: string;
     /** 性别 */
-    gender?: number;
+    gender?: UserGender;
     /** 手机号 */
     mobile?: string;
     /** 用户昵称 */
@@ -195,7 +196,7 @@ export interface UserPageVO {
     /** 角色名称，多个使用英文逗号(,)分割 */
     roleNames?: string;
     /** 用户状态(1:启用;0:禁用) */
-    status?: number;
+    status?: UserPageStatus;
     /** 用户名 */
     username?: string;
 }
@@ -211,7 +212,7 @@ export interface UserPageQuery extends PageQuery {
     status?: UserPageStatus;
 
     /** 部门ID */
-    deptId?: number;
+    deptId?: UserId;
 
     /** 角色ID列表 */
     roleIds?: number[];
@@ -232,7 +233,7 @@ export interface UserPageQuery extends PageQuery {
 /** 登录用户信息 */
 export interface UserInfo {
     /** 用户ID */
-    userId?: number | string;
+    userId?: UserId;
 
     /** 用户名 */
     username?: string;
