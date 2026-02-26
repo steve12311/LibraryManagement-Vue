@@ -1,14 +1,17 @@
 import request from "@/utils/request";
 import type {SelectMenuItem} from "@nuxt/ui";
 
-const PUBLISH_BASE_URL = '/api/v1/publish'
+const PUBLISH_BASE_URL = "/api/v1/publish";
+export type PublishId = number;
+export type PublishDateValue = string | Date;
+export type PublishQueryField = "publishName" | "address";
 
 const PublishApi = {
-    getPage(queryParams: PublishQuery) {
+    getPage(queryParams?: PublishQuery) {
         return request<any, PageResult<PublishPageVO[]>>({
             url: `${PUBLISH_BASE_URL}/page`,
             method: "get",
-            params: queryParams
+            params: queryParams,
         })
     },
     getOptions() {
@@ -17,35 +20,35 @@ const PublishApi = {
             method: "get",
         })
     },
-    getFormData(id: number) {
+    getFormData(id: PublishId) {
         return request<any, PublishForm>({
             url: `${PUBLISH_BASE_URL}/${id}/form`,
-            method: "get"
+            method: "get",
         })
     },
     create(data: PublishForm) {
-        return request({
+        return request<any, string>({
             url: `${PUBLISH_BASE_URL}`,
             method: "post",
-            data
+            data,
         })
     },
     update(data: PublishForm) {
-        return request({
+        return request<any, string>({
             url: `${PUBLISH_BASE_URL}`,
             method: "put",
-            data
+            data,
         })
     },
-    delete(deleteIds: number[]) {
-        const deleteIdsStr = deleteIds.join(",");
-        return request({url: `${PUBLISH_BASE_URL}/${deleteIdsStr}`, method: "delete"});
+    delete(deleteIds: PublishId[] | PublishId) {
+        const deleteIdsStr = Array.isArray(deleteIds) ? deleteIds.join(",") : String(deleteIds);
+        return request<any, string>({url: `${PUBLISH_BASE_URL}/${deleteIdsStr}`, method: "delete"});
     },
 }
 
 export interface PublishForm {
-    id?: number;
-    name?: string;
+    id?: PublishId;
+    name: string;
     country?: string;
     province?: string;
     city?: string;
@@ -57,16 +60,16 @@ export interface PublishForm {
 }
 
 export interface PublishPageVO {
-    publishId: number;
+    publishId: PublishId;
     publishName: string;
-    address: string;
-    addressCode: string;
-    phonenumber: string;
-    createTime: Date;
+    address?: string;
+    addressCode?: string;
+    phonenumber?: string;
+    createTime?: PublishDateValue;
 }
 
 export interface PublishQuery extends PageQuery {
-    field?: "publishName" | "address";
+    field?: PublishQueryField;
     keyword?: string
 }
 
