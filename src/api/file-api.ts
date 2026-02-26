@@ -1,19 +1,38 @@
 import request from "@/utils/request";
 
 const FILE_BASE_URL = "/api/v1/files";
+const FILE_UPLOADS_BASE_URL = "/uploads";
 
 const FileApi = {
-    getFile(url: string) {
-        return request({
-            url: FILE_BASE_URL + "/uploads" + url,
-            method: "get",
-            responseType: "blob"
-        })
+    resolveUrl(url?: string | null) {
+        const rawUrl = String(url ?? "").trim();
+        if (!rawUrl) return "";
+
+        // OSS / CDN / base64 / blob URLs should keep original value.
+        if (
+            rawUrl.startsWith("http://")
+            || rawUrl.startsWith("https://")
+            || rawUrl.startsWith("//")
+            || rawUrl.startsWith("data:")
+            || rawUrl.startsWith("blob:")
+        ) {
+            return rawUrl;
+        }
+
+        if (rawUrl === FILE_UPLOADS_BASE_URL || rawUrl.startsWith(`${FILE_UPLOADS_BASE_URL}/`)) {
+            return rawUrl;
+        }
+
+        if (rawUrl.startsWith("/")) {
+            return `${FILE_UPLOADS_BASE_URL}${rawUrl}`;
+        }
+
+        return rawUrl;
     },
     /** 上传文件 （传入 FormData，上传进度回调） */
     upload(formData: FormData, onProgress?: (percent: number) => void) {
         return request<any, FileInfo>({
-            url: "/api/v1/files",
+            url: FILE_BASE_URL,
             method: "post",
             data: formData,
             headers: {"Content-Type": "multipart/form-data"},
@@ -31,7 +50,7 @@ const FileApi = {
         const formData = new FormData();
         formData.append("file", file);
         return request<any, FileInfo>({
-            url: "/api/v1/files",
+            url: FILE_BASE_URL,
             method: "post",
             data: formData,
             headers: {"Content-Type": "multipart/form-data"},
@@ -41,7 +60,7 @@ const FileApi = {
     /** 删除文件 */
     delete(filePath?: string) {
         return request({
-            url: "/api/v1/files",
+            url: FILE_BASE_URL,
             method: "delete",
             params: {filePath},
         });
@@ -49,8 +68,9 @@ const FileApi = {
 
     /** 下载文件 */
     download(url: string, fileName?: string) {
+        const downloadUrl = FileApi.resolveUrl(url);
         return request({
-            url,
+            url: downloadUrl,
             method: "get",
             responseType: "blob",
         }).then((res) => {

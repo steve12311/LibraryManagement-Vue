@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, onBeforeUnmount, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
+import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import type {SelectItem, SelectMenuItem, TableColumn, TableRow} from "@nuxt/ui";
 import moment from "moment";
 import stockApi, {type StockForm, type StockPageVO, type StockQuery} from "@/api/library/stock-api.ts";
@@ -26,7 +26,6 @@ const pageDate = ref<StockPageVO[]>([])
 const loadingPageData = ref(false)
 const currentSelectedStock = ref<StockPageVO>()
 const imageCache = new Map<string, string>()
-const objectUrls = new Set<string>()
 const fieldItems = ref<SelectItem[]>([
   {
     label: "名称",
@@ -160,12 +159,6 @@ const editBookState = ref<BookForm>({...initialEditBookFormData})
 const editBookCoverModel = ref<File>()
 const editBookPublishTime = shallowRef(new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate()))
 
-onBeforeUnmount(() => {
-  objectUrls.forEach((url) => URL.revokeObjectURL(url))
-  objectUrls.clear()
-  imageCache.clear()
-})
-
 // 查询（重置页码后获取数据）
 async function handleQuery() {
   queryParams.pageNum = 1;
@@ -199,12 +192,10 @@ async function fetchData() {
     applySearchParams()
     const data = await stockApi.getPage(queryParams)
     total.value = data.total
-    pageDate.value = await Promise.all(
-        data.list.map(async (item) => ({
-          ...item,
-          bookImage: await fetchImage(item.bookImage),
-        }))
-    )
+    pageDate.value = data.list.map((item) => ({
+      ...item,
+      bookImage: fetchImage(item.bookImage),
+    }))
   } catch (e) {
     console.error(e)
     pageDate.value = []
@@ -215,7 +206,7 @@ async function fetchData() {
   }
 }
 
-async function fetchImage(originalUrl: string | undefined) {
+function fetchImage(originalUrl: string | undefined) {
   if (!originalUrl) {
     return void 0
   }
@@ -223,16 +214,12 @@ async function fetchImage(originalUrl: string | undefined) {
   if (cachedUrl) {
     return cachedUrl
   }
-  try {
-    const blob = await FileApi.getFile(originalUrl)
-    const objectUrl = URL.createObjectURL(blob.data)
-    imageCache.set(originalUrl, objectUrl)
-    objectUrls.add(objectUrl)
-    return objectUrl
-  } catch (error) {
-    console.error(error)
+  const resolvedUrl = FileApi.resolveUrl(originalUrl)
+  if (!resolvedUrl) {
     return void 0
   }
+  imageCache.set(originalUrl, resolvedUrl)
+  return resolvedUrl
 }
 
 function toCalendarDate(value?: Date | string) {

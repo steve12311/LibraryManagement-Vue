@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref, watch} from "vue";
+import {computed, defineAsyncComponent, onMounted, reactive, ref, watch} from "vue";
 import stockApi, {type StockPageVO, type StockQuery} from "@/api/library/stock-api.ts";
 import FileApi from "@/api/file-api.ts";
 
@@ -24,7 +24,6 @@ const queryParams = reactive<StockQuery>({
   field: "name",
   keyword: void 0
 })
-const objectUrls = new Set<string>()
 const imageCache = new Map<string, string>()
 const aiHighlights = [
   {icon: "i-lucide-book-open-check", text: "支持按书名快速定位馆藏"},
@@ -47,12 +46,6 @@ watch(openAISidebar, (isOpen) => {
   if (isOpen) {
     aiSidebarLoaded.value = true
   }
-})
-
-onBeforeUnmount(() => {
-  objectUrls.forEach((url) => URL.revokeObjectURL(url))
-  objectUrls.clear()
-  imageCache.clear()
 })
 
 function normalizeKeyword(value: string) {
@@ -98,12 +91,12 @@ async function fetchBooks() {
     })
     if (currentFetchSerial !== fetchSerial.value) return
     total.value = data.total
-    books.value = await Promise.all(data.list.map(async (book) => {
+    books.value = data.list.map((book) => {
       return {
         ...book,
-        coverPreview: await fetchCover(book.bookImage)
+        coverPreview: fetchCover(book.bookImage)
       }
-    }))
+    })
   } catch (error) {
     if (currentFetchSerial !== fetchSerial.value) return
     console.error(error)
@@ -117,7 +110,7 @@ async function fetchBooks() {
   }
 }
 
-async function fetchCover(originalUrl?: string) {
+function fetchCover(originalUrl?: string) {
   if (!originalUrl) {
     return void 0
   }
@@ -125,16 +118,12 @@ async function fetchCover(originalUrl?: string) {
   if (cachedUrl) {
     return cachedUrl
   }
-  try {
-    const blob = await FileApi.getFile(originalUrl)
-    const objectUrl = URL.createObjectURL(blob.data)
-    imageCache.set(originalUrl, objectUrl)
-    objectUrls.add(objectUrl)
-    return objectUrl
-  } catch (error) {
-    console.log(error)
+  const resolvedUrl = FileApi.resolveUrl(originalUrl)
+  if (!resolvedUrl) {
     return void 0
   }
+  imageCache.set(originalUrl, resolvedUrl)
+  return resolvedUrl
 }
 
 function formatDate(date?: Date | string) {
