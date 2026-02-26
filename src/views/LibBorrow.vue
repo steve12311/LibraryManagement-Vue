@@ -1,35 +1,60 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef} from "vue";
+import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import type {InputMenuItem, SelectItem, SelectMenuItem, TableColumn} from "@nuxt/ui";
 import moment from "moment";
-import {CalendarDate} from '@internationalized/date'
-import borrowApi, {type BorrowForm, type BorrowPageVO, type BorrowQuery} from "@/api/library/borrow-api.ts";
+import {CalendarDate} from "@internationalized/date";
+import borrowApi, {
+  type BorrowForm,
+  type BorrowPageVO,
+  type BorrowQuery,
+  type BorrowStatusValue
+} from "@/api/library/borrow-api.ts";
 import userApi from "@/api/system/user-api.ts";
 import bookApi from "@/api/library/book-api.ts";
-import * as v from 'valibot'
+import * as v from "valibot";
 import {ElMessageBox} from "element-plus";
 
-const UAvatar = resolveComponent('UAvatar')
-const UBadge = resolveComponent('UBadge')
-const UButton = resolveComponent('UButton')
-const UTooltip = resolveComponent('UTooltip')
-const UFieldGroup = resolveComponent('UFieldGroup')
+const UAvatar = resolveComponent("UAvatar")
+const UBadge = resolveComponent("UBadge")
+const UButton = resolveComponent("UButton")
+const UTooltip = resolveComponent("UTooltip")
+const UFieldGroup = resolveComponent("UFieldGroup")
 
 onMounted(() => {
-  handleQuery()
+  void handleQuery()
 })
 
 const toast = useToast()
 const date = new Date()
+type BorrowStatusFilter = BorrowStatusValue | -1
+
 const form = useTemplateRef("form")
-const pageData = ref<BorrowPageVO[]>([])
+const delayForm = useTemplateRef("delayForm")
 const table = useTemplateRef("table")
-const inputDate = useTemplateRef('inputDate')
+const inputDate = useTemplateRef("inputDate")
+
+const pageData = ref<BorrowPageVO[]>([])
+const total = ref(0)
+const open = ref(false)
+const openConfirm = ref(false)
+const loadingPageData = ref(false)
+const loadingBorrowOptions = ref(false)
+const submittingBorrow = ref(false)
+const submittingDelay = ref(false)
+const returningBorrowId = ref("")
+
 const queryParams = reactive<BorrowQuery>({
   pageNum: 1,
   pageSize: 10,
-  field: "isbn"
+  field: "isbn",
+  keyword: void 0,
 })
+const searchForm = reactive({
+  field: "isbn" as BorrowQuery["field"],
+  keyword: "",
+  status: -1 as BorrowStatusFilter,
+})
+
 const userOptions = ref<SelectMenuItem[]>([])
 const bookOptions = ref<InputMenuItem[]>([])
 const fieldItems = ref<SelectItem[]>([
@@ -49,7 +74,7 @@ const fieldItems = ref<SelectItem[]>([
 const statusItems = ref<SelectItem[]>([
   {
     label: "全部",
-    value: null
+    value: -1
   },
   {
     label: "已归还",
@@ -64,24 +89,28 @@ const statusItems = ref<SelectItem[]>([
     value: 2
   }
 ])
-const total = ref(0);
-const open = ref(false)
-const openConfirm = ref(false)
-const delayDay = ref(0)
-const delayForm = useTemplateRef("delayForm")
+
+const delayDay = ref(1)
+const selectedDelayBorrowId = ref("")
+const selectedDelayReturnTime = ref<Date | null>(null)
 const returnTime = shallowRef(new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate()))
-const clickUUID = ref("")
-const initialBorrowFormData = ref<BorrowForm>({
+const initialBorrowFormData: BorrowForm = {
   isbn: "",
   userId: "",
   returnTime: new Date()
-})
-const emptyBorrowFormData = ref({...initialBorrowFormData.value})
-const state = ref({...initialBorrowFormData.value})
+}
+const state = ref<BorrowForm>({...initialBorrowFormData})
 const schema = v.object({
-  isbn: v.pipe(v.string(), v.nonEmpty("ISBN不能为空")),
-  userId: v.pipe(v.string(), v.nonEmpty("借阅用户不能为空")),
+  isbn: v.union([
+    v.pipe(v.string(), v.nonEmpty("ISBN不能为空")),
+    v.number("ISBN不能为空"),
+  ]),
+  userId: v.union([
+    v.pipe(v.string(), v.nonEmpty("借阅用户不能为空")),
+    v.number("借阅用户不能为空"),
+  ]),
 })
+
 const columns = ref<TableColumn<BorrowPageVO>[]>([
   {
     accessorKey: "borrowId",
@@ -99,14 +128,14 @@ const columns = ref<TableColumn<BorrowPageVO>[]>([
     id: "userInfo",
     header: "借阅用户",
     cell: ({row}) => {
-      return h('div', {class: 'flex items-center gap-3'}, [
+      return h("div", {class: "flex items-center gap-3"}, [
         h(UAvatar, {
           size: "lg",
           src: row.original.avatar
         }),
         h("div", undefined, [
-          h('p', {class: 'font-medium text-highlighted'}, row.original.nickname),
-          h('p', {class: ''}, `@${row.original.username}`)
+          h("p", {class: "font-medium text-highlighted"}, row.original.nickname),
+          h("p", undefined, `@${row.original.username}`)
         ])
       ])
     }
@@ -121,162 +150,300 @@ const columns = ref<TableColumn<BorrowPageVO>[]>([
     header: "状态",
     cell: ({row}) => {
       return h(UBadge, {
-            class: 'capitalize',
-            variant: 'subtle',
-            color: getBorrowStatus(row.original)
-          }, () =>
-              getBorrowText(row.original)
-      )
+        class: "capitalize",
+        variant: "subtle",
+        color: getBorrowStatus(row.original)
+      }, () => getBorrowText(row.original))
     },
   },
   {
     id: "action",
     header: "操作",
     cell: ({row}) => {
-      if (!row.original.realityReturnTime) {
-        return h(UFieldGroup, undefined, () => [
-          h(UTooltip, {text: "延长时间", delayDuration: 0}, () => [
-            h(UButton, {
-              icon: "i-lucide-calendar-clock", variant: "ghost", onClick: () => {
-                openConfirm.value = true
-                clickUUID.value = row.original.borrowId
-              }
-            }, [])
-          ]),
-          h(UTooltip, {text: "归还图书", delayDuration: 0}, () => [
-            h(UButton, {
-              icon: "i-lucide-book-down", variant: "ghost", onClick: () => {
-                ElMessageBox.confirm("还书后不可撤销", "确认还书吗？")
-                    .then(() => {
-                      borrowApi.update(row.original.borrowId, {
-                        realityReturnTime: new Date()
-                      }).then(() => {
-                        fetchData()
-                      })
-                    })
-              }
-            }),
-          ]),
-        ])
+      if (getBorrowState(row.original) === "returned") {
+        return
       }
+      return h(UFieldGroup, undefined, () => [
+        h(UTooltip, {text: "延长时间", delayDuration: 0}, () => [
+          h(UButton, {
+            icon: "i-lucide-calendar-clock",
+            variant: "ghost",
+            onClick: (ev: Event) => {
+              ev.stopPropagation()
+              openDelayModal(row.original)
+            }
+          }, [])
+        ]),
+        h(UTooltip, {text: "归还图书", delayDuration: 0}, () => [
+          h(UButton, {
+            icon: "i-lucide-book-down",
+            variant: "ghost",
+            loading: returningBorrowId.value === row.original.borrowId,
+            onClick: (ev: Event) => {
+              ev.stopPropagation()
+              void confirmReturnBorrow(row.original.borrowId)
+            }
+          }),
+        ]),
+      ])
     }
   }
 ])
 
-function getBorrowText(row: BorrowPageVO) {
-  const returnTime = new Date(moment(row.returnTime).format('YYYY-MM-DD'))
-  if (row.realityReturnTime === null) {
-    if (returnTime < new Date()) {
-      return "已逾期"
-    }
-    return "借阅中"
-  } else {
-    return "已归还"
+watch(open, (isOpen) => {
+  if (!isOpen) {
+    resetBorrowForm()
   }
+})
+
+watch(openConfirm, (isOpen) => {
+  if (!isOpen) {
+    resetDelayForm()
+  }
+})
+
+watch(() => searchForm.field, (field) => {
+  if (field === "status") {
+    searchForm.keyword = ""
+    return
+  }
+  searchForm.status = -1
+})
+
+function toCalendarDate(value?: Date | string | null) {
+  const target = value ? new Date(value) : new Date()
+  return new CalendarDate(target.getFullYear(), target.getMonth() + 1, target.getDate())
+}
+
+function parseDate(value?: Date | string | null) {
+  if (!value) return null
+  const target = new Date(value)
+  if (Number.isNaN(target.getTime())) return null
+  return target
+}
+
+function getBorrowState(row: BorrowPageVO) {
+  if (parseDate(row.realityReturnTime)) {
+    return "returned" as const
+  }
+  const dueDate = parseDate(row.returnTime)
+  if (!dueDate) {
+    return "borrowing" as const
+  }
+  const dueDateStart = new Date(dueDate)
+  dueDateStart.setHours(0, 0, 0, 0)
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  if (dueDateStart < now) {
+    return "overdue" as const
+  }
+  return "borrowing" as const
+}
+
+function getBorrowText(row: BorrowPageVO) {
+  const status = getBorrowState(row)
+  if (status === "overdue") return "已逾期"
+  if (status === "returned") return "已归还"
+  return "借阅中"
 }
 
 function getBorrowStatus(row: BorrowPageVO) {
-  const returnTime = new Date(moment(row.returnTime).format('YYYY-MM-DD'))
-  if (row.realityReturnTime === null) {
-    if (returnTime < new Date()) {
-      return "error"
-    }
-    return "success"
-  } else {
-    return "neutral"
-  }
+  const status = getBorrowState(row)
+  if (status === "overdue") return "error" as const
+  if (status === "returned") return "neutral" as const
+  return "success" as const
 }
 
-function handleQuery() {
-  queryParams.pageNum = 1;
-  fetchData()
+function applySearchParams() {
+  queryParams.field = searchForm.field
+  if (searchForm.field === "status") {
+    queryParams.keyword = searchForm.status === -1 ? void 0 : searchForm.status
+    return
+  }
+  const keyword = searchForm.keyword.trim()
+  queryParams.keyword = keyword || void 0
+}
+
+async function handleQuery() {
+  applySearchParams()
+  queryParams.pageNum = 1
+  await fetchData()
+}
+
+function resetQuery() {
+  searchForm.field = "isbn"
+  searchForm.keyword = ""
+  searchForm.status = -1
+  void handleQuery()
 }
 
 async function fetchData() {
   try {
+    loadingPageData.value = true
     const data = await borrowApi.getPage(queryParams)
     pageData.value = data.list
     total.value = data.total
-  } catch (e) {
-    console.log(e)
+  } catch (error) {
+    console.error(error)
+    pageData.value = []
+    total.value = 0
+    toast.add({title: "错误", description: "借阅数据加载失败", color: "error"})
+  } finally {
+    loadingPageData.value = false
   }
 }
 
 async function fetchUserOptions() {
-  try {
-    userOptions.value = await userApi.getOptions()
-  } catch (e) {
-    console.log(e)
-  }
+  userOptions.value = await userApi.getOptions()
 }
 
 async function fetchBookOptions() {
-  try {
-    bookOptions.value = await bookApi.getOptions()
-  } catch (e) {
-    console.log(e)
-  }
+  bookOptions.value = await bookApi.getOptions()
 }
 
 async function openModal() {
-  await fetchUserOptions()
-  await fetchBookOptions()
-  open.value = true
+  loadingBorrowOptions.value = true
+  try {
+    await Promise.all([fetchUserOptions(), fetchBookOptions()])
+    open.value = true
+  } catch (error) {
+    console.error(error)
+    toast.add({title: "错误", description: "借阅表单选项加载失败", color: "error"})
+  } finally {
+    loadingBorrowOptions.value = false
+  }
 }
 
-function resetForm() {
-  state.value = {...emptyBorrowFormData.value}
+function resetBorrowForm() {
+  state.value = {...initialBorrowFormData}
+  returnTime.value = toCalendarDate()
+  submittingBorrow.value = false
 }
 
-function submitForm() {
-  state.value.returnTime = new Date(returnTime.value.toString())
-  borrowApi.create(state.value)
-      .then(() => {
-        resetForm()
-        toast.add({title: "成功", description: "新增成功", color: "success"})
-        fetchData()
-      })
+function openDelayModal(row: BorrowPageVO) {
+  selectedDelayBorrowId.value = row.borrowId
+  selectedDelayReturnTime.value = parseDate(row.returnTime) ?? new Date()
+  delayDay.value = 1
+  openConfirm.value = true
 }
 
-function submitDelayDay() {
-  const day = new Date()
-  day.setDate(day.getDate() + delayDay.value)
-  borrowApi.update(clickUUID.value, {
-    returnTime: day
-  }).then(() => {
+function resetDelayForm() {
+  delayDay.value = 1
+  selectedDelayBorrowId.value = ""
+  selectedDelayReturnTime.value = null
+  submittingDelay.value = false
+}
+
+async function submitForm() {
+  const isbn = String(state.value.isbn ?? "").trim()
+  if (!isbn) {
+    toast.add({title: "错误", description: "ISBN不能为空", color: "error"})
+    return
+  }
+  const userIdNumber = Number(state.value.userId ?? "")
+  if (!Number.isFinite(userIdNumber) || userIdNumber <= 0) {
+    toast.add({title: "错误", description: "借阅用户无效", color: "error"})
+    return
+  }
+  const payload: BorrowForm = {
+    ...state.value,
+    isbn,
+    userId: userIdNumber,
+    returnTime: new Date(returnTime.value.toString()),
+  }
+  try {
+    submittingBorrow.value = true
+    await borrowApi.create(payload)
+    toast.add({title: "成功", description: "新增成功", color: "success"})
+    open.value = false
+    await fetchData()
+  } catch (error) {
+    console.error(error)
+    toast.add({title: "错误", description: "新增借阅失败", color: "error"})
+  } finally {
+    submittingBorrow.value = false
+  }
+}
+
+async function submitDelayDay() {
+  if (!selectedDelayBorrowId.value) {
+    toast.add({title: "错误", description: "借阅单不存在", color: "error"})
+    return
+  }
+  if (delayDay.value <= 0) {
+    toast.add({title: "错误", description: "延期天数必须大于0", color: "error"})
+    return
+  }
+  const baseDate = selectedDelayReturnTime.value ?? new Date()
+  const nextDate = new Date(baseDate)
+  nextDate.setDate(nextDate.getDate() + delayDay.value)
+  try {
+    submittingDelay.value = true
+    await borrowApi.update(selectedDelayBorrowId.value, {returnTime: nextDate})
     toast.add({title: "成功", description: "延期成功", color: "success"})
     openConfirm.value = false
-    fetchData()
-  })
+    await fetchData()
+  } catch (error) {
+    console.error(error)
+    toast.add({title: "错误", description: "延期失败", color: "error"})
+  } finally {
+    submittingDelay.value = false
+  }
+}
+
+async function confirmReturnBorrow(borrowId: string) {
+  try {
+    await ElMessageBox.confirm("还书后不可撤销", "确认还书吗？")
+  } catch {
+    return
+  }
+  try {
+    returningBorrowId.value = borrowId
+    await borrowApi.update(borrowId, {realityReturnTime: new Date()})
+    toast.add({title: "成功", description: "还书成功", color: "success"})
+    await fetchData()
+  } catch (error) {
+    console.error(error)
+    toast.add({title: "错误", description: "还书失败", color: "error"})
+  } finally {
+    returningBorrowId.value = ""
+  }
 }
 </script>
 
 <template>
-  <UModal v-model:open="openConfirm" title="延迟还书">
+  <UModal v-model:open="openConfirm" title="延期还书">
     <template #body>
-      <UForm @submit="submitDelayDay" ref="delayForm">
-        <UInputNumber v-model="delayDay" :min="0"/>
+      <UForm @submit.prevent="submitDelayDay" ref="delayForm" class="space-y-3">
+        <UFormField label="延期天数">
+          <UInputNumber v-model="delayDay" :min="1" class="w-full"/>
+        </UFormField>
+        <p class="text-xs text-muted">
+          将在当前预计归还日期基础上顺延。
+        </p>
       </UForm>
     </template>
     <template #footer>
       <div class="flex justify-end w-full gap-2">
-        <UButton @click="delayForm?.submit()" variant="subtle" color="error" label="确定"/>
-        <UButton variant="solid" label="取消"/>
+        <UButton @click="openConfirm = false" variant="ghost" label="取消"/>
+        <UButton @click="delayForm?.submit()" :loading="submittingDelay" variant="subtle" color="error" label="确定"/>
       </div>
     </template>
   </UModal>
   <UModal v-model:open="open" title="新增借阅">
     <template #body>
-      <UForm @submit="submitForm" :schema="schema" :state="state" ref="form" class="gap-y-4">
+      <UForm @submit.prevent="submitForm" :schema="schema" :state="state" ref="form" class="gap-y-4">
         <UFormField name="isbn" class="w-full" label="ISBN" required>
           <UInputMenu valueKey="value" v-model="state.isbn" virtualize icon="i-lucide-book" class="w-full"
                       :items="bookOptions"
+                      :loading="loadingBorrowOptions"
                       :ui="{ content: 'min-w-fit' }" required/>
         </UFormField>
         <UFieldGroup class="w-full gap-2">
           <UFormField name="userId" class="w-full" label="借阅用户" required>
             <USelectMenu valueKey="value" v-model="state.userId" virtualize icon="i-lucide-user" class="w-full"
                          :items="userOptions"
+                         :loading="loadingBorrowOptions"
                          :ui="{ content: 'min-w-fit' }" required/>
           </UFormField>
           <UFormField class="w-full" label="归还日期">
@@ -304,24 +471,39 @@ function submitDelayDay() {
     </template>
     <template #footer>
       <div class="flex justify-end w-full gap-2">
-        <UButton @click="form?.submit()" variant="subtle" color="error" label="确定"/>
-        <UButton variant="solid" label="取消"/>
+        <UButton @click="open = false" variant="ghost" label="取消"/>
+        <UButton @click="form?.submit()" :loading="submittingBorrow" variant="subtle" color="error" label="确定"/>
       </div>
     </template>
   </UModal>
   <UCard>
     <template #header>
       <ActionGroup :table="table" @flush="fetchData">
-        <UForm @submit="fetchData" class="w-full">
-          <div class="flex gap-2">
-            <USelect v-model="queryParams.field" defaultValue="name" :items="fieldItems" class="w-25"/>
-            <USelect @change="fetchData" v-model="queryParams.keyword" class="w-40" :items="statusItems"
-                     v-if="queryParams.field === 'status'"/>
-            <UInput v-else v-model="queryParams.keyword" icon="i-lucide-search" size="md" variant="outline"
-                    placeholder="请输入搜索内容..."/>
+        <UForm @submit.prevent="handleQuery" class="w-full">
+          <div class="flex flex-wrap items-center gap-2">
+            <USelect v-model="searchForm.field" defaultValue="isbn" :items="fieldItems" class="w-28"/>
+            <USelect v-if="searchForm.field === 'status'" v-model="searchForm.status" class="w-32" :items="statusItems"/>
+            <UInput
+                v-else
+                v-model="searchForm.keyword"
+                icon="i-lucide-search"
+                size="md"
+                variant="outline"
+                class="w-full sm:w-72"
+                placeholder="请输入搜索内容..."
+            />
+            <UButton type="submit" icon="i-lucide-search" :loading="loadingPageData" label="搜索"/>
+            <UButton
+                type="button"
+                variant="ghost"
+                icon="i-lucide-rotate-ccw"
+                :disabled="loadingPageData"
+                label="重置"
+                @click="resetQuery"
+            />
           </div>
         </UForm>
-        <UButton @click="openModal" icon="i-lucide-plus" variant="subtle" label="新增"/>
+        <UButton @click="openModal" :loading="loadingBorrowOptions" icon="i-lucide-plus" variant="subtle" label="新增"/>
       </ActionGroup>
     </template>
     <UTable ref="table" :data="pageData" :columns="columns"/>
