@@ -1,8 +1,8 @@
 import qs from "qs";
 import axios, {type AxiosResponse, type InternalAxiosRequestConfig} from "axios";
 import {ApiCodeEnum} from "../enums/api/code-enum.ts";
-import {authConfig} from "../setting.ts";
-import {useTokenRefresh} from "./useTokenRefresh.ts";
+import {authConfig} from "../settings.ts";
+import {useTokenRefresh} from "../composables/auth/useTokenRefresh.ts";
 import {useAuthStoreHook} from "../store";
 import {redirectToLogin} from "./auth.ts";
 

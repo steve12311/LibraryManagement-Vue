@@ -61,7 +61,7 @@ const columns = ref<TableColumn<any>[]>([
     id: "action",
     accessorKey: "userId",
     header: "操作",
-    cell: ({row}) => {
+    cell: () => {
       return h(UFieldGroup, undefined, () => [
         h(UTooltip, {text: "修改", delayDuration: 0}, () => [
           h(UButton, {icon: "i-lucide-clipboard-pen-line", variant: "ghost"}),

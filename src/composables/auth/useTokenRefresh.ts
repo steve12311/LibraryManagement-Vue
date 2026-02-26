@@ -1,7 +1,7 @@
 import type {InternalAxiosRequestConfig} from "axios";
 import {useUserStoreHook} from "@/store";
 import {useAuthStoreHook} from "@/store";
-import {redirectToLogin} from "./auth.ts";
+import {redirectToLogin} from "@/utils/auth.ts";
 
 /**
  * 重试请求的回调函数类型

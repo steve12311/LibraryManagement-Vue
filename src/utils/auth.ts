@@ -1,5 +1,5 @@
 import {useUserStoreHook} from "@/store";
-import router from "../router/router.ts";
+import router from "@/router";
 
 /**
  * 重定向到登录页面

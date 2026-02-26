@@ -1,7 +1,7 @@
-import router from "../router/router";
-import {useUserStore, useUserStoreHook} from "@/store";
-import {usePermissionStore} from "../store/modules/permission-store.ts";
 import type {RouteRecordRaw} from "vue-router";
+import router from "@/router";
+import {usePermissionStore} from "@/store/modules/permission-store.ts";
+import {useUserStore, useUserStoreHook} from "@/store";
 
 export function setupPermission() {
     const whiteList = ["/login"];
