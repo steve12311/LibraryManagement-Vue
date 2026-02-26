@@ -1,9 +1,11 @@
-import request from "@/utils/request.ts";
+import request from "@/utils/request";
 
-const CATEGORY_BASE_URL = "/api/v1/category"
+const CATEGORY_BASE_URL = "/api/v1/category";
+export type CategoryId = number;
+export type CategoryStatus = 0 | 1;
 
 const CategoryApi = {
-    getList(queryParams: CategoryQuery) {
+    getList(queryParams?: CategoryQuery) {
         return request<any, CategoryVO[]>({url: `${CATEGORY_BASE_URL}`, method: "get", params: queryParams})
     },
     getOptions() {
@@ -15,9 +17,9 @@ const CategoryApi = {
 }
 
 export interface CategoryVO {
-    id?: number;
+    categoryId?: CategoryId;
     categoryName?: string;
-    parentId?: number;
+    parentId?: CategoryId;
     code?: string;
     treePath?: string;
     children?: CategoryVO[];
@@ -25,6 +27,7 @@ export interface CategoryVO {
 
 export interface CategoryQuery {
     categoryName?: string;
+    status?: CategoryStatus;
 }
 
 export default CategoryApi;
