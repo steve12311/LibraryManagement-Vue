@@ -119,13 +119,13 @@ async function copy(_: MouseEvent, message: UIMessage) {
         <template #content="{ message }">
           <Markdown
               v-if="message.role === 'assistant'"
-              :content="message.parts?.filter((p:any) => p.type === 'text').map((p:any) => p.text).join('') || ''"
+              :content="getTextFromMessage(message)"
               class="*:first:mt-0 *:last:mb-0"
           />
           <div
               v-else-if="message.role === 'user'"
-              class="whitespace-pre-wrap warp-break-word"
-              v-text="message.parts?.filter((p:any) => p.type === 'text').map((p:any) => p.text).join('') || ''"
+              class="whitespace-pre-wrap break-words"
+              v-text="getTextFromMessage(message)"
           />
         </template>
 
