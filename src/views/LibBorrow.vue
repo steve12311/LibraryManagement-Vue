@@ -101,7 +101,10 @@ const initialBorrowFormData: BorrowForm = {
 }
 const state = ref<BorrowForm>({...initialBorrowFormData})
 const schema = v.object({
-  isbn: v.pipe(v.string(), v.nonEmpty("ISBN不能为空")),
+  isbn: v.union([
+    v.pipe(v.string(), v.nonEmpty("ISBN不能为空")),
+    v.number("ISBN不能为空"),
+  ]),
   userId: v.union([
     v.pipe(v.string(), v.nonEmpty("借阅用户不能为空")),
     v.number("借阅用户不能为空"),
