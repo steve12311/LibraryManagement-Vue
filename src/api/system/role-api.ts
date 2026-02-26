@@ -2,6 +2,10 @@ import request from "@/utils/request";
 import type {SelectMenuItem} from "@nuxt/ui";
 
 const ROLE_BASE_URL = "/api/v1/roles";
+export type RoleId = number | string;
+export type RoleStatus = 0 | 1;
+export type RoleDataScope = 1 | 2 | 3 | 4;
+
 const RoleAPI = {
     /** 获取角色分页数据 */
     getPage(queryParams?: RolePageQuery) {
@@ -17,7 +21,7 @@ const RoleAPI = {
             method: "get",
         })
     },
-    getRoleForm(roleId: number) {
+    getRoleForm(roleId: RoleId) {
         return request<any, RoleForm>({
             url: `${ROLE_BASE_URL}/${roleId}/form`,
             method: "get",
@@ -30,14 +34,14 @@ const RoleAPI = {
             data: data,
         })
     },
-    update(id: number, data: RoleForm) {
+    update(id: RoleId, data: RoleForm) {
         return request<any, string>({
             url: `${ROLE_BASE_URL}/${id}`,
             method: "put",
             data: data,
         })
     },
-    updateRoleStatus(id: number, status: number) {
+    updateRoleStatus(id: RoleId, status: RoleStatus) {
         return request<any, string>({
             url: `${ROLE_BASE_URL}/${id}/status`,
             method: "put",
@@ -46,27 +50,27 @@ const RoleAPI = {
             },
         })
     },
-    delete(ids: Array<number | string> | number | string) {
+    delete(ids: RoleId[] | RoleId) {
         const idsStr = Array.isArray(ids) ? ids.join(",") : String(ids);
         return request<any, string>({
             url: `${ROLE_BASE_URL}/${idsStr}`,
             method: "delete",
         })
     },
-    getRoleMenuIds(roleId: number) {
+    getRoleMenuIds(roleId: RoleId) {
         return request<any, number[]>({
             url: `${ROLE_BASE_URL}/${roleId}/menuIds`,
             method: "get",
         })
     },
-    assignMenusToRole(roleId: number, menuIds: number[]) {
+    assignMenusToRole(roleId: RoleId, menuIds: number[]) {
         return request<any, string>({
             url: `${ROLE_BASE_URL}/${roleId}/menus`,
             method: "put",
             data: menuIds,
         })
     },
-    assignUsersToRole(roleId: number, userIds: number[]) {
+    assignUsersToRole(roleId: RoleId, userIds: number[]) {
         const idsStr = userIds.join(",");
         return request<any, string>({
             url: `${ROLE_BASE_URL}/${roleId}/users`,
@@ -80,7 +84,7 @@ const RoleAPI = {
 
 export interface RoleForm {
 
-    id: number;
+    id?: number;
 
     name: string;
 
@@ -88,9 +92,9 @@ export interface RoleForm {
 
     sort: number;
 
-    status: number;
+    status: RoleStatus;
 
-    dataScope: number;
+    dataScope: RoleDataScope;
 }
 
 export interface RolePageQuery extends PageQuery {
@@ -104,7 +108,7 @@ export interface RolePageQuery extends PageQuery {
 
 export interface RolePageVO {
     /** 角色ID */
-    id?: number | string;
+    id?: RoleId;
     /** 角色编码 */
     code?: string;
     /** 角色名称 */
@@ -112,11 +116,11 @@ export interface RolePageVO {
     /** 排序 */
     sort?: number;
     /** 角色状态 */
-    status?: number;
+    status?: RoleStatus;
     /** 创建时间 */
-    createTime?: Date;
+    createTime?: string | Date;
     /** 修改时间 */
-    updateTime?: Date;
+    updateTime?: string | Date;
 }
 
 export default RoleAPI
