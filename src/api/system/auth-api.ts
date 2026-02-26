@@ -23,12 +23,18 @@ const AuthAPI = {
     },
     /** 登录接口*/
     login(data: LoginFormData) {
+        const body = new URLSearchParams({
+            username: String(data.username ?? ""),
+            password: String(data.password ?? ""),
+            captchaCode: String(data.captchaCode ?? ""),
+            captchaKey: String(data.captchaKey ?? ""),
+        });
         return request<any, LoginResult>({
             url: `${AUTH_BASE_URL}/login`,
             method: "post",
-            data,
+            data: body.toString(),
             headers: {
-                "Content-Type": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
             },
         });
     },
