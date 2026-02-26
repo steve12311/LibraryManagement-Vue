@@ -4,7 +4,13 @@ import type {SelectMenuItem, TableColumn} from "@nuxt/ui";
 import moment from "moment/moment";
 import {ElMessageBox} from "element-plus";
 import UserAPI from "@/api/system/user-api.ts";
-import RoleAPI, {type RoleForm, type RolePageQuery, type RolePageVO} from "@/api/system/role-api.ts";
+import RoleAPI, {
+  type RoleForm,
+  type RoleId,
+  type RolePageQuery,
+  type RolePageVO,
+  type RoleStatus
+} from "@/api/system/role-api.ts";
 import {DataScopeTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
 
 onMounted(() => {
@@ -29,6 +35,9 @@ const queryParams = reactive<RolePageQuery>({
   pageNum: 1,
   pageSize: 10,
 });
+const searchForm = reactive({
+  keywords: "",
+})
 const roleList = ref<RolePageVO[]>([])
 const openEditModal = ref(false)
 const openAssignModal = ref(false)
@@ -41,6 +50,7 @@ const submittingAssignUsers = ref(false)
 const editingRoleId = ref("")
 const assigningRoleId = ref("")
 const deletingRoleId = ref("")
+const roleStatusUpdatingId = ref("")
 const assignRoleId = ref("")
 const assignRoleName = ref("")
 const userOptions = ref<SelectMenuItem[]>([])
@@ -79,7 +89,7 @@ const initialRoleFormData: RoleForm = {
   code: "",
   sort: 1,
   status: StatusTypeEnum.ACCESS,
-  dataScope: DataScopeTypeEnum.ALL
+  dataScope: DataScopeTypeEnum.ALL as RoleForm["dataScope"]
 }
 const roleState = ref<RoleForm>({...initialRoleFormData})
 const columns = ref<TableColumn<RolePageVO>[]>([
@@ -124,6 +134,7 @@ const columns = ref<TableColumn<RolePageVO>[]>([
     cell: ({row}) => {
       return h(USwitch, {
         modelValue: row.original.status === StatusTypeEnum.ACCESS,
+        disabled: roleStatusUpdatingId.value === String(row.original.id),
         "onUpdate:modelValue": (value: boolean) => {
           updateRoleStatus(row.original.id, value)
         }
@@ -213,6 +224,23 @@ function normalizeUserOptions(items: SelectMenuItem[]) {
   })
 }
 
+function normalizeRolePayload(raw: RoleForm, overrideId?: RoleId): RoleForm {
+  return {
+    ...raw,
+    id: overrideId === undefined ? Number(raw.id ?? 0) : Number(overrideId),
+    name: raw.name?.trim() ?? "",
+    code: raw.code?.trim() ?? "",
+    sort: Number(raw.sort ?? 0),
+    status: Number(raw.status ?? StatusTypeEnum.ACCESS) as RoleStatus,
+    dataScope: Number(raw.dataScope ?? DataScopeTypeEnum.ALL) as RoleForm["dataScope"],
+  }
+}
+
+function applySearchParams() {
+  const keywords = searchForm.keywords.trim()
+  queryParams.keywords = keywords || undefined
+}
+
 function resetEditRoleForm() {
   roleState.value = {...initialRoleFormData}
   submittingEditRole.value = false
@@ -250,21 +278,17 @@ function openAddRoleModal() {
 }
 
 async function openEditRoleModal(id: string | number | undefined) {
-  if (!id && id !== 0) return
+  if (id === undefined || id === null || id === "") return
   loadingEditRole.value = true
   editingRoleId.value = String(id)
   editModalMode.value = "edit"
   editModalTitle.value = "修改角色"
   try {
-    const formData = await RoleAPI.getRoleForm(Number(id))
-    roleState.value = {
+    const formData = await RoleAPI.getRoleForm(id)
+    roleState.value = normalizeRolePayload({
       ...initialRoleFormData,
-      ...formData,
-      id: Number(formData.id ?? id),
-      sort: Number(formData.sort ?? initialRoleFormData.sort),
-      status: Number(formData.status ?? initialRoleFormData.status),
-      dataScope: Number(formData.dataScope ?? initialRoleFormData.dataScope)
-    }
+      ...formData
+    }, formData.id ?? id)
     openEditModal.value = true
   } catch (e) {
     console.log(e)
@@ -275,7 +299,7 @@ async function openEditRoleModal(id: string | number | undefined) {
 
 function openEditRoleBySelection() {
   const selectedRow = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows?.[0]?.original
-  if (!selectedRow?.id) {
+  if (selectedRow?.id === undefined || selectedRow?.id === null || selectedRow?.id === "") {
     toast.add({title: "错误", description: "请选择需要修改的角色", color: "error"})
     return
   }
@@ -283,21 +307,20 @@ function openEditRoleBySelection() {
 }
 
 async function submitEditRole() {
-  if (!roleState.value.name?.trim()) {
+  const payload = normalizeRolePayload(
+      roleState.value,
+      editModalMode.value === "edit" ? editingRoleId.value : undefined
+  )
+
+  if (!payload.name) {
     toast.add({title: "错误", description: "角色名称不能为空", color: "error"})
     return
   }
-  if (!roleState.value.code?.trim()) {
+  if (!payload.code) {
     toast.add({title: "错误", description: "权限字符不能为空", color: "error"})
     return
   }
-  const payload: RoleForm = {
-    ...roleState.value,
-    id: editModalMode.value === "edit" ? Number(editingRoleId.value) : Number(roleState.value.id ?? 0),
-    sort: Number(roleState.value.sort ?? 0),
-    status: Number(roleState.value.status ?? StatusTypeEnum.ACCESS),
-    dataScope: Number(roleState.value.dataScope ?? DataScopeTypeEnum.ALL)
-  }
+
   try {
     submittingEditRole.value = true
     if (editModalMode.value === "add") {
@@ -317,7 +340,7 @@ async function submitEditRole() {
 }
 
 async function openAssignUsersModal(id: string | number | undefined, name?: string) {
-  if (!id && id !== 0) return
+  if (id === undefined || id === null || id === "") return
   assigningRoleId.value = String(id)
   loadingAssignUsers.value = true
   assignRoleId.value = String(id)
@@ -339,15 +362,17 @@ async function submitAssignUsers() {
     toast.add({title: "错误", description: "角色ID不能为空", color: "error"})
     return
   }
-  if (!assignUserIds.value.length) {
+  const userIds = assignUserIds.value
+      .map(item => Number(item))
+      .filter(item => !Number.isNaN(item))
+
+  if (!userIds.length) {
     toast.add({title: "错误", description: "请选择要分配的用户", color: "error"})
     return
   }
+
   try {
     submittingAssignUsers.value = true
-    const userIds = assignUserIds.value
-        .map(item => Number(item))
-        .filter(item => !Number.isNaN(item))
     await RoleAPI.assignUsersToRole(Number(assignRoleId.value), userIds)
     toast.add({title: "成功", description: "分配用户成功", color: "success"})
     openAssignModal.value = false
@@ -358,7 +383,7 @@ async function submitAssignUsers() {
   }
 }
 
-async function confirmDeleteRoles(ids: Array<string | number>, names: string[] = []) {
+async function confirmDeleteRoles(ids: RoleId[], names: string[] = []) {
   if (!ids.length) return
   const nameText = names[0]?.trim()
   const content = ids.length === 1
@@ -400,20 +425,23 @@ function deleteRoleBySelection() {
     toast.add({title: "错误", description: "超级管理员不可删除", color: "error"})
     return
   }
-  const ids = deleteRoles.map(item => item.id as string)
+  const ids = deleteRoles.map(item => item.id as RoleId)
   const names = deleteRoles.map(item => item.name ?? "")
   confirmDeleteRoles(ids, names)
 }
 
-async function updateRoleStatus(roleId: string | number | undefined, value: boolean) {
-  if (!roleId) return
-  const status = value ? StatusTypeEnum.ACCESS : StatusTypeEnum.BAN
+async function updateRoleStatus(roleId: RoleId | undefined, value: boolean) {
+  if (roleId === undefined || roleId === null || roleId === "") return
+  const status = (value ? StatusTypeEnum.ACCESS : StatusTypeEnum.BAN) as RoleStatus
   try {
-    await RoleAPI.updateRoleStatus(Number(roleId), status)
+    roleStatusUpdatingId.value = String(roleId)
+    await RoleAPI.updateRoleStatus(roleId, status)
     toast.add({title: "成功", description: "状态已更新", color: "success"})
     await fetchData()
   } catch (e) {
     console.log(e)
+  } finally {
+    roleStatusUpdatingId.value = ""
   }
 }
 
@@ -421,8 +449,8 @@ async function updateRoleStatus(roleId: string | number | undefined, value: bool
 async function fetchData() {
   try {
     const data = await RoleAPI.getPage(queryParams)
-    roleList.value = data.list;
-    total.value = data.total;
+    roleList.value = data.list ?? [];
+    total.value = data.total ?? 0;
   } catch (e) {
     console.log(e);
   }
@@ -431,7 +459,13 @@ async function fetchData() {
 // 查询（重置页码后获取数据）
 function handleQuery() {
   queryParams.pageNum = 1;
+  applySearchParams()
   fetchData();
+}
+
+function resetQuery() {
+  searchForm.keywords = ""
+  handleQuery()
 }
 </script>
 
@@ -493,8 +527,24 @@ function handleQuery() {
   </UModal>
   <UCard>
     <template #header>
-      <ActionGroup :table="table" @flush="handleQuery" @add-row="openAddRoleModal"
-                   @modify-row="openEditRoleBySelection" @delete-row="deleteRoleBySelection"/>
+      <div class="space-y-3">
+        <ActionGroup :table="table" @flush="handleQuery" @add-row="openAddRoleModal"
+                     @modify-row="openEditRoleBySelection" @delete-row="deleteRoleBySelection"/>
+        <UForm @submit="handleQuery" class="w-full">
+          <div class="flex flex-wrap items-center gap-2">
+            <UInput
+                v-model="searchForm.keywords"
+                icon="i-lucide-search"
+                size="md"
+                variant="outline"
+                class="w-72"
+                placeholder="搜索角色名称/权限字符"
+            />
+            <UButton type="submit" icon="i-lucide-search" label="搜索"/>
+            <UButton type="button" variant="ghost" icon="i-lucide-rotate-ccw" label="重置" @click="resetQuery"/>
+          </div>
+        </UForm>
+      </div>
     </template>
     <UTable ref="table" v-model:column-visibility="columnVisibility" sticky :data="roleList" :columns="columns"/>
     <template #footer>
