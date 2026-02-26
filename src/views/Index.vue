@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, onBeforeUnmount, onMounted, reactive, ref} from "vue";
 import AISidebar from "@/components/AISidebar.vue";
-import stockApi, {type StockPageVO, type StockQuery} from "@/api/stock-api.ts";
+import stockApi, {type StockPageVO, type StockQuery} from "@/api/library/stock-api.ts";
 import FileApi from "@/api/file-api.ts";
 
 interface HomeBookCard extends StockPageVO {

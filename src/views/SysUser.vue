@@ -3,8 +3,8 @@ import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef, watch} fr
 import type {SelectMenuItem, TableColumn} from "@nuxt/ui";
 import moment from "moment";
 import {ElMessageBox} from "element-plus";
-import UserAPI, {type UserForm, type UserPageQuery, type UserPageVO} from "@/api/user-api.ts"
-import RoleAPI from "@/api/role-api.ts";
+import UserAPI, {type UserForm, type UserPageQuery, type UserPageVO} from "@/api/system/user-api.ts"
+import RoleAPI from "@/api/system/role-api.ts";
 import {UserGenderTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
 
 onMounted(() => {
@@ -172,7 +172,7 @@ const columns = ref<TableColumn<UserPageVO>[]>([
           h(UButton, {
             icon: "i-lucide-clipboard-pen-line",
             variant: "ghost",
-            loading: loadingEditUser.value && editingUserId.value === row.original.id,
+            loading: loadingEditUser.value && editingUserId.value === String(row.original.id),
             onClick: (ev: Event) => {
               ev.stopPropagation()
               openEditUserModal(row.original.id)
@@ -183,7 +183,7 @@ const columns = ref<TableColumn<UserPageVO>[]>([
           h(UButton, {
             icon: "i-lucide-key",
             variant: "ghost",
-            loading: resettingUserId.value === row.original.id,
+            loading: resettingUserId.value === String(row.original.id),
             onClick: (ev: Event) => {
               ev.stopPropagation()
               confirmResetPassword(row.original.id, row.original.username)
@@ -194,7 +194,7 @@ const columns = ref<TableColumn<UserPageVO>[]>([
           h(UButton, {
             icon: "i-lucide-id-card-lanyard",
             variant: "ghost",
-            loading: assigningRoleUserId.value === row.original.id,
+            loading: assigningRoleUserId.value === String(row.original.id),
             onClick: (ev: Event) => {
               ev.stopPropagation()
               openAssignRoleDialog(row.original.id, row.original.username)
@@ -205,7 +205,7 @@ const columns = ref<TableColumn<UserPageVO>[]>([
           h(UButton, {
             icon: "i-lucide-trash-2",
             variant: "ghost",
-            loading: deletingUserId.value === row.original.id,
+            loading: deletingUserId.value === String(row.original.id),
             onClick: (ev: Event) => {
               ev.stopPropagation()
               confirmDeleteUsers([row.original.id], row.original.username ? [row.original.username] : [])
@@ -281,10 +281,10 @@ async function fetchRoleOptions() {
   }
 }
 
-async function openEditUserModal(id: string) {
-  if (!id) return
+async function openEditUserModal(id: string | number) {
+  if (!id && id !== 0) return
   loadingEditUser.value = true
-  editingUserId.value = id
+  editingUserId.value = String(id)
   editModalMode.value = "edit"
   editModalTitle.value = "修改用户信息"
   try {
@@ -317,11 +317,11 @@ async function openAddUserModal() {
   openEditModal.value = true
 }
 
-async function openAssignRoleDialog(id: string, username?: string) {
-  if (!id) return
-  assigningRoleUserId.value = id
+async function openAssignRoleDialog(id: string | number, username?: string) {
+  if (!id && id !== 0) return
+  assigningRoleUserId.value = String(id)
   loadingAssignRole.value = true
-  assignRoleUserId.value = id
+  assignRoleUserId.value = String(id)
   assignRoleUsername.value = username ?? ""
   try {
     const [formData] = await Promise.all([
@@ -420,8 +420,8 @@ async function submitAssignRole() {
   }
 }
 
-async function confirmResetPassword(id: string, username?: string) {
-  if (!id) return
+async function confirmResetPassword(id: string | number, username?: string) {
+  if (!id && id !== 0) return
   try {
     await ElMessageBox.confirm(
         `确定重置用户 ${username ? `${username}` : ""} 的密码吗？`,
@@ -432,7 +432,7 @@ async function confirmResetPassword(id: string, username?: string) {
           cancelButtonText: "取消"
         }
     )
-    resettingUserId.value = id
+    resettingUserId.value = String(id)
     await UserAPI.resetPassword(id)
     toast.add({title: "成功", description: "密码已重置为默认密码 123456", color: "success"})
   } catch (e: any) {
@@ -444,7 +444,7 @@ async function confirmResetPassword(id: string, username?: string) {
   }
 }
 
-async function confirmDeleteUsers(ids: string[], usernames: string[] = []) {
+async function confirmDeleteUsers(ids: Array<string | number>, usernames: string[] = []) {
   if (!ids.length) return
   const usernameText = usernames[0]?.trim()
   const content = ids.length === 1
@@ -460,7 +460,7 @@ async function confirmDeleteUsers(ids: string[], usernames: string[] = []) {
           cancelButtonText: "取消"
         }
     )
-    deletingUserId.value = ids.length === 1 ? (ids[0] ?? "") : "__batch__"
+    deletingUserId.value = ids.length === 1 ? String(ids[0] ?? "") : "__batch__"
     await UserAPI.delete(ids)
     toast.add({title: "成功", description: "删除成功", color: "success"})
     await fetchData()

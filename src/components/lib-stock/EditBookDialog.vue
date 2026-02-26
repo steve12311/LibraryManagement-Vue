@@ -3,7 +3,7 @@ import {useTemplateRef} from 'vue'
 import type {SelectMenuItem} from '@nuxt/ui'
 import {CalendarDate} from '@internationalized/date'
 import {ElDialog, ElTreeSelect} from 'element-plus'
-import type {BookForm} from '@/api/book-api.ts'
+import type {BookForm} from '@/api/library/book-api.ts'
 
 const open = defineModel<boolean>('open', {default: false})
 const state = defineModel<BookForm>('state', {required: true})

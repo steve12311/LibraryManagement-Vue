@@ -1,8 +1,8 @@
 import {defineStore} from "pinia";
 import {ref} from "vue";
 import type {RouteRecordRaw} from "vue-router";
-import MenuAPI, {type RouteVO} from "../../api/menu-api.ts";
-import router, {constantRoutes} from "../../router/router.ts";
+import MenuAPI, {type RouteVO} from "../../api/system/menu-api.ts";
+import router, {constantRoutes} from "../../router";
 import {pinia} from "../index.ts";
 
 const modules = import.meta.glob("../../views/**/**.vue");

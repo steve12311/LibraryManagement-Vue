@@ -3,9 +3,9 @@ import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRe
 import type {InputMenuItem, SelectItem, SelectMenuItem, TableColumn} from "@nuxt/ui";
 import moment from "moment";
 import {CalendarDate} from '@internationalized/date'
-import borrowApi, {type BorrowForm, type BorrowPageVO, type BorrowQuery} from "@/api/borrow-api.ts";
-import userApi from "@/api/user-api.ts";
-import bookApi from "@/api/book-api.ts";
+import borrowApi, {type BorrowForm, type BorrowPageVO, type BorrowQuery} from "@/api/library/borrow-api.ts";
+import userApi from "@/api/system/user-api.ts";
+import bookApi from "@/api/library/book-api.ts";
 import * as v from 'valibot'
 import {ElMessageBox} from "element-plus";
 

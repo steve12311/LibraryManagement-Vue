@@ -24,21 +24,21 @@ const RoleAPI = {
         })
     },
     create(data: RoleForm) {
-        return request({
+        return request<any, string>({
             url: `${ROLE_BASE_URL}`,
             method: "post",
             data: data,
         })
     },
-    update(ids: number, data: RoleForm) {
-        return request({
-            url: `${ROLE_BASE_URL}/${ids}`,
+    update(id: number, data: RoleForm) {
+        return request<any, string>({
+            url: `${ROLE_BASE_URL}/${id}`,
             method: "put",
             data: data,
         })
     },
     updateRoleStatus(id: number, status: number) {
-        return request({
+        return request<any, string>({
             url: `${ROLE_BASE_URL}/${id}/status`,
             method: "put",
             params: {
@@ -46,15 +46,29 @@ const RoleAPI = {
             },
         })
     },
-    delete(id: number) {
-        return request({
-            url: `${ROLE_BASE_URL}/${id}`,
+    delete(ids: Array<number | string> | number | string) {
+        const idsStr = Array.isArray(ids) ? ids.join(",") : String(ids);
+        return request<any, string>({
+            url: `${ROLE_BASE_URL}/${idsStr}`,
             method: "delete",
+        })
+    },
+    getRoleMenuIds(roleId: number) {
+        return request<any, number[]>({
+            url: `${ROLE_BASE_URL}/${roleId}/menuIds`,
+            method: "get",
+        })
+    },
+    assignMenusToRole(roleId: number, menuIds: number[]) {
+        return request<any, string>({
+            url: `${ROLE_BASE_URL}/${roleId}/menus`,
+            method: "put",
+            data: menuIds,
         })
     },
     assignUsersToRole(roleId: number, userIds: number[]) {
         const idsStr = userIds.join(",");
-        return request({
+        return request<any, string>({
             url: `${ROLE_BASE_URL}/${roleId}/users`,
             method: "put",
             params: {
@@ -82,11 +96,15 @@ export interface RoleForm {
 export interface RolePageQuery extends PageQuery {
     /** 搜索关键字 */
     keywords?: string;
+    /** 开始日期 */
+    startDate?: string;
+    /** 结束日期 */
+    endDate?: string;
 }
 
 export interface RolePageVO {
     /** 角色ID */
-    id?: string;
+    id?: number | string;
     /** 角色编码 */
     code?: string;
     /** 角色名称 */

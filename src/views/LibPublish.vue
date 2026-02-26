@@ -2,7 +2,7 @@
 import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef} from "vue";
 import type {SelectItem, TableColumn, TableRow} from "@nuxt/ui";
 import moment from "moment/moment";
-import publishApi, {type PublishForm, type PublishPageVO, type PublishQuery} from "@/api/publish-api.ts";
+import publishApi, {type PublishForm, type PublishPageVO, type PublishQuery} from "@/api/library/publish-api.ts";
 import * as v from 'valibot'
 
 const UCheckbox = resolveComponent('UCheckbox')

@@ -1,10 +1,10 @@
 import {defineStore} from "pinia";
 import {useAuthStoreHook} from "./auth-store.ts";
-import AuthAPI from "../../api/auth-api.ts";
+import AuthAPI from "../../api/system/auth-api.ts";
 import {pinia} from "../index.ts";
-import type {LoginFormData} from "../../api/auth-api.ts"
-import type {UserInfo} from "../../api/user-api.ts"
-import UserAPI from "../../api/user-api.ts";
+import type {LoginFormData} from "../../api/system/auth-api.ts"
+import type {UserInfo} from "../../api/system/user-api.ts"
+import UserAPI from "../../api/system/user-api.ts";
 import {ref} from "vue";
 import {usePermissionStoreHook} from "./permission-store.ts";
 

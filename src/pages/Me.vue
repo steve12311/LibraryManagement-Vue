@@ -2,7 +2,7 @@
 import {computed, onMounted, reactive, ref} from "vue";
 import * as v from "valibot";
 import {useRouter} from "vue-router";
-import UserAPI, {type PasswordUpdateForm, type UserProfile, type UserProfileForm} from "@/api/user-api.ts";
+import UserAPI, {type PasswordUpdateForm, type UserProfile, type UserProfileForm} from "@/api/system/user-api.ts";
 import {useUserStore} from "@/store";
 import {UserGenderTypeEnum} from "@/enums/system/status-enum.ts";
 

@@ -2,7 +2,7 @@
 import {ref, shallowRef, useTemplateRef, watch} from "vue";
 import type {SelectMenuItem, StepperItem} from "@nuxt/ui";
 import {CalendarDate} from "@internationalized/date";
-import stockApi, {type StockForm} from "@/api/stock-api.ts";
+import stockApi, {type StockForm} from "@/api/library/stock-api.ts";
 import FileApi from "@/api/file-api.ts";
 import {ElDialog, ElTreeSelect} from "element-plus";
 

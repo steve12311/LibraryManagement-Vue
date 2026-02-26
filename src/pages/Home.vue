@@ -3,9 +3,9 @@ import {ref, watchEffect} from "vue";
 import type {BreadcrumbItem, DropdownMenuItem} from '@nuxt/ui'
 import {useRouter} from "vue-router";
 import {useUserStore} from "@/store";
-import MenuAPI from "@/api/menu-api.ts";
+import MenuAPI from "@/api/system/menu-api.ts";
 import {ElMessageBox} from "element-plus";
-import authApi from "@/api/auth-api.ts";
+import authApi from "@/api/system/auth-api.ts";
 
 const router = useRouter()
 const userStore = useUserStore()

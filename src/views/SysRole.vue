@@ -3,8 +3,8 @@ import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef, watch} fr
 import type {SelectMenuItem, TableColumn} from "@nuxt/ui";
 import moment from "moment/moment";
 import {ElMessageBox} from "element-plus";
-import UserAPI from "@/api/user-api.ts";
-import RoleAPI, {type RoleForm, type RolePageQuery, type RolePageVO} from "@/api/role-api.ts";
+import UserAPI from "@/api/system/user-api.ts";
+import RoleAPI, {type RoleForm, type RolePageQuery, type RolePageVO} from "@/api/system/role-api.ts";
 import {DataScopeTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
 
 onMounted(() => {
@@ -176,7 +176,7 @@ const columns = ref<TableColumn<RolePageVO>[]>([
             loading: deletingRoleId.value === String(row.original.id),
             onClick: (ev: Event) => {
               ev.stopPropagation()
-              confirmDeleteRoles([row.original.id], row.original.name ? [row.original.name] : [])
+              confirmDeleteRoles([row.original.id!], row.original.name ? [row.original.name] : [])
             }
           }),
         ])
@@ -249,7 +249,7 @@ function openAddRoleModal() {
   openEditModal.value = true
 }
 
-async function openEditRoleModal(id: string | number) {
+async function openEditRoleModal(id: string | number | undefined) {
   if (!id && id !== 0) return
   loadingEditRole.value = true
   editingRoleId.value = String(id)
@@ -316,7 +316,7 @@ async function submitEditRole() {
   }
 }
 
-async function openAssignUsersModal(id: string | number, name?: string) {
+async function openAssignUsersModal(id: string | number | undefined, name?: string) {
   if (!id && id !== 0) return
   assigningRoleId.value = String(id)
   loadingAssignUsers.value = true
@@ -375,7 +375,7 @@ async function confirmDeleteRoles(ids: Array<string | number>, names: string[] =
         }
     )
     deletingRoleId.value = ids.length === 1 ? String(ids[0]) : "__batch__"
-    await Promise.all(ids.map(id => RoleAPI.delete(Number(id))))
+    await RoleAPI.delete(ids)
     toast.add({title: "成功", description: "删除成功", color: "success"})
     await fetchData()
   } catch (e: any) {

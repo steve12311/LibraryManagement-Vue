@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type {StockPageVO} from '@/api/stock-api.ts'
+import type {StockPageVO} from '@/api/library/stock-api.ts'
 
 const open = defineModel<boolean>('open', {default: false})
 const currentSelectedStock = defineModel<StockPageVO | undefined>('stock')

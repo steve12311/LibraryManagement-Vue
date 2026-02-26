@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef} from "vue";
 import type {TableColumn} from "@nuxt/ui";
-import categoryApi, {type CategoryQuery, type CategoryVO} from "@/api/category-api.ts";
+import categoryApi, {type CategoryQuery, type CategoryVO} from "@/api/library/category-api.ts";
 
 const UButton = resolveComponent('UButton')
 

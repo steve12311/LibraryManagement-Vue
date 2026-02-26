@@ -2,11 +2,11 @@
 import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import type {SelectItem, SelectMenuItem, TableColumn, TableRow} from "@nuxt/ui";
 import moment from "moment/moment";
-import stockApi, {type StockForm, type StockPageVO, type StockQuery} from "@/api/stock-api.ts";
-import bookApi, {type BookForm} from "@/api/book-api.ts";
+import stockApi, {type StockForm, type StockPageVO, type StockQuery} from "@/api/library/stock-api.ts";
+import bookApi, {type BookForm} from "@/api/library/book-api.ts";
 import FileApi from "@/api/file-api.ts";
-import categoryApi from "@/api/category-api.ts";
-import publishApi from "@/api/publish-api.ts";
+import categoryApi from "@/api/library/category-api.ts";
+import publishApi from "@/api/library/publish-api.ts";
 import {CalendarDate} from "@internationalized/date";
 import StockOutDialog from "@/components/lib-stock/StockOutDialog.vue";
 import EditBookDialog from "@/components/lib-stock/EditBookDialog.vue";
