@@ -1,17 +1,19 @@
 import request from "@/utils/request";
 
-const STOCK_BASE_URL = '/api/v1/stock'
+const STOCK_BASE_URL = "/api/v1/stock";
+export type StockSearchField = "name" | "isbn" | "author";
+export type StockDateValue = string | Date;
 
 const StockApi = {
     /**
      * 获取库存列表
      * @param queryParams
      */
-    getPage(queryParams: StockQuery) {
+    getPage(queryParams?: StockQuery) {
         return request<any, PageResult<StockPageVO[]>>({
             url: `${STOCK_BASE_URL}/page`,
             method: "get",
-            params: queryParams
+            params: queryParams,
         })
     },
     getFormData(isbn: string) {
@@ -21,17 +23,17 @@ const StockApi = {
         })
     },
     create(stockForm: StockForm) {
-        return request({
+        return request<any, string>({
             url: `${STOCK_BASE_URL}`,
             method: "post",
-            data: stockForm
+            data: stockForm,
         })
     },
     update(stockForm: StockForm) {
-        return request({
+        return request<any, string>({
             url: `${STOCK_BASE_URL}`,
             method: "put",
-            data: stockForm
+            data: stockForm,
         })
     }
 }
@@ -43,30 +45,30 @@ export interface StockPageVO {
     intro?: string
     author?: string
     publishName: string
-    publishTime: Date
+    publishTime: StockDateValue
     categoryName: string
     stockNumber: number
     currentNumber: number
     price: number
-    createTime: Date
+    createTime: StockDateValue
 }
 
 export interface StockQuery extends PageQuery {
-    field?: "name" | "isbn" | "author",
+    field?: StockSearchField,
     keyword?: string
 }
 
 export interface StockForm {
     isbn: string;
-    cover?: string;
-    name: string;
-    intro: string;
-    author: string;
-    pressId: number | undefined;
-    publishTime: Date;
-    categoryId: number | undefined;
-    price: number;
     stock: number;
+    cover?: string;
+    name?: string;
+    intro?: string;
+    author?: string;
+    pressId?: number;
+    publishTime?: StockDateValue;
+    categoryId?: number;
+    price?: number;
 }
 
 export default StockApi

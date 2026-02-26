@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
+import {h, onBeforeUnmount, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import type {SelectItem, SelectMenuItem, TableColumn, TableRow} from "@nuxt/ui";
 import moment from "moment/moment";
 import stockApi, {type StockForm, type StockPageVO, type StockQuery} from "@/api/library/stock-api.ts";
@@ -17,13 +17,16 @@ const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
 
 onMounted(() => {
-  handleQuery()
+  void handleQuery()
 })
 
 const date = new Date()
 const toast = useToast()
 const pageDate = ref<StockPageVO[]>([])
+const loadingPageData = ref(false)
 const currentSelectedStock = ref<StockPageVO>()
+const imageCache = new Map<string, string>()
+const objectUrls = new Set<string>()
 const fieldItems = ref<SelectItem[]>([
   {
     label: "名称",
@@ -45,28 +48,31 @@ const openStockOutDialog = ref(false)
 const queryParams = reactive<StockQuery>({
   pageNum: 1,
   pageSize: 10,
-  field: "name"
+  field: "name",
+  keyword: void 0,
 })
 const table = useTemplateRef("table")
 const publishOptions = ref<SelectMenuItem[]>([])
 const categoryTreeOptions = ref<OptionType[]>([])
 const loadingOptions = ref(false)
-const columns = ref<TableColumn<any>[]>([
+const columns = ref<TableColumn<StockPageVO>[]>([
   {
     id: "bookImage",
     accessorKey: "bookImage",
     header: "封面",
     cell: ({row}) => {
+      if (!row.original.bookImage) {
+        return h("div", {class: "h-24 w-[72px] rounded-md border border-default bg-elevated/40 flex items-center justify-center"}, [
+          h("span", {class: "text-xs text-muted"}, "暂无封面")
+        ])
+      }
       return h("div", {
-        style: {
-          height: "120px",
-        }
+        class: "h-24 w-[72px] overflow-hidden rounded-md border border-default bg-elevated"
       }, [
         h("img", {
           src: row.original.bookImage,
-          style: {
-            height: "100%",
-          }
+          alt: `${row.original.name}封面`,
+          class: "h-full w-full object-cover"
         }, undefined)
       ])
     }
@@ -108,7 +114,7 @@ const columns = ref<TableColumn<any>[]>([
   {
     id: "active",
     header: "操作",
-    cell: ({row}) => h('div', undefined, [
+    cell: ({row}) => h('div', {class: "flex items-center gap-1"}, [
       h(UTooltip, {text: "修改", delayDuration: 0}, () => [
         h(UButton, {
           icon: "i-lucide-clipboard-pen-line",
@@ -124,7 +130,7 @@ const columns = ref<TableColumn<any>[]>([
         h(UButton, {
           icon: "i-lucide-archive-restore", variant: "ghost", onClick: (ev: Event) => {
             ev.stopPropagation();
-            openStockOutModal(row.original.isbn)
+            openStockOutModal(row.original)
           }
         }),
       ])
@@ -136,6 +142,7 @@ const submittingEditBook = ref(false)
 const editingIsbn = ref("")
 const stockOutIsbn = ref("")
 const stockOutNumber = ref(0)
+const stockOutMaxNumber = ref(0)
 const submittingStockOut = ref(false)
 const openEntryStepper = ref(false)
 const initialEditBookFormData: BookForm = {
@@ -153,10 +160,32 @@ const editBookState = ref<BookForm>({...initialEditBookFormData})
 const editBookCoverModel = ref<File>()
 const editBookPublishTime = shallowRef(new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate()))
 
+onBeforeUnmount(() => {
+  objectUrls.forEach((url) => URL.revokeObjectURL(url))
+  objectUrls.clear()
+  imageCache.clear()
+})
+
 // 查询（重置页码后获取数据）
-function handleQuery() {
+async function handleQuery() {
   queryParams.pageNum = 1;
-  fetchData();
+  await fetchData();
+}
+
+function normalizeKeyword(value?: string) {
+  const keyword = String(value ?? "").trim()
+  return keyword || void 0
+}
+
+function applySearchParams() {
+  queryParams.keyword = normalizeKeyword(queryParams.keyword)
+}
+
+function resetQuery() {
+  queryParams.field = "name"
+  queryParams.keyword = void 0
+  queryParams.pageNum = 1
+  void fetchData()
 }
 
 function showBookDetailInfo(_: any, row: TableRow<StockPageVO>) {
@@ -166,21 +195,43 @@ function showBookDetailInfo(_: any, row: TableRow<StockPageVO>) {
 
 async function fetchData() {
   try {
+    loadingPageData.value = true
+    applySearchParams()
     const data = await stockApi.getPage(queryParams)
-    pageDate.value = data.list
     total.value = data.total
-    for (const item of pageDate.value) {
-      item.bookImage = await fetchImage(item.bookImage)
-    }
+    pageDate.value = await Promise.all(
+        data.list.map(async (item) => ({
+          ...item,
+          bookImage: await fetchImage(item.bookImage),
+        }))
+    )
   } catch (e) {
-    console.log(e)
+    console.error(e)
+    pageDate.value = []
+    total.value = 0
+    toast.add({title: "错误", description: "库存数据加载失败", color: "error"})
+  } finally {
+    loadingPageData.value = false
   }
 }
 
 async function fetchImage(originalUrl: string | undefined) {
-  if (originalUrl) {
+  if (!originalUrl) {
+    return void 0
+  }
+  const cachedUrl = imageCache.get(originalUrl)
+  if (cachedUrl) {
+    return cachedUrl
+  }
+  try {
     const blob = await FileApi.getFile(originalUrl)
-    return URL.createObjectURL(blob.data)
+    const objectUrl = URL.createObjectURL(blob.data)
+    imageCache.set(originalUrl, objectUrl)
+    objectUrls.add(objectUrl)
+    return objectUrl
+  } catch (error) {
+    console.error(error)
+    return void 0
   }
 }
 
@@ -215,6 +266,7 @@ function resetEditBookForm() {
 function resetStockOutForm() {
   stockOutIsbn.value = ""
   stockOutNumber.value = 0
+  stockOutMaxNumber.value = 0
   submittingStockOut.value = false
 }
 
@@ -231,26 +283,25 @@ watch(openStockOutDialog, (isOpen) => {
 })
 
 async function fetchPublishOptions() {
-  try {
-    publishOptions.value = await publishApi.getOptions()
-  } catch (e) {
-    console.log(e)
-  }
+  publishOptions.value = await publishApi.getOptions()
 }
 
 async function fetchCategoryOptions() {
-  try {
-    categoryTreeOptions.value = await categoryApi.getOptions()
-  } catch (e) {
-    console.log(e)
-  }
+  categoryTreeOptions.value = await categoryApi.getOptions()
+}
+
+async function fetchEntryOptions() {
+  await Promise.all([fetchPublishOptions(), fetchCategoryOptions()])
 }
 
 async function openEntryModal() {
   loadingOptions.value = true
   try {
-    await Promise.all([fetchPublishOptions(), fetchCategoryOptions()])
+    await fetchEntryOptions()
     openEntryStepper.value = true
+  } catch (error) {
+    console.error(error)
+    toast.add({title: "错误", description: "加载书籍选项失败", color: "error"})
   } finally {
     loadingOptions.value = false
   }
@@ -261,17 +312,17 @@ async function openEditBookModal(isbn: string) {
   editingIsbn.value = isbn
   loadingEditBook.value = true
   try {
-    const [_, __, formData] = await Promise.all([
-      fetchPublishOptions(),
-      fetchCategoryOptions(),
-      bookApi.getFormData(isbn)
+    const [formData] = await Promise.all([
+      bookApi.getFormData(isbn),
+      fetchEntryOptions(),
     ])
     editBookState.value = {...formData}
     editBookPublishTime.value = toCalendarDate(formData.publishTime)
     editBookCoverModel.value = void 0
     openEditBookDialog.value = true
-  } catch (e) {
-    console.log(e)
+  } catch (error) {
+    console.error(error)
+    toast.add({title: "错误", description: "加载图书信息失败", color: "error"})
   } finally {
     loadingEditBook.value = false
   }
@@ -300,15 +351,17 @@ async function submitEditBook() {
     toast.add({title: "成功", description: "修改成功", color: "success"})
     openEditBookDialog.value = false
     await fetchData()
-  } catch (e) {
-    console.log(e)
+  } catch (error) {
+    console.error(error)
+    toast.add({title: "错误", description: "修改图书失败", color: "error"})
   } finally {
     submittingEditBook.value = false
   }
 }
 
-function openStockOutModal(isbn: string) {
-  stockOutIsbn.value = isbn
+function openStockOutModal(row: StockPageVO) {
+  stockOutIsbn.value = row.isbn
+  stockOutMaxNumber.value = Math.max(0, Number(row.currentNumber ?? 0))
   stockOutNumber.value = 0
   openStockOutDialog.value = true
 }
@@ -318,8 +371,12 @@ async function submitStockOut() {
     toast.add({title: "错误", description: "ISBN不能为空", color: "error"})
     return
   }
-  if (stockOutNumber.value < 0) {
-    toast.add({title: "错误", description: "出库数量不能小于0", color: "error"})
+  if (stockOutNumber.value <= 0) {
+    toast.add({title: "错误", description: "出库数量必须大于0", color: "error"})
+    return
+  }
+  if (stockOutNumber.value > stockOutMaxNumber.value) {
+    toast.add({title: "错误", description: "出库数量不能大于可用库存", color: "error"})
     return
   }
 
@@ -340,8 +397,9 @@ async function submitStockOut() {
     toast.add({title: "成功", description: "出库成功", color: "success"})
     openStockOutDialog.value = false
     await fetchData()
-  } catch (e) {
-    console.log(e)
+  } catch (error) {
+    console.error(error)
+    toast.add({title: "错误", description: "出库失败", color: "error"})
   } finally {
     submittingStockOut.value = false
   }
@@ -376,15 +434,30 @@ async function submitStockOut() {
   <UCard>
     <template #header>
       <ActionGroup @flush="fetchData" :table="table">
-        <UForm @submit="fetchData" class="w-full">
-          <div class="flex gap-2">
-            <USelect v-model="queryParams.field" defaultValue="name" :items="fieldItems" class="w-48"/>
-            <UInput v-model="queryParams.keyword" icon="i-lucide-search" size="md" variant="outline"
-                    placeholder="请输入搜索内容..."/>
+        <UForm @submit.prevent="handleQuery" class="w-full">
+          <div class="flex flex-wrap items-center gap-2">
+            <USelect v-model="queryParams.field" defaultValue="name" :items="fieldItems" class="w-28"/>
+            <UInput
+                v-model="queryParams.keyword"
+                icon="i-lucide-search"
+                size="md"
+                variant="outline"
+                class="w-full sm:w-72"
+                placeholder="请输入搜索内容..."
+            />
+            <UButton type="submit" icon="i-lucide-search" :loading="loadingPageData" label="搜索"/>
+            <UButton
+                type="button"
+                variant="ghost"
+                icon="i-lucide-rotate-ccw"
+                :disabled="loadingPageData"
+                label="重置"
+                @click="resetQuery"
+            />
           </div>
         </UForm>
         <template #behind>
-          <UButton @click="openEntryModal" :loading="loadingOptions" label="入库"/>
+          <UButton @click="openEntryModal" icon="i-lucide-plus" :loading="loadingOptions" variant="subtle" label="入库"/>
         </template>
       </ActionGroup>
     </template>
