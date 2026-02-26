@@ -60,7 +60,7 @@ export default defineConfig(({mode}: ConfigEnv): UserConfig => {
                     changeOrigin: true,
                     rewrite: (path: string) => path.replace(new RegExp("^" + env.VITE_APP_BASE_API), ""),
                 },
-                "/uploads":{
+                "/api/v1/files":{
                     target: env.VITE_APP_API_URL,
                     changeOrigin: true,
                     rewrite: (path: string) => path.replace(new RegExp("^" + env.VITE_APP_BASE_API), ""),

@@ -1,7 +1,6 @@
 import request from "@/utils/request";
 
 const FILE_BASE_URL = "/api/v1/files";
-const FILE_UPLOADS_BASE_URL = "/uploads";
 
 const FileApi = {
     resolveUrl(url?: string | null) {
@@ -19,12 +18,12 @@ const FileApi = {
             return rawUrl;
         }
 
-        if (rawUrl === FILE_UPLOADS_BASE_URL || rawUrl.startsWith(`${FILE_UPLOADS_BASE_URL}/`)) {
+        if (rawUrl === FILE_BASE_URL || rawUrl.startsWith(`${FILE_BASE_URL}/`)) {
             return rawUrl;
         }
 
         if (rawUrl.startsWith("/")) {
-            return `${FILE_UPLOADS_BASE_URL}${rawUrl}`;
+            return `${FILE_BASE_URL}${rawUrl}`;
         }
 
         return rawUrl;
