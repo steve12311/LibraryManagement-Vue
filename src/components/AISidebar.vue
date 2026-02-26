@@ -6,7 +6,9 @@ import Markdown from 'markstream-vue'
 import {AIChat} from '@/utils/Chat.ts'
 
 const open = defineModel<boolean>('open', {default: false})
+const MAX_INPUT_LENGTH = 1000
 
+const toast = useToast()
 const copied = ref(false)
 const inputMessage = ref('')
 const chat = new AIChat({})
@@ -28,6 +30,14 @@ function submitMessage(message: string) {
   if (normalized === '') {
     return
   }
+  if (normalized.length > MAX_INPUT_LENGTH) {
+    toast.add({
+      title: "错误",
+      description: `输入内容不能超过 ${MAX_INPUT_LENGTH} 个字符`,
+      color: "error"
+    })
+    return
+  }
   if (chat.status.value === 'submitted' || chat.status.value === 'streaming') {
     return
   }
@@ -40,11 +50,20 @@ function usePrompt(prompt: string) {
 }
 
 async function copy(_: MouseEvent, message: UIMessage) {
-  await navigator.clipboard.writeText(getTextFromMessage(message))
-  copied.value = true
-  setTimeout(() => {
-    copied.value = false
-  }, 2000)
+  try {
+    if (!navigator?.clipboard?.writeText) {
+      toast.add({title: "错误", description: "当前浏览器不支持复制功能", color: "error"})
+      return
+    }
+    await navigator.clipboard.writeText(getTextFromMessage(message))
+    copied.value = true
+    setTimeout(() => {
+      copied.value = false
+    }, 2000)
+  } catch (error) {
+    console.error(error)
+    toast.add({title: "错误", description: "复制失败，请稍后重试", color: "error"})
+  }
 }
 </script>
 

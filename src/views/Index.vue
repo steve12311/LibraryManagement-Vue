@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import {computed, onBeforeUnmount, onMounted, reactive, ref} from "vue";
-import AISidebar from "@/components/AISidebar.vue";
+import {computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref, watch} from "vue";
 import stockApi, {type StockPageVO, type StockQuery} from "@/api/library/stock-api.ts";
 import FileApi from "@/api/file-api.ts";
 
@@ -8,12 +7,17 @@ interface HomeBookCard extends StockPageVO {
   coverPreview?: string;
 }
 
+const AISidebar = defineAsyncComponent(() => import("@/components/AISidebar.vue"))
+
+const toast = useToast()
 const openAISidebar = ref(false)
+const aiSidebarLoaded = ref(false)
 const loading = ref(false)
 const total = ref(0)
 const searchKeyword = ref("")
 const activeKeyword = ref("")
 const books = ref<HomeBookCard[]>([])
+const fetchSerial = ref(0)
 const queryParams = reactive<StockQuery>({
   pageNum: 1,
   pageSize: 9,
@@ -37,6 +41,12 @@ const resultText = computed(() => {
 
 onMounted(() => {
   void fetchBooks()
+})
+
+watch(openAISidebar, (isOpen) => {
+  if (isOpen) {
+    aiSidebarLoaded.value = true
+  }
 })
 
 onBeforeUnmount(() => {
@@ -73,13 +83,20 @@ function handlePageChange(page: number) {
   void fetchBooks()
 }
 
+function openAiAssistant() {
+  aiSidebarLoaded.value = true
+  openAISidebar.value = true
+}
+
 async function fetchBooks() {
+  const currentFetchSerial = ++fetchSerial.value
   try {
     loading.value = true
     const data = await stockApi.getPage({
       ...queryParams,
       keyword: queryParams.keyword
     })
+    if (currentFetchSerial !== fetchSerial.value) return
     total.value = data.total
     books.value = await Promise.all(data.list.map(async (book) => {
       return {
@@ -88,11 +105,15 @@ async function fetchBooks() {
       }
     }))
   } catch (error) {
-    console.log(error)
+    if (currentFetchSerial !== fetchSerial.value) return
+    console.error(error)
     books.value = []
     total.value = 0
+    toast.add({title: "错误", description: "图书数据加载失败", color: "error"})
   } finally {
-    loading.value = false
+    if (currentFetchSerial === fetchSerial.value) {
+      loading.value = false
+    }
   }
 }
 
@@ -210,7 +231,7 @@ function getStockColor(book: HomeBookCard) {
               <span>{{ item.text }}</span>
             </div>
           </div>
-          <UButton class="mt-5" icon="i-lucide-sparkles" color="neutral" variant="soft" @click="openAISidebar = true">
+          <UButton class="mt-5" icon="i-lucide-sparkles" color="neutral" variant="soft" @click="openAiAssistant">
             打开智慧咨询
           </UButton>
         </div>
@@ -290,9 +311,9 @@ function getStockColor(book: HomeBookCard) {
         class="ai-floating absolute bottom-6 right-6 z-10"
         icon="i-lucide-bot"
         label="智慧咨询"
-        @click="openAISidebar = true"
+        @click="openAiAssistant"
     />
-    <AISidebar v-model:open="openAISidebar"/>
+    <AISidebar v-if="aiSidebarLoaded" v-model:open="openAISidebar"/>
   </div>
 </template>
 

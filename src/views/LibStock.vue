@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {h, onBeforeUnmount, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import type {SelectItem, SelectMenuItem, TableColumn, TableRow} from "@nuxt/ui";
-import moment from "moment/moment";
+import moment from "moment";
 import stockApi, {type StockForm, type StockPageVO, type StockQuery} from "@/api/library/stock-api.ts";
 import bookApi, {type BookForm} from "@/api/library/book-api.ts";
 import FileApi from "@/api/file-api.ts";

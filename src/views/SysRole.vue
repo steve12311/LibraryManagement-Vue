@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef, watch} from "vue";
 import type {SelectMenuItem, TableColumn} from "@nuxt/ui";
-import moment from "moment/moment";
+import moment from "moment";
 import {ElMessageBox} from "element-plus";
 import UserAPI from "@/api/system/user-api.ts";
 import RoleAPI, {

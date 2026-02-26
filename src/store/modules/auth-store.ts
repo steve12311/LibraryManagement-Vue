@@ -23,7 +23,9 @@ export const useAuthStore = defineStore("auth-store", () => {
         clearAuth,
     }
 }, {
-    persist: true,
+    persist: {
+        storage: sessionStorage,
+    },
 })
 
 export function useAuthStoreHook() {

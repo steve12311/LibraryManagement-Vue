@@ -38,8 +38,19 @@ function getRedirectPath() {
     return "/";
   }
 
+  const validateRedirectPath = (targetPath: string) => {
+    if (!targetPath.startsWith("/")) return false;
+    if (targetPath.startsWith("//")) return false;
+    if (targetPath.includes("://")) return false;
+    return true;
+  }
+
   try {
-    return decodeURIComponent(redirect);
+    const decodedPath = decodeURIComponent(redirect).trim();
+    if (!decodedPath || decodedPath.length > 2048) {
+      return "/";
+    }
+    return validateRedirectPath(decodedPath) ? decodedPath : "/";
   } catch {
     return "/";
   }

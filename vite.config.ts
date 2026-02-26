@@ -10,6 +10,43 @@ export default defineConfig(({mode}: ConfigEnv): UserConfig => {
     const env = loadEnv(mode, process.cwd());
     return {
         plugins: [vue(), ui()],
+        build: {
+            rollupOptions: {
+                output: {
+                    manualChunks(id) {
+                        if (!id.includes("node_modules")) return;
+
+                        if (
+                            id.includes("markstream-vue")
+                            || id.includes("/node_modules/ai/")
+                            || id.includes("@ai-sdk")
+                        ) {
+                            return "ai-stack";
+                        }
+
+                        if (id.includes("@nuxt/ui")) {
+                            return "nuxt-ui";
+                        }
+
+                        if (id.includes("element-plus")) {
+                            return "element-plus";
+                        }
+
+                        if (id.includes("/node_modules/moment/")) {
+                            return "moment";
+                        }
+
+                        if (
+                            id.includes("/node_modules/vue/")
+                            || id.includes("/node_modules/vue-router/")
+                            || id.includes("/node_modules/pinia/")
+                        ) {
+                            return "vue-core";
+                        }
+                    }
+                }
+            }
+        },
         resolve: {
             alias: {
                 "@": pathSrc,

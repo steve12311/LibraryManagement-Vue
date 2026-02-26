@@ -41,6 +41,7 @@ interface StreamParserState {
 
 export class AIChat {
     static readonly AI_BASE_URL = "/chat";
+    static readonly MAX_MESSAGE_LENGTH = 1000;
 
     constructor({messages}: { messages?: UIMessage[] }) {
         this.messages.value = messages ?? []
@@ -54,6 +55,10 @@ export class AIChat {
     sendMessage(text: string): Promise<void> {
         const normalizedText = text.trim();
         if (!normalizedText) {
+            return Promise.resolve();
+        }
+        if (normalizedText.length > AIChat.MAX_MESSAGE_LENGTH) {
+            console.warn(`Chat input is too long. max=${AIChat.MAX_MESSAGE_LENGTH}`);
             return Promise.resolve();
         }
 
