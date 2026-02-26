@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef, watchEffect} from "vue";
-import MenuAPI, {type MenuForm, type MenuQuery, type MenuVO} from "@/api/system/menu-api.ts";
+import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef, watch} from "vue";
+import MenuAPI, {type MenuForm, type MenuId, type MenuQuery, type MenuVO} from "@/api/system/menu-api.ts";
 import type {TableColumn, TableRow} from "@nuxt/ui";
 import {MenuTypeEnum} from "@/enums/system/menu-enum.ts";
 import {ElTreeSelect, ElDrawer, ElDialog} from "element-plus";
@@ -18,6 +18,7 @@ const UCheckbox = resolveComponent('UCheckbox')
 
 const overlay = useOverlay()
 const modal = overlay.create(WarningModal)
+const toast = useToast()
 
 type Status = {
   visible: boolean;
@@ -34,7 +35,13 @@ const dialog = ref<Status>({
 })
 const table = useTemplateRef("table");
 const queryParams = reactive<MenuQuery>({});
+const searchForm = reactive<MenuQuery>({
+  keywords: "",
+})
 const menuTableData = ref<MenuVO[]>([]);
+const loadingMenuList = ref(false)
+const loadingMenuOptions = ref(false)
+const submittingMenu = ref(false)
 const columnVisibility = ref({
   id: false,
 })
@@ -157,7 +164,7 @@ const columns = ref<TableColumn<MenuVO>[]>([
             return h(UTooltip, {text: "新增", delayDuration: 0}, () => [
               h(UButton, {
                 icon: "i-lucide-plus", variant: "ghost", onClick: () => {
-                  editMenu(row.original.id)
+                  openAddMenu(row.original.id ?? 0)
                 }
               }),
             ])
@@ -166,8 +173,7 @@ const columns = ref<TableColumn<MenuVO>[]>([
         h(UTooltip, {text: "修改", delayDuration: 0}, () => [
           h(UButton, {
             icon: "i-lucide-clipboard-pen-line", variant: "ghost", onClick: () => {
-              tabActiveIndex.value = row.original.type === MenuTypeEnum.MENU ? "0" : "1"
-              editMenu(row.original.parentId, row.original.id)
+              openEditByRow(row.original)
             }
           }),
         ]),
@@ -185,7 +191,7 @@ const columns = ref<TableColumn<MenuVO>[]>([
   }
 ])
 const menuOptions = ref<OptionType[]>([])
-const emptyMenuFormData = ref<MenuForm>({
+const defaultMenuFormData: MenuForm = {
   id: undefined,
   parentId: 0,
   visible: 1,
@@ -195,20 +201,19 @@ const emptyMenuFormData = ref<MenuForm>({
   keepAlive: 1,
   perms: [],
   params: [],
-})
-const initialMenuFormData = ref<MenuForm>({
-  id: undefined,
-  parentId: 0,
-  visible: 1,
-  sort: 1,
-  type: MenuTypeEnum.MENU, // 默认菜单
-  alwaysShow: 0,
-  keepAlive: 1,
-  perms: [],
-  params: [],
-})
+}
+
+function createMenuForm(overrides: Partial<MenuForm> = {}): MenuForm {
+  return {
+    ...defaultMenuFormData,
+    ...overrides,
+    perms: [...(overrides.perms ?? defaultMenuFormData.perms ?? [])],
+    params: [...(overrides.params ?? defaultMenuFormData.params ?? [])],
+  }
+}
+
 // 菜单表单数据
-const formData = ref({...initialMenuFormData.value});
+const formData = ref<MenuForm>(createMenuForm());
 const tabs = [
   {
     label: '菜单',
@@ -221,108 +226,243 @@ const tabs = [
 ]
 const tabActiveIndex = ref("0")
 
-watchEffect(() => {
-  if (tabActiveIndex.value === "0") {
+watch(tabActiveIndex, (value) => {
+  if (value === "0") {
     formData.value.type = MenuTypeEnum.MENU;
-  } else if (tabActiveIndex.value === "1") {
+  } else if (value === "1") {
     formData.value.type = MenuTypeEnum.CATALOG;
   }
-})
+}, {immediate: true})
 
 // 查询菜单
-function handleQuery() {
-  MenuAPI.getList(queryParams)
-      .then((data) => {
-        menuTableData.value = data;
-      })
-      .catch((error) => {
-        console.error(error);
-      })
+function applySearchParams() {
+  const keywords = searchForm.keywords?.trim()
+  queryParams.keywords = keywords || undefined
+}
+
+async function handleQuery() {
+  try {
+    loadingMenuList.value = true
+    applySearchParams()
+    menuTableData.value = await MenuAPI.getList(queryParams)
+  } catch (error) {
+    console.error(error);
+  } finally {
+    loadingMenuList.value = false
+  }
+}
+
+function resetQuery() {
+  searchForm.keywords = ""
+  handleQuery()
+}
+
+function getIconInputValue(icon?: string) {
+  return (icon || "").replace("i-lucide-", "")
+}
+
+function setIconInputValue(value: string | number) {
+  const icon = String(value ?? "").trim()
+  formData.value.icon = icon ? `i-lucide-${icon}` : ""
+}
+
+function getCatalogRoutePathValue(routePath?: string) {
+  return (routePath || "").replace(/^\//, "")
+}
+
+function setCatalogRoutePathValue(value: string | number) {
+  formData.value.routePath = String(value ?? "").trim().replace(/^\/+/, "")
+}
+
+function normalizeMenuFormFromApi(data: MenuForm, parentId?: MenuId) {
+  const normalized = createMenuForm({
+    ...data,
+    parentId: data.parentId ?? parentId ?? 0,
+    perms: (data.perms ?? []).map((item) => ({...item})),
+    params: (data.params ?? []).map((item) => ({...item})),
+  })
+  if (normalized.id !== undefined && normalized.perms?.length) {
+    normalized.perms = normalized.perms.map((item) => ({
+      ...item,
+      parentId: item.parentId ?? normalized.id,
+    }))
+  }
+  return normalized
+}
+
+function normalizeMenuPayload() {
+  const payload = createMenuForm({
+    ...formData.value,
+    name: formData.value.name?.trim(),
+    routeName: formData.value.routeName?.trim(),
+    routePath: formData.value.routePath?.trim().replace(/^\/+/, ""),
+    component: formData.value.component?.trim(),
+    redirect: formData.value.redirect?.trim(),
+    perm: formData.value.perm?.trim(),
+    parentId: Number(formData.value.parentId ?? 0),
+    sort: Number(formData.value.sort ?? 1),
+  })
+
+  payload.visible = Number(payload.visible ?? 1) as MenuForm["visible"]
+  payload.alwaysShow = Number(payload.alwaysShow ?? 0) as MenuForm["alwaysShow"]
+  payload.keepAlive = Number(payload.keepAlive ?? 1) as MenuForm["keepAlive"]
+  payload.perms = (payload.perms ?? []).map((item) => ({
+    ...item,
+    parentId: payload.id ?? payload.parentId ?? 0,
+    label: item.label?.trim(),
+    value: item.value?.trim(),
+  }))
+
+  return payload
 }
 
 function showMenuInfo(_: any, row: TableRow<MenuVO>) {
-  mode.value = "show";
-  if (row.original.type == MenuTypeEnum.MENU) {
-    handleOpenSlider(void 0, row.original.id)
+  const menuId = row.original.id
+  if (row.original.type !== MenuTypeEnum.MENU || menuId === undefined || menuId === null) {
+    return
   }
+  mode.value = "show";
+  openMenuDialog(void 0, menuId)
 }
 
-function editMenu(parentId?: number, menuId?: number) {
+function openAddMenu(parentId: MenuId = 0) {
+  mode.value = "add";
+  tabActiveIndex.value = "0"
+  openMenuDialog(parentId)
+}
+
+function openEditByRow(row: MenuVO) {
+  if (row.id === undefined || row.id === null) {
+    toast.add({title: "错误", description: "菜单ID不存在，无法编辑", color: "error"})
+    return
+  }
+  tabActiveIndex.value = row.type === MenuTypeEnum.CATALOG ? "1" : "0"
+  editMenu(row.parentId, row.id)
+}
+
+function editMenu(parentId?: MenuId, menuId?: MenuId) {
   mode.value = "edit";
-  handleOpenSlider(parentId, menuId)
+  openMenuDialog(parentId, menuId)
+}
+
+function editSelectedMenu() {
+  const selectedRows = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows ?? []
+  if (selectedRows.length !== 1) {
+    toast.add({title: "错误", description: "请选择一条菜单进行修改", color: "error"})
+    return
+  }
+  const selectedRow = selectedRows[0]
+  if (!selectedRow) {
+    return
+  }
+  openEditByRow(selectedRow.original)
 }
 
 async function deleteMenu() {
-  const instance = modal.open({
-    content: "确定要删除吗？",
-  })
-  if (await instance) {
-    const deleteIds: number[] = []
-    const formDeleteArray = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows ?? []
-    for (const row of formDeleteArray) {
-      deleteIds.push(row.original.id!)
-    }
-    MenuAPI.delete(deleteIds).then(() => {
-      const toast = useToast();
-      handleQuery()
-      toast.add({title: "成功", description: "删除成功", color: "success"})
-    })
+  const selectedRows = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows ?? []
+  const deleteIds = selectedRows
+      .map((row) => row.original.id)
+      .filter((id): id is MenuId => id !== undefined && id !== null)
+
+  if (!deleteIds.length) {
+    toast.add({title: "错误", description: "请选择需要删除的菜单", color: "error"})
     return
   }
-  table.value?.tableApi?.toggleAllPageRowsSelected(false)
+
+  const instance = await modal.open({
+    content: "确定要删除吗？",
+  })
+  if (!instance) {
+    table.value?.tableApi?.toggleAllPageRowsSelected(false)
+    return
+  }
+
+  try {
+    await MenuAPI.delete(deleteIds)
+    await handleQuery()
+    toast.add({title: "成功", description: "删除成功", color: "success"})
+  } catch (error) {
+    console.error(error)
+  } finally {
+    table.value?.tableApi?.toggleAllPageRowsSelected(false)
+  }
 }
 
-function handleOpenSlider(parentId?: number, menuId?: number) {
-  MenuAPI.getOptions(true)
-      .then((data) => {
-        menuOptions.value = [{value: 0, label: "顶级菜单", children: data}];
+async function openMenuDialog(parentId?: MenuId, menuId?: MenuId) {
+  loadingMenuOptions.value = true
+  try {
+    const options = await MenuAPI.getOptions(true)
+    menuOptions.value = [{value: 0, label: "顶级菜单", children: options}]
+
+    if (menuId === undefined || menuId === null) {
+      formData.value = createMenuForm({
+        parentId: Number(parentId ?? 0),
+        type: tabActiveIndex.value === "1" ? MenuTypeEnum.CATALOG : MenuTypeEnum.MENU,
       })
-      .then(() => {
-        if (menuId) {
-          MenuAPI.getFormData(menuId).then((data) => {
-            initialMenuFormData.value = {...data};
-            formData.value = data;
-            if (mode.value === 'show') {
-              slider.value.visible = true;
-            } else if (mode.value === 'edit') {
-              dialog.value.title = "编辑菜单"
-              dialog.value.visible = true;
-            }
-          });
-        } else {
-          formData.value = {...emptyMenuFormData.value, parentId};
-          mode.value = "add";
-          dialog.value.title = "新增菜单";
-          dialog.value.visible = true;
-        }
-      })
+      dialog.value.title = "新增菜单";
+      dialog.value.visible = true;
+      return
+    }
+
+    const data = await MenuAPI.getFormData(menuId)
+    formData.value = normalizeMenuFormFromApi(data, parentId)
+    tabActiveIndex.value = formData.value.type === MenuTypeEnum.CATALOG ? "1" : "0"
+    if (mode.value === 'show') {
+      slider.value.visible = true;
+    } else {
+      dialog.value.title = "编辑菜单"
+      dialog.value.visible = true;
+    }
+  } catch (error) {
+    console.error(error)
+  } finally {
+    loadingMenuOptions.value = false
+  }
 }
 
-function handleSubmit() {
-  const menuId = formData.value.id
-  const toast = useToast()
-  if (formData.value.type == MenuTypeEnum.MENU && formData.value.parentId == 0) {
+async function handleSubmit() {
+  if (submittingMenu.value) {
+    return
+  }
+  const payload = normalizeMenuPayload()
+  const menuId = payload.id
+  if (payload.type == MenuTypeEnum.MENU && Number(payload.parentId) === 0) {
     toast.add({title: "错误", description: "顶级菜单不能为菜单", color: "error"})
     return;
   }
-  if (menuId) {
-    if (formData.value.parentId == menuId) {
-      toast.add({title: "错误", description: "父级菜单不能为当前菜单", color: "error"})
-      return;
-    }
-    MenuAPI.update(menuId!, formData.value)
-        .then(() => {
-          handleQuery()
-          toast.add({title: "成功", description: "修改成功", color: "success"})
-        })
-  } else {
-    MenuAPI.create(formData.value)
-        .then(() => {
-          handleQuery()
-          toast.add({title: "成功", description: "新增成功", color: "success"})
-        })
+  if (!payload.name?.trim()) {
+    toast.add({title: "错误", description: "菜单名称不能为空", color: "error"})
+    return
   }
-  dialog.value.visible = false
+  if (payload.type === MenuTypeEnum.MENU && (!payload.routeName || !payload.routePath || !payload.component)) {
+    toast.add({title: "错误", description: "菜单的路由名称、路径、组件不能为空", color: "error"})
+    return
+  }
+  if (payload.type === MenuTypeEnum.CATALOG && !payload.routePath) {
+    toast.add({title: "错误", description: "目录的路由路径不能为空", color: "error"})
+    return
+  }
+  if (menuId !== undefined && menuId !== null && Number(payload.parentId) === menuId) {
+    toast.add({title: "错误", description: "父级菜单不能为当前菜单", color: "error"})
+    return
+  }
+
+  try {
+    submittingMenu.value = true
+    if (menuId !== undefined && menuId !== null) {
+      await MenuAPI.update(menuId, payload)
+      toast.add({title: "成功", description: "修改成功", color: "success"})
+    } else {
+      await MenuAPI.create(payload)
+      toast.add({title: "成功", description: "新增成功", color: "success"})
+    }
+    dialog.value.visible = false
+    await handleQuery()
+  } catch (error) {
+    console.error(error)
+  } finally {
+    submittingMenu.value = false
+  }
 }
 
 function addPerm() {
@@ -352,7 +492,7 @@ function removePerm(index: number) {
       <UFormField label="菜单图标">
         <div class="flex gap-2 items-center">
           <UIcon class="size-5" :name="formData.icon??''"/>
-          <UInput class="w-full" :modelValue="formData.icon?.replace('i-lucide-', '')"
+          <UInput class="w-full" :modelValue="getIconInputValue(formData.icon)"
                   :ui="{
             base: 'pl-16.5',
             leading: 'pointer-events-none'
@@ -365,14 +505,13 @@ function removePerm(index: number) {
           </UInput>
         </div>
       </UFormField>
-      <template v-if="formData.perms.length===0 && mode==='show'">
+      <template v-if="(formData.perms?.length ?? 0)===0 && mode==='show'">
         权限列表为空
       </template>
       <template v-else>
         <div class="flex flex-col h-full gap-2">
-          <template v-for="(item) in formData.perms">
+          <template v-for="(item, index) in formData.perms" :key="item.id ?? index">
             <div class="flex gap-2 items-center">
-              <UInput :modelValue="(()=>{item.parentId = formData.id;return item.parentId})()" class="hidden"/>
               <UFormField label="权限代码">
                 <UInput v-model="item.value"/>
               </UFormField>
@@ -392,7 +531,7 @@ function removePerm(index: number) {
       <template #menu>
         <UForm class="gap-4 flex flex-col h-full">
           <UFormField label="父级菜单" required>
-            <ElTreeSelect :check-strictly="true" placeholder="选择上级菜单"
+            <ElTreeSelect :check-strictly="true" :disabled="loadingMenuOptions" placeholder="选择上级菜单"
                           :render-after-expand="false" v-model="formData.parentId" :data="menuOptions"/>
           </UFormField>
           <div class="flex gap-2 items-center">
@@ -402,8 +541,8 @@ function removePerm(index: number) {
             <UFormField class="w-full" label="菜单图标">
               <div class="flex gap-2 items-center">
                 <UIcon class="size-5" :name="formData.icon??''"/>
-                <UInput class="w-full" :modelValue="formData.icon?.replace('i-lucide-', '')"
-                        @update:modelValue="(val) => {formData.icon = 'i-lucide-' + val}" :ui="{
+                <UInput class="w-full" :modelValue="getIconInputValue(formData.icon)"
+                        @update:modelValue="setIconInputValue" :ui="{
               base: 'pl-16.5',
               leading: 'pointer-events-none'
             }">
@@ -428,7 +567,7 @@ function removePerm(index: number) {
             </UFormField>
           </div>
           <div class="flex gap-2 justify-end">
-            <UButton label="确定" @click="handleSubmit" color="error" variant="outline"/>
+            <UButton label="确定" :loading="submittingMenu" @click="handleSubmit" color="error" variant="outline"/>
             <UButton label="取消" @click="dialog.visible = false"/>
           </div>
         </UForm>
@@ -436,7 +575,7 @@ function removePerm(index: number) {
       <template #catalog>
         <UForm class="gap-4 flex flex-col h-full">
           <UFormField label="父级菜单" required>
-            <ElTreeSelect :check-strictly="true" placeholder="选择上级菜单"
+            <ElTreeSelect :check-strictly="true" :disabled="loadingMenuOptions" placeholder="选择上级菜单"
                           :render-after-expand="false" v-model="formData.parentId" :data="menuOptions"/>
           </UFormField>
           <div class="flex gap-2 items-center">
@@ -446,8 +585,8 @@ function removePerm(index: number) {
             <UFormField class="w-full" label="菜单图标">
               <div class="flex gap-2 items-center">
                 <UIcon class="size-5" :name="formData.icon??''"/>
-                <UInput class="w-full" :modelValue="formData.icon?.replace('i-lucide-', '')"
-                        @update:modelValue="(val) => {formData.icon = 'i-lucide-' + val}" :ui="{
+                <UInput class="w-full" :modelValue="getIconInputValue(formData.icon)"
+                        @update:modelValue="setIconInputValue" :ui="{
               base: 'pl-16.5',
               leading: 'pointer-events-none'
             }">
@@ -461,8 +600,8 @@ function removePerm(index: number) {
             </UFormField>
           </div>
           <UFormField class="w-full" label="路由路径" required>
-            <UInput class="w-full" :modelValue="formData.routePath?.replace('/', '')"
-                    @update:modelValue="(val) => {formData.routePath = val}" :ui="{
+            <UInput class="w-full" :modelValue="getCatalogRoutePathValue(formData.routePath)"
+                    @update:modelValue="setCatalogRoutePathValue" :ui="{
               base: 'pl-4',
               leading: 'pointer-events-none'
             }">
@@ -474,7 +613,7 @@ function removePerm(index: number) {
             </UInput>
           </UFormField>
           <div class="flex gap-2 justify-end">
-            <UButton label="确定" @click="handleSubmit" color="error" variant="outline"/>
+            <UButton label="确定" :loading="submittingMenu" @click="handleSubmit" color="error" variant="outline"/>
             <UButton label="取消" @click="dialog.visible = false"/>
           </div>
         </UForm>
@@ -484,7 +623,7 @@ function removePerm(index: number) {
       <template v-if="tabActiveIndex === '0'">
         <UForm class="gap-4 flex flex-col h-full">
           <UFormField label="父级菜单" required>
-            <ElTreeSelect :check-strictly="true" placeholder="选择上级菜单"
+            <ElTreeSelect :check-strictly="true" :disabled="loadingMenuOptions" placeholder="选择上级菜单"
                           :render-after-expand="false" v-model="formData.parentId" :data="menuOptions"/>
           </UFormField>
           <div class="flex gap-2 items-center">
@@ -494,8 +633,8 @@ function removePerm(index: number) {
             <UFormField class="w-full" label="菜单图标">
               <div class="flex gap-2 items-center">
                 <UIcon class="size-5" :name="formData.icon??''"/>
-                <UInput class="w-full" :modelValue="formData.icon?.replace('i-lucide-', '')"
-                        @update:modelValue="(val) => {formData.icon = 'i-lucide-' + val}" :ui="{
+                <UInput class="w-full" :modelValue="getIconInputValue(formData.icon)"
+                        @update:modelValue="setIconInputValue" :ui="{
               base: 'pl-16.5',
               leading: 'pointer-events-none'
             }">
@@ -519,9 +658,8 @@ function removePerm(index: number) {
               <UInput class="w-full" v-model="formData.component"/>
             </UFormField>
           </div>
-          <template v-for="(item,index) in formData.perms">
+          <template v-for="(item,index) in formData.perms" :key="item.id ?? index">
             <div class="flex gap-2 items-center">
-              <UInput :modelValue="(()=>{item.parentId = formData.id;return item.parentId})()" class="hidden"/>
               <UFormField class="w-full" label="权限代码">
                 <UInput class="w-full" v-model="item.value"/>
               </UFormField>
@@ -536,7 +674,7 @@ function removePerm(index: number) {
           </template>
           <UButton class="w-fit" @click="addPerm" variant="outline">添加权限</UButton>
           <div class="flex gap-2 justify-end">
-            <UButton label="确定" @click="handleSubmit" color="error" variant="outline"/>
+            <UButton label="确定" :loading="submittingMenu" @click="handleSubmit" color="error" variant="outline"/>
             <UButton label="取消" @click="dialog.visible = false"/>
           </div>
         </UForm>
@@ -544,7 +682,7 @@ function removePerm(index: number) {
       <template v-else-if="tabActiveIndex === '1'">
         <UForm class="gap-4 flex flex-col h-full">
           <UFormField label="父级菜单" required>
-            <ElTreeSelect :check-strictly="true" placeholder="选择上级菜单"
+            <ElTreeSelect :check-strictly="true" :disabled="loadingMenuOptions" placeholder="选择上级菜单"
                           :render-after-expand="false" v-model="formData.parentId" :data="menuOptions"/>
           </UFormField>
           <div class="flex gap-2 items-center">
@@ -554,8 +692,8 @@ function removePerm(index: number) {
             <UFormField class="w-full" label="菜单图标">
               <div class="flex gap-2 items-center">
                 <UIcon class="size-5" :name="formData.icon??''"/>
-                <UInput class="w-full" :modelValue="formData.icon?.replace('i-lucide-', '')"
-                        @update:modelValue="(val) => {formData.icon = 'i-lucide-' + val}" :ui="{
+                <UInput class="w-full" :modelValue="getIconInputValue(formData.icon)"
+                        @update:modelValue="setIconInputValue" :ui="{
               base: 'pl-16.5',
               leading: 'pointer-events-none'
             }">
@@ -569,8 +707,8 @@ function removePerm(index: number) {
             </UFormField>
           </div>
           <UFormField class="w-full" label="路由路径" required>
-            <UInput class="w-full" :modelValue="formData.routePath?.replace('/', '')"
-                    @update:modelValue="(val) => {formData.routePath = val}" :ui="{
+            <UInput class="w-full" :modelValue="getCatalogRoutePathValue(formData.routePath)"
+                    @update:modelValue="setCatalogRoutePathValue" :ui="{
               base: 'pl-4',
               leading: 'pointer-events-none'
             }">
@@ -582,7 +720,7 @@ function removePerm(index: number) {
             </UInput>
           </UFormField>
           <div class="flex gap-2 justify-end">
-            <UButton label="确定" @click="handleSubmit" color="error" variant="outline"/>
+            <UButton label="确定" :loading="submittingMenu" @click="handleSubmit" color="error" variant="outline"/>
             <UButton label="取消" @click="dialog.visible = false"/>
           </div>
         </UForm>
@@ -591,9 +729,25 @@ function removePerm(index: number) {
   </ElDialog>
   <UCard>
     <template #header>
-      <ActionGroup :table="table" @flush="handleQuery"
-                   @addRow="editMenu(0)" @deleteRow="deleteMenu()"
-      />
+      <div class="space-y-3">
+        <ActionGroup :table="table" @flush="handleQuery"
+                     @add-row="openAddMenu(0)" @modify-row="editSelectedMenu" @delete-row="deleteMenu()"
+        />
+        <UForm @submit.prevent="handleQuery" class="w-full">
+          <div class="flex flex-wrap items-center gap-2">
+            <UInput
+                v-model="searchForm.keywords"
+                icon="i-lucide-search"
+                size="md"
+                variant="outline"
+                class="w-72"
+                placeholder="搜索菜单名称/路由名称"
+            />
+            <UButton type="submit" icon="i-lucide-search" :loading="loadingMenuList" label="搜索"/>
+            <UButton type="button" variant="ghost" icon="i-lucide-rotate-ccw" :disabled="loadingMenuList" label="重置" @click="resetQuery"/>
+          </div>
+        </UForm>
+      </div>
     </template>
     <UTable ref="table" :data="menuTableData" :get-sub-rows="(row)=>row.children"
             :column-visibility="columnVisibility" :columns="columns"
