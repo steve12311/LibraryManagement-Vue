@@ -170,6 +170,10 @@ export interface UserForm {
     openId: string;
 }
 
+export type UserPageStatus = 0 | 1;
+export type UserSortDirection = "ASC" | "DESC";
+export type UserPageSearchField = "username" | "nickname" | "mobile" | "email" | string;
+
 /** 用户分页对象 */
 export interface UserPageVO {
     /** 用户ID */
@@ -204,7 +208,7 @@ export interface UserPageQuery extends PageQuery {
     keywords?: string;
 
     /** 用户状态 */
-    status?: number;
+    status?: UserPageStatus;
 
     /** 部门ID */
     deptId?: number;
@@ -213,10 +217,10 @@ export interface UserPageQuery extends PageQuery {
     roleIds?: number[];
 
     /** 排序字段 */
-    field?: string;
+    field?: UserPageSearchField;
 
     /** 排序方向 */
-    direction?: "ASC" | "DESC";
+    direction?: UserSortDirection;
 
     /** 是否超级管理员 */
     isRoot?: boolean;

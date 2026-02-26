@@ -23,8 +23,26 @@ const queryParams = reactive<UserPageQuery>({
   pageNum: 1,
   pageSize: 10,
 });
+const searchForm = reactive({
+  keywords: "",
+  status: -1,
+})
+const statusQueryOptions = ref<OptionType[]>([
+  {
+    label: "全部状态",
+    value: -1,
+  },
+  {
+    label: "启用",
+    value: StatusTypeEnum.ACCESS,
+  },
+  {
+    label: "禁用",
+    value: StatusTypeEnum.BAN,
+  }
+])
 const total = ref(0);
-const pageData = ref<UserPageVO[]>();
+const pageData = ref<UserPageVO[]>([]);
 const table = useTemplateRef('table')
 const editForm = useTemplateRef('editForm')
 const columnVisibility = ref({
@@ -41,6 +59,7 @@ const loadingAssignRole = ref(false)
 const submittingAssignRole = ref(false)
 const resettingUserId = ref("")
 const deletingUserId = ref("")
+const togglingStatusUserId = ref("")
 const assigningRoleUserId = ref("")
 const editingUserId = ref("")
 const assignRoleUserId = ref("")
@@ -126,13 +145,7 @@ const columns = ref<TableColumn<UserPageVO>[]>([
     accessorKey: "gender",
     header: "性别",
     cell: ({row}) => {
-      if (row.original.gender === 0) {
-        return "保密"
-      } else if (row.original.gender === 1) {
-        return "男"
-      } else {
-        return "女"
-      }
+      return getGenderLabel(row.original.gender)
     }
   },
   {
@@ -145,11 +158,9 @@ const columns = ref<TableColumn<UserPageVO>[]>([
     cell: ({row}) => {
       return h(USwitch, {
         modelValue: row.original.status === 1,
+        disabled: togglingStatusUserId.value === String(row.original.id),
         "onUpdate:modelValue": (value: boolean) => {
-          UserAPI.changeStatus(row.original.id, value ? StatusTypeEnum.ACCESS : StatusTypeEnum.BAN)
-              .then(()=>{
-                fetchData()
-              })
+          updateUserStatus(row.original.id, value)
         }
       }, undefined)
     }
@@ -249,6 +260,28 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error)
     reader.readAsDataURL(file)
   })
+}
+
+function getGenderLabel(gender?: number) {
+  if (gender === UserGenderTypeEnum.UNKNOWN) return "保密"
+  if (gender === UserGenderTypeEnum.MAN) return "男"
+  if (gender === UserGenderTypeEnum.WOMAN) return "女"
+  return "-"
+}
+
+async function updateUserStatus(userId: string | number | undefined, value: boolean) {
+  if (userId === undefined || userId === null || userId === "") return
+  try {
+    togglingStatusUserId.value = String(userId)
+    const status = value ? StatusTypeEnum.ACCESS : StatusTypeEnum.BAN
+    await UserAPI.changeStatus(userId, status)
+    toast.add({title: "成功", description: "状态已更新", color: "success"})
+    await fetchData()
+  } catch (e) {
+    console.log(e)
+  } finally {
+    togglingStatusUserId.value = ""
+  }
 }
 
 function resetEditUserForm() {
@@ -491,18 +524,31 @@ function deleteUserBySelection() {
   confirmDeleteUsers(ids, usernames)
 }
 
+function applySearchParams() {
+  const keywords = searchForm.keywords.trim()
+  queryParams.keywords = keywords || undefined
+  queryParams.status = searchForm.status === -1 ? undefined : (searchForm.status as 0 | 1)
+}
+
 // 查询（重置页码后获取数据）
 function handleQuery() {
   queryParams.pageNum = 1;
+  applySearchParams()
   fetchData();
+}
+
+function resetQuery() {
+  searchForm.keywords = ""
+  searchForm.status = -1
+  handleQuery()
 }
 
 // 获取数据
 async function fetchData() {
   try {
     const data = await UserAPI.getPage(queryParams);
-    pageData.value = data.list;
-    total.value = data.total;
+    pageData.value = data.list ?? [];
+    total.value = data.total ?? 0;
   } catch (e) {
     console.log(e);
   }
@@ -586,8 +632,30 @@ async function fetchData() {
   </UModal>
   <UCard>
     <template #header>
-      <ActionGroup :table="table" @flush="handleQuery" @add-row="openAddUserModal"
-                   @modify-row="openEditUserModalBySelection" @delete-row="deleteUserBySelection"/>
+      <div class="space-y-3">
+        <ActionGroup :table="table" @flush="handleQuery" @add-row="openAddUserModal"
+                     @modify-row="openEditUserModalBySelection" @delete-row="deleteUserBySelection"/>
+        <UForm @submit="handleQuery" class="w-full">
+          <div class="flex flex-wrap items-center gap-2">
+            <UInput
+                v-model="searchForm.keywords"
+                icon="i-lucide-search"
+                size="md"
+                variant="outline"
+                class="w-72"
+                placeholder="搜索用户名/昵称/手机号"
+            />
+            <USelect
+                v-model="searchForm.status"
+                valueKey="value"
+                :items="statusQueryOptions"
+                class="w-36"
+            />
+            <UButton type="submit" icon="i-lucide-search" label="搜索"/>
+            <UButton type="button" variant="ghost" icon="i-lucide-rotate-ccw" label="重置" @click="resetQuery"/>
+          </div>
+        </UForm>
+      </div>
     </template>
     <UTable ref="table" v-model:column-visibility="columnVisibility" sticky :data="pageData" :columns="columns"/>
     <template #footer>
