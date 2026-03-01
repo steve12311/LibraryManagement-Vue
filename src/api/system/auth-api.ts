@@ -4,14 +4,14 @@ const AUTH_BASE_URL = "/api/v1/auth";
 
 const AuthAPI = {
     /** 刷新 token 接口*/
-    refreshToken(refreshToken: string) {
+    refreshToken() {
         return request<any, LoginResult>({
             url: `${AUTH_BASE_URL}/refresh-token`,
             method: "post",
-            params: {refreshToken},
             headers: {
                 Authorization: "no-auth",
             },
+            withCredentials: true,
         });
     },
     /** 获取验证码接口*/
@@ -36,12 +36,14 @@ const AuthAPI = {
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
             },
+            withCredentials: true,
         });
     },
     logout(){
         return request({
             url: `${AUTH_BASE_URL}/logout`,
             method: "delete",
+            withCredentials: true,
         })
     }
 }
@@ -62,8 +64,6 @@ export interface LoginFormData {
 export interface LoginResult {
     /** 访问令牌 */
     accessToken: string;
-    /** 刷新令牌 */
-    refreshToken: string;
     /** 令牌类型 */
     tokenType: string;
     /** 过期时间(秒) */

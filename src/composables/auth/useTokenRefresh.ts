@@ -4,9 +4,20 @@ import {useAuthStoreHook} from "@/store";
 import {redirectToLogin} from "@/utils/auth.ts";
 
 /**
- * 重试请求的回调函数类型
+ * 可重试请求配置
  */
-type RetryCallback = () => void;
+type RetryRequestConfig = InternalAxiosRequestConfig & {
+    _retryCount?: number;
+    _skipAuthRefresh?: boolean;
+};
+
+type PendingRequest = {
+    config: RetryRequestConfig;
+    resolve: (value: unknown) => void;
+    reject: (reason?: unknown) => void;
+};
+
+const MAX_REFRESH_RETRY_COUNT = 1;
 
 /**
  * Token刷新组合式函数
@@ -14,64 +25,71 @@ type RetryCallback = () => void;
 export function useTokenRefresh() {
     // Token 刷新相关状态
     let isRefreshingToken = false;
-    const pendingRequests: RetryCallback[] = [];
+    let isRedirectingToLogin = false;
+    const pendingRequests: PendingRequest[] = [];
+
+    function applyAccessToken(config: RetryRequestConfig) {
+        const newToken = useAuthStoreHook().accessToken;
+        if (newToken && config.headers) {
+            config.headers.Authorization = `Bearer ${newToken}`;
+        }
+    }
+
+    function rejectAllPending(error: unknown) {
+        const failedRequests = [...pendingRequests];
+        pendingRequests.length = 0;
+        failedRequests.forEach((request) => request.reject(error));
+    }
 
     /**
      * 刷新 Token 并重试请求
      */
     async function refreshTokenAndRetry(
-        config: InternalAxiosRequestConfig,
+        config: RetryRequestConfig,
         httpRequest: any
     ): Promise<any> {
+        if (config._skipAuthRefresh) {
+            return Promise.reject(new Error("当前请求禁止自动刷新令牌"));
+        }
+
+        const retryCount = config._retryCount ?? 0;
+        if (retryCount >= MAX_REFRESH_RETRY_COUNT) {
+            return Promise.reject(new Error("令牌刷新重试次数超限"));
+        }
+
         return new Promise((resolve, reject) => {
-            // 封装需要重试的请求
-            const retryRequest = () => {
-                const newToken = useAuthStoreHook().accessToken;
-                if (newToken && config.headers) {
-                    config.headers.Authorization = `Bearer ${newToken}`;
-                }
-                httpRequest(config).then(resolve).catch(reject);
-            };
+            pendingRequests.push({config, resolve, reject});
 
-            // 将请求加入等待队列
-            pendingRequests.push(retryRequest);
-
-            // 如果没有正在刷新，则开始刷新流程
-            if (!isRefreshingToken) {
-                isRefreshingToken = true;
-
-                useUserStoreHook()
-                    .refreshToken()
-                    .then(() => {
-                        // 刷新成功，重试所有等待的请求
-                        pendingRequests.forEach((callback) => {
-                            try {
-                                callback();
-                            } catch (error) {
-                                console.error("Retry request error:", error);
-                            }
-                        });
-                        // 清空队列
-                        pendingRequests.length = 0;
-                    })
-                    .catch(async (error) => {
-                        console.error("Token refresh failed:", error);
-                        // 刷新失败，先 reject 所有等待的请求，再清空队列
-                        const failedRequests = [...pendingRequests];
-                        pendingRequests.length = 0;
-
-                        // 拒绝所有等待的请求
-                        failedRequests.forEach(() => {
-                            reject(new Error("Token refresh failed"));
-                        });
-
-                        // 跳转登录页
-                        await redirectToLogin("登录状态已失效，请重新登录");
-                    })
-                    .finally(() => {
-                        isRefreshingToken = false;
-                    });
+            if (isRefreshingToken) {
+                return;
             }
+
+            isRefreshingToken = true;
+            useUserStoreHook()
+                .refreshToken()
+                .then(() => {
+                    const successRequests = [...pendingRequests];
+                    pendingRequests.length = 0;
+                    successRequests.forEach((request) => {
+                        request.config._retryCount = (request.config._retryCount ?? 0) + 1;
+                        applyAccessToken(request.config);
+                        httpRequest(request.config)
+                            .then(request.resolve)
+                            .catch(request.reject);
+                    });
+                })
+                .catch(async (error) => {
+                    console.error("Token refresh failed:", error);
+                    rejectAllPending(new Error("Token refresh failed"));
+                    if (!isRedirectingToLogin) {
+                        isRedirectingToLogin = true;
+                        await redirectToLogin("登录状态已失效，请重新登录");
+                        isRedirectingToLogin = false;
+                    }
+                })
+                .finally(() => {
+                    isRefreshingToken = false;
+                });
         });
     }
 

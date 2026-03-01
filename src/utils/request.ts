@@ -3,16 +3,21 @@ import axios, {type AxiosResponse, type InternalAxiosRequestConfig} from "axios"
 import {ApiCodeEnum} from "../enums/api/code-enum.ts";
 import {authConfig} from "../settings.ts";
 import {useTokenRefresh} from "../composables/auth/useTokenRefresh.ts";
-import {useAuthStoreHook} from "../store";
+import {useAuthStoreHook} from "@/store";
 import {redirectToLogin} from "./auth.ts";
 
 const {refreshTokenAndRetry} = useTokenRefresh()
+
+type RetryRequestConfig = InternalAxiosRequestConfig & {
+    _retryCount?: number;
+    _skipAuthRefresh?: boolean;
+};
 
 /**
  * 创建 HTTP 请求实例
  */
 const httpRequest = axios.create({
-    baseURL: import.meta.env.VITE_APP_BASE_API,
+    baseURL: import.meta.env.VITE_APP_API_URL,
     timeout: 50000,
     headers: {"Content-Type": "application/json;charset=utf-8"},
     paramsSerializer: (params) => qs.stringify(params),
@@ -23,6 +28,7 @@ const httpRequest = axios.create({
  */
 httpRequest.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
+        const requestConfig = config as RetryRequestConfig;
         const accessToken = useAuthStoreHook().accessToken;
 
         // Let axios set proper multipart boundary for FormData
@@ -34,11 +40,13 @@ httpRequest.interceptors.request.use(
         // 如果 Authorization 设置为 no-auth，则不携带 Token
         if (config.headers.Authorization !== "no-auth" && accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
+            requestConfig._skipAuthRefresh = false;
         } else {
+            requestConfig._skipAuthRefresh = true;
             delete config.headers.Authorization;
         }
 
-        return config;
+        return requestConfig;
     },
     (error) => {
         console.error("Request interceptor error:", error);
@@ -73,6 +81,7 @@ httpRequest.interceptors.response.use(
         console.error("Response interceptor error:", error);
 
         const {config, response} = error;
+        const requestConfig = (config || {}) as RetryRequestConfig;
 
         // 网络错误或服务器无响应
         if (!response) {
@@ -80,14 +89,21 @@ httpRequest.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        const {code, msg} = response.data as ApiResponse;
+        const data = response.data as Partial<ApiResponse> | undefined;
+        const code = data?.code;
+        const msg = data?.msg;
+
+        // HTTP 状态兜底处理
+        if ((response.status === 401 || response.status === 403) && authConfig.enableTokenRefresh && !requestConfig._skipAuthRefresh) {
+            return refreshTokenAndRetry(requestConfig, httpRequest);
+        }
 
         switch (code) {
             case ApiCodeEnum.ACCESS_TOKEN_INVALID:
                 // Access Token 过期
-                if (authConfig.enableTokenRefresh) {
+                if (authConfig.enableTokenRefresh && !requestConfig._skipAuthRefresh) {
                     // 启用了token刷新，尝试刷新
-                    return refreshTokenAndRetry(config, httpRequest);
+                    return refreshTokenAndRetry(requestConfig, httpRequest);
                 } else {
                     // 未启用token刷新，直接跳转登录页
                     await redirectToLogin("登录已过期，请重新登录");

@@ -13,20 +13,16 @@ export const useUserStore = defineStore("user-store", () => {
     const userInfo = ref<UserInfo>({} as UserInfo);
 
     function refreshToken() {
-        const refreshToken = useAuthStoreHook().refreshToken;
-        if (!refreshToken) {
-            return Promise.reject(new Error("没有有效的刷新令牌"));
-        }
         return new Promise<void>((resolve, reject) => {
-            AuthAPI.refreshToken(refreshToken)
+            AuthAPI.refreshToken()
                 .then((data: any) => {
-                    const {accessToken, refreshToken: newRefreshToken} = data;
-                    // 更新令牌，保持当前记住我状态
-                    useAuthStoreHook().setToken(accessToken, newRefreshToken);
+                    const {accessToken} = data;
+                    // 仅更新访问令牌，刷新令牌由 HttpOnly Cookie 托管
+                    useAuthStoreHook().setToken(accessToken);
                     resolve();
                 })
                 .catch((error: any) => {
-                    console.log(" refreshToken  刷新失败", error);
+                    console.log("refreshToken 刷新失败", error);
                     reject(error);
                 });
         });
@@ -64,8 +60,8 @@ export const useUserStore = defineStore("user-store", () => {
         return new Promise<void>((resolve, reject) => {
             AuthAPI.login(LoginFormData)
                 .then((data) => {
-                    const {accessToken, refreshToken} = data;
-                    useAuthStoreHook().setToken(accessToken, refreshToken);
+                    const {accessToken} = data;
+                    useAuthStoreHook().setToken(accessToken);
                     resolve();
                 })
                 .catch((error) => {
