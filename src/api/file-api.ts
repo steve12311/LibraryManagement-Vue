@@ -18,14 +18,9 @@ const FileApi = {
             return rawUrl;
         }
 
-        if (rawUrl === FILE_BASE_URL || rawUrl.startsWith(`${FILE_BASE_URL}/`)) {
-            return rawUrl;
-        }
-
         if (rawUrl.startsWith("/")) {
-            return `${FILE_BASE_URL}${rawUrl}`;
+            return `${import.meta.env.VITE_APP_API_URL}${FILE_BASE_URL}${rawUrl}`;
         }
-
         return rawUrl;
     },
     /** 上传文件 （传入 FormData，上传进度回调） */
