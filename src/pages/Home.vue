@@ -30,10 +30,10 @@ const dropItems = ref<DropdownMenuItem[][]>([
         ElMessageBox.confirm(
             "确认退出登录吗？",
             "警告"
-        ).then(() => {
-          authApi.logout()
-          userStore.resetAllState()
-          router.push({
+        ).then(async () => {
+          await authApi.logout()
+          await userStore.resetAllState()
+          await router.push({
             name: "Login",
           })
         })
