@@ -5,7 +5,7 @@ import moment from "moment";
 import stockApi, {type StockForm, type StockPageVO, type StockQuery} from "@/api/library/stock-api.ts";
 import bookApi, {type BookForm} from "@/api/library/book-api.ts";
 import FileApi from "@/api/file-api.ts";
-import categoryApi from "@/api/library/category-api.ts";
+import categoryApi, {type CategoryLazyOption} from "@/api/library/category-api.ts";
 import publishApi from "@/api/library/publish-api.ts";
 import {CalendarDate} from "@internationalized/date";
 import StockOutDialog from "@/components/lib-stock/StockOutDialog.vue";
@@ -52,7 +52,8 @@ const queryParams = reactive<StockQuery>({
 })
 const table = useTemplateRef("table")
 const publishOptions = ref<SelectMenuItem[]>([])
-const categoryTreeOptions = ref<OptionType[]>([])
+const categoryTreeOptions = ref<CategoryLazyOption[]>([])
+const categoryTreeCacheData = ref<CategoryLazyOption[]>([])
 const loadingOptions = ref(false)
 const columns = ref<TableColumn<StockPageVO>[]>([
   {
@@ -246,6 +247,7 @@ function resetEditBookForm() {
   editBookState.value = {...initialEditBookFormData}
   editBookCoverModel.value = void 0
   editBookPublishTime.value = toCalendarDate()
+  categoryTreeCacheData.value = []
   submittingEditBook.value = false
   editingIsbn.value = ""
 }
@@ -273,12 +275,60 @@ async function fetchPublishOptions() {
   publishOptions.value = await publishApi.getOptions()
 }
 
-async function fetchCategoryOptions() {
-  categoryTreeOptions.value = await categoryApi.getOptions()
+function normalizeCategoryId(value: unknown): number | undefined {
+  const id = Number(value)
+  if (!Number.isInteger(id) || id < 0) {
+    return void 0
+  }
+  return id
+}
+
+function mergeCategoryCacheNode(node?: CategoryLazyOption | null) {
+  if (!node) return
+  const nodeId = normalizeCategoryId(node.value)
+  if (nodeId === void 0) return
+  const rest = categoryTreeCacheData.value.filter((item) => normalizeCategoryId(item.value) !== nodeId)
+  categoryTreeCacheData.value = [...rest, node]
+}
+
+async function fetchCategoryRootOptions() {
+  categoryTreeOptions.value = await categoryApi.getLazyOptions(0)
+}
+
+async function ensureCategoryNodeCache(categoryId: unknown) {
+  const id = normalizeCategoryId(categoryId)
+  if (id === void 0) return
+  if (categoryTreeCacheData.value.some((item) => normalizeCategoryId(item.value) === id)) {
+    return
+  }
+  const node = await categoryApi.getOptionNode(id)
+  mergeCategoryCacheNode(node)
+}
+
+async function loadCategoryTreeNode(node: any, resolve: (data: CategoryLazyOption[]) => void) {
+  if (node?.level === 0) {
+    resolve(categoryTreeOptions.value)
+    return
+  }
+
+  const parentId = normalizeCategoryId(node?.data?.value)
+  if (parentId === void 0) {
+    resolve([])
+    return
+  }
+
+  try {
+    const children = await categoryApi.getLazyOptions(parentId)
+    resolve(children || [])
+  } catch (error) {
+    console.error(error)
+    toast.add({title: "错误", description: "加载分类节点失败", color: "error"})
+    resolve([])
+  }
 }
 
 async function fetchEntryOptions() {
-  await Promise.all([fetchPublishOptions(), fetchCategoryOptions()])
+  await Promise.all([fetchPublishOptions(), fetchCategoryRootOptions()])
 }
 
 async function openEntryModal() {
@@ -305,6 +355,7 @@ async function openEditBookModal(isbn: string) {
     ])
     editBookState.value = {...formData}
     editBookPublishTime.value = toCalendarDate(formData.publishTime)
+    await ensureCategoryNodeCache(formData.categoryId)
     editBookCoverModel.value = void 0
     openEditBookDialog.value = true
   } catch (error) {
@@ -408,6 +459,8 @@ async function submitStockOut() {
       v-model:publish-time="editBookPublishTime"
       :publish-options="publishOptions"
       :category-tree-options="categoryTreeOptions"
+      :category-tree-cache-data="categoryTreeCacheData"
+      :load-category-node="loadCategoryTreeNode"
       :submitting="submittingEditBook"
       @submit="submitEditBook"
   />
@@ -415,6 +468,8 @@ async function submitStockOut() {
       v-model:open="openEntryStepper"
       :publish-options="publishOptions"
       :category-tree-options="categoryTreeOptions"
+      :category-tree-cache-data="categoryTreeCacheData"
+      :load-category-node="loadCategoryTreeNode"
       @success="fetchData"
   />
   <StockDetailDialog v-model:open="open" v-model:stock="currentSelectedStock"/>

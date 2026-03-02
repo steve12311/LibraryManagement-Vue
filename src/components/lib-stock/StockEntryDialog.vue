@@ -4,13 +4,16 @@ import type {SelectMenuItem, StepperItem} from "@nuxt/ui";
 import {CalendarDate} from "@internationalized/date";
 import stockApi, {type StockForm} from "@/api/library/stock-api.ts";
 import FileApi from "@/api/file-api.ts";
+import type {CategoryLazyOption} from "@/api/library/category-api.ts";
 import {ElDialog, ElTreeSelect} from "element-plus";
 
 const open = defineModel<boolean>("open", {default: false})
 
 const props = defineProps<{
   publishOptions: SelectMenuItem[]
-  categoryTreeOptions: OptionType[]
+  categoryTreeOptions: CategoryLazyOption[]
+  categoryTreeCacheData: CategoryLazyOption[]
+  loadCategoryNode: (node: any, resolve: (data: CategoryLazyOption[]) => void) => void
 }>()
 
 const emit = defineEmits<{
@@ -233,8 +236,13 @@ async function submitStock() {
                       <ElTreeSelect
                           v-model="state.categoryId"
                           :data="props.categoryTreeOptions"
+                          :cache-data="props.categoryTreeCacheData"
+                          :load="props.loadCategoryNode"
+                          :props="{ label: 'label', children: 'children', isLeaf: 'leaf' }"
                           :check-strictly="true"
                           :render-after-expand="false"
+                          node-key="value"
+                          lazy
                           placeholder="选择分类"
                           class="w-full"
                       />

@@ -4,6 +4,7 @@ import type {SelectMenuItem} from '@nuxt/ui'
 import {CalendarDate} from '@internationalized/date'
 import {ElDialog, ElTreeSelect} from 'element-plus'
 import type {BookForm} from '@/api/library/book-api.ts'
+import type {CategoryLazyOption} from '@/api/library/category-api.ts'
 
 const open = defineModel<boolean>('open', {default: false})
 const state = defineModel<BookForm>('state', {required: true})
@@ -12,7 +13,9 @@ const publishTime = defineModel<CalendarDate>('publishTime', {required: true})
 
 withDefaults(defineProps<{
   publishOptions: SelectMenuItem[]
-  categoryTreeOptions: OptionType[]
+  categoryTreeOptions: CategoryLazyOption[]
+  categoryTreeCacheData: CategoryLazyOption[]
+  loadCategoryNode: (node: any, resolve: (data: CategoryLazyOption[]) => void) => void
   submitting?: boolean
 }>(), {
   submitting: false
@@ -73,8 +76,13 @@ const editBookInputDate = useTemplateRef('editBookInputDate')
             <ElTreeSelect
                 v-model="state.categoryId"
                 :data="categoryTreeOptions"
+                :cache-data="categoryTreeCacheData"
+                :load="loadCategoryNode"
+                :props="{ label: 'label', children: 'children', isLeaf: 'leaf' }"
                 :check-strictly="true"
                 :render-after-expand="false"
+                node-key="value"
+                lazy
                 placeholder="选择分类"
                 class="w-full"
             />

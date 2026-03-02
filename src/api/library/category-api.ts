@@ -14,6 +14,21 @@ const CategoryApi = {
             method: "get",
         })
     },
+    getLazyOptions(parentId?: CategoryId) {
+        return request<any, CategoryLazyOption[]>({
+            url: `${CATEGORY_BASE_URL}/options/lazy`,
+            method: "get",
+            params: {
+                parentId,
+            }
+        })
+    },
+    getOptionNode(categoryId: CategoryId) {
+        return request<any, CategoryLazyOption | null>({
+            url: `${CATEGORY_BASE_URL}/options/node/${categoryId}`,
+            method: "get",
+        })
+    },
 }
 
 export interface CategoryVO {
@@ -28,6 +43,11 @@ export interface CategoryVO {
 export interface CategoryQuery {
     categoryName?: string;
     status?: CategoryStatus;
+}
+
+export interface CategoryLazyOption extends OptionType {
+    leaf?: boolean;
+    children?: CategoryLazyOption[];
 }
 
 export default CategoryApi;
