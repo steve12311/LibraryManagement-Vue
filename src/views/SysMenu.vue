@@ -752,6 +752,9 @@ function removePerm(index: number) {
     <UTable ref="table" :data="menuTableData" :get-sub-rows="(row)=>row.children"
             :column-visibility="columnVisibility" :columns="columns"
             class="h-full"
+            :loading="loadingMenuList"
+            loading-color="primary"
+            loading-animation="carousel"
             virtualize
             @select="showMenuInfo"
             :ui="{

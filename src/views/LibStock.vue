@@ -503,7 +503,16 @@ async function submitStockOut() {
         </template>
       </ActionGroup>
     </template>
-    <UTable class="h-full" ref="table" :columns="columns" :data="pageDate" @select="showBookDetailInfo"/>
+    <UTable
+        class="h-full"
+        ref="table"
+        :columns="columns"
+        :data="pageDate"
+        :loading="loadingPageData"
+        loading-color="primary"
+        loading-animation="carousel"
+        @select="showBookDetailInfo"
+    />
     <template #footer>
       <div class="flex justify-center border-default pt-4">
         <UPagination v-model:page="queryParams.pageNum" :total="total"

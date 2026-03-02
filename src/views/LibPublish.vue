@@ -409,7 +409,17 @@ async function deletePublishBySelection() {
         </UForm>
       </div>
     </template>
-    <UTable class="h-full" ref="table" v-model:column-visibility="columnVisibility" sticky :data="pageData" :columns="columns"/>
+    <UTable
+        class="h-full"
+        ref="table"
+        v-model:column-visibility="columnVisibility"
+        sticky
+        :data="pageData"
+        :columns="columns"
+        :loading="loadingPageData"
+        loading-color="primary"
+        loading-animation="carousel"
+    />
     <template #footer>
       <div class="flex justify-center border-default pt-4">
         <UPagination

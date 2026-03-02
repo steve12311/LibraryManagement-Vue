@@ -52,6 +52,7 @@ const openEditModal = ref(false)
 const openAssignRoleModal = ref(false)
 const editModalMode = ref<"add" | "edit">("add")
 const editModalTitle = ref("新增用户")
+const loadingPageData = ref(false)
 const loadingEditUser = ref(false)
 const submittingEditUser = ref(false)
 const loadingRoleOptions = ref(false)
@@ -546,11 +547,14 @@ function resetQuery() {
 // 获取数据
 async function fetchData() {
   try {
+    loadingPageData.value = true
     const data = await UserAPI.getPage(queryParams);
     pageData.value = data.list ?? [];
     total.value = data.total ?? 0;
   } catch (e) {
     console.log(e);
+  } finally {
+    loadingPageData.value = false
   }
 }
 </script>
@@ -657,7 +661,17 @@ async function fetchData() {
         </UForm>
       </div>
     </template>
-    <UTable class="h-full" ref="table" v-model:column-visibility="columnVisibility" sticky :data="pageData" :columns="columns"/>
+    <UTable
+        class="h-full"
+        ref="table"
+        v-model:column-visibility="columnVisibility"
+        sticky
+        :data="pageData"
+        :columns="columns"
+        :loading="loadingPageData"
+        loading-color="primary"
+        loading-animation="carousel"
+    />
     <template #footer>
       <div class="flex justify-center border-default pt-4">
         <UPagination v-model:page="queryParams.pageNum" :total="total"

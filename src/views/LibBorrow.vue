@@ -506,7 +506,15 @@ async function confirmReturnBorrow(borrowId: string) {
         <UButton @click="openModal" :loading="loadingBorrowOptions" icon="i-lucide-plus" variant="subtle" label="新增"/>
       </ActionGroup>
     </template>
-    <UTable class="h-full" ref="table" :data="pageData" :columns="columns"/>
+    <UTable
+        class="h-full"
+        ref="table"
+        :data="pageData"
+        :columns="columns"
+        :loading="loadingPageData"
+        loading-color="primary"
+        loading-animation="carousel"
+    />
     <template #footer>
       <div class="flex justify-center border-default pt-4">
         <UPagination v-model:page="queryParams.pageNum" :total="total"

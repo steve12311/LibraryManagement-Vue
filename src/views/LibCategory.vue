@@ -170,6 +170,9 @@ function getSubRows(row: CategoryVO) {
       </div>
     </template>
     <UTable ref="table" :column-visibility="columnVisibility" :data="categoryList" :columns="columns"
+            :loading="loadingCategoryList"
+            loading-color="primary"
+            loading-animation="carousel"
             virtualize
             :get-sub-rows="getSubRows"
             class="h-full"
