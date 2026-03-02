@@ -81,8 +81,8 @@ watchEffect(() => {
         </UDropdownMenu>
       </template>
     </UDashboardSidebar>
-    <div class="flex w-full flex-col">
-      <UDashboardNavbar class="shrink-0">
+    <div class="flex min-h-0 w-full flex-1 flex-col">
+      <UDashboardNavbar>
         <template #leading>
           <UDashboardSidebarCollapse/>
         </template>
@@ -94,8 +94,10 @@ watchEffect(() => {
           </UBreadcrumb>
         </template>
       </UDashboardNavbar>
-      <div class="flex-1 overflow-auto box-border p-4">
-        <RouterView/>
+      <div class="box-border flex min-h-0 flex-1 p-4">
+        <div class="h-full min-h-0 w-full">
+          <RouterView/>
+        </div>
       </div>
     </div>
   </UDashboardGroup>

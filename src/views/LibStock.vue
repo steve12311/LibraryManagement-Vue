@@ -473,7 +473,7 @@ async function submitStockOut() {
       @success="fetchData"
   />
   <StockDetailDialog v-model:open="open" v-model:stock="currentSelectedStock"/>
-  <UCard>
+  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
     <template #header>
       <ActionGroup @flush="fetchData" :table="table">
         <UForm @submit.prevent="handleQuery" class="w-full">
@@ -503,7 +503,7 @@ async function submitStockOut() {
         </template>
       </ActionGroup>
     </template>
-    <UTable ref="table" :columns="columns" :data="pageDate" @select="showBookDetailInfo"/>
+    <UTable class="h-full" ref="table" :columns="columns" :data="pageDate" @select="showBookDetailInfo"/>
     <template #footer>
       <div class="flex justify-center border-default pt-4">
         <UPagination v-model:page="queryParams.pageNum" :total="total"

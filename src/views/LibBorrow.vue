@@ -476,7 +476,7 @@ async function confirmReturnBorrow(borrowId: string) {
       </div>
     </template>
   </UModal>
-  <UCard>
+  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
     <template #header>
       <ActionGroup :table="table" @flush="fetchData">
         <UForm @submit.prevent="handleQuery" class="w-full">
@@ -506,7 +506,7 @@ async function confirmReturnBorrow(borrowId: string) {
         <UButton @click="openModal" :loading="loadingBorrowOptions" icon="i-lucide-plus" variant="subtle" label="新增"/>
       </ActionGroup>
     </template>
-    <UTable ref="table" :data="pageData" :columns="columns"/>
+    <UTable class="h-full" ref="table" :data="pageData" :columns="columns"/>
     <template #footer>
       <div class="flex justify-center border-default pt-4">
         <UPagination v-model:page="queryParams.pageNum" :total="total"

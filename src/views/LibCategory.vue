@@ -77,7 +77,6 @@ const columns = ref<TableColumn<CategoryVO>[]>([
 const columnVisibility = ref({
   categoryId: false
 })
-
 onMounted(() => {
   void handleQuery()
 })
@@ -148,10 +147,11 @@ function resetQuery() {
 function getSubRows(row: CategoryVO) {
   return Array.isArray(row.children) ? row.children : []
 }
+
 </script>
 
 <template>
-  <UCard>
+  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
     <template #header>
       <div class="category-header">
         <ActionGroup :table="table" @flush="fetchData">
@@ -170,7 +170,9 @@ function getSubRows(row: CategoryVO) {
       </div>
     </template>
     <UTable ref="table" :column-visibility="columnVisibility" :data="categoryList" :columns="columns"
+            virtualize
             :get-sub-rows="getSubRows"
+            class="h-full"
             :ui="{
       base: 'border-separate border-spacing-0',
       tbody: '[&>tr]:last:[&>td]:border-b-0',

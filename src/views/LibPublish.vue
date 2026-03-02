@@ -375,7 +375,7 @@ async function deletePublishBySelection() {
     </template>
   </UModal>
 
-  <UCard>
+  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
     <template #header>
       <div class="publish-header">
         <ActionGroup
@@ -409,7 +409,7 @@ async function deletePublishBySelection() {
         </UForm>
       </div>
     </template>
-    <UTable ref="table" v-model:column-visibility="columnVisibility" sticky :data="pageData" :columns="columns"/>
+    <UTable class="h-full" ref="table" v-model:column-visibility="columnVisibility" sticky :data="pageData" :columns="columns"/>
     <template #footer>
       <div class="flex justify-center border-default pt-4">
         <UPagination

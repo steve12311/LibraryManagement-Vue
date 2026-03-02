@@ -727,7 +727,7 @@ function removePerm(index: number) {
       </template>
     </template>
   </ElDialog>
-  <UCard>
+  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
     <template #header>
       <div class="space-y-3">
         <ActionGroup :table="table" @flush="handleQuery"
@@ -751,6 +751,8 @@ function removePerm(index: number) {
     </template>
     <UTable ref="table" :data="menuTableData" :get-sub-rows="(row)=>row.children"
             :column-visibility="columnVisibility" :columns="columns"
+            class="h-full"
+            virtualize
             @select="showMenuInfo"
             :ui="{
       base: 'border-separate border-spacing-0',

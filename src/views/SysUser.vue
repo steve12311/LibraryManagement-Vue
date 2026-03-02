@@ -630,7 +630,7 @@ async function fetchData() {
       </div>
     </template>
   </UModal>
-  <UCard>
+  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
     <template #header>
       <div class="space-y-3">
         <ActionGroup :table="table" @flush="handleQuery" @add-row="openAddUserModal"
@@ -657,7 +657,7 @@ async function fetchData() {
         </UForm>
       </div>
     </template>
-    <UTable ref="table" v-model:column-visibility="columnVisibility" sticky :data="pageData" :columns="columns"/>
+    <UTable class="h-full" ref="table" v-model:column-visibility="columnVisibility" sticky :data="pageData" :columns="columns"/>
     <template #footer>
       <div class="flex justify-center border-default pt-4">
         <UPagination v-model:page="queryParams.pageNum" :total="total"
