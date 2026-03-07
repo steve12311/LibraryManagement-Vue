@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import {h, onMounted, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
+import {h, onMounted, ref, resolveComponent, shallowRef, useTemplateRef} from "vue";
 import type {SelectItem, TableColumn, TableRow} from "@nuxt/ui";
 import moment from "moment";
 import type {StockPageVO} from "@/api/library/stock-api.ts";
-import bookApi, {type BookForm} from "@/api/library/book-api.ts";
-import FileApi from "@/api/file-api.ts";
+import type {BookForm} from "@/api/library/book-api.ts";
 import {CalendarDate} from "@internationalized/date";
 import StockOutDialog from "@/components/lib-stock/StockOutDialog.vue";
 import EditBookDialog from "@/components/lib-stock/EditBookDialog.vue";
@@ -13,6 +12,7 @@ import StockEntryDialog from "@/components/lib-stock/StockEntryDialog.vue";
 import {useStockQuery} from "@/composables/library/stock/useStockQuery";
 import {useStockOptions} from "@/composables/library/stock/useStockOptions";
 import {useStockOut} from "@/composables/library/stock/useStockOut";
+import {useStockEdit} from "@/composables/library/stock/useStockEdit";
 
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
@@ -22,7 +22,6 @@ onMounted(() => {
 })
 
 const date = new Date()
-const toast = useToast()
 const currentSelectedStock = ref<StockPageVO>()
 const fieldItems = ref<SelectItem[]>([
   {
@@ -161,6 +160,27 @@ const initialEditBookFormData: BookForm = {
 const editBookState = ref<BookForm>({...initialEditBookFormData})
 const editBookCoverModel = ref<File>()
 const editBookPublishTime = shallowRef(new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate()))
+const {
+  openEntryModal,
+  openEditBookModal,
+  submitEditBook,
+} = useStockEdit({
+  openEditBookDialog,
+  openEntryStepper,
+  loadingOptions,
+  loadingEditBook,
+  submittingEditBook,
+  editingIsbn,
+  editBookState,
+  editBookCoverModel,
+  editBookPublishTime,
+  categoryTreeCacheData,
+  initialEditBookFormData,
+  fetchEntryOptions,
+  ensureCategoryNodeCache,
+  fetchData,
+  getCoverFile: () => getCoverFileFromModel(editBookCoverModel.value),
+})
 
 interface CoverFileLike {
   file?: File
@@ -172,11 +192,6 @@ type CoverFileModel = File | CoverFileLike | Array<File | CoverFileLike>
 function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
   open.value = true
   currentSelectedStock.value = row.original
-}
-
-function toCalendarDate(value?: Date | string) {
-  const target = value ? new Date(value) : new Date()
-  return new CalendarDate(target.getFullYear(), target.getMonth() + 1, target.getDate())
 }
 
 function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
@@ -194,87 +209,6 @@ function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
   if (model.file instanceof File) return model.file
   if (model.raw instanceof File) return model.raw
   return void 0
-}
-
-function resetEditBookForm() {
-  editBookState.value = {...initialEditBookFormData}
-  editBookCoverModel.value = void 0
-  editBookPublishTime.value = toCalendarDate()
-  categoryTreeCacheData.value = []
-  submittingEditBook.value = false
-  editingIsbn.value = ""
-}
-
-watch(openEditBookDialog, (isOpen) => {
-  if (!isOpen) {
-    resetEditBookForm()
-  }
-})
-
-async function openEntryModal() {
-  loadingOptions.value = true
-  try {
-    await fetchEntryOptions()
-    openEntryStepper.value = true
-  } catch (error) {
-    console.error(error)
-    toast.add({title: "错误", description: "加载书籍选项失败", color: "error"})
-  } finally {
-    loadingOptions.value = false
-  }
-}
-
-async function openEditBookModal(isbn: string) {
-  if (!isbn) return
-  editingIsbn.value = isbn
-  loadingEditBook.value = true
-  try {
-    const [formData] = await Promise.all([
-      bookApi.getFormData(isbn),
-      fetchEntryOptions(),
-    ])
-    editBookState.value = {...formData}
-    editBookPublishTime.value = toCalendarDate(formData.publishTime)
-    await ensureCategoryNodeCache(formData.categoryId)
-    editBookCoverModel.value = void 0
-    openEditBookDialog.value = true
-  } catch (error) {
-    console.error(error)
-    toast.add({title: "错误", description: "加载图书信息失败", color: "error"})
-  } finally {
-    loadingEditBook.value = false
-  }
-}
-
-async function submitEditBook() {
-  if (!editingIsbn.value) {
-    toast.add({title: "错误", description: "ISBN不能为空", color: "error"})
-    return
-  }
-
-  const payload: BookForm = {
-    ...editBookState.value,
-    isbn: editingIsbn.value,
-    publishTime: new Date(editBookPublishTime.value.toString())
-  }
-
-  try {
-    submittingEditBook.value = true
-    const file = getCoverFileFromModel(editBookCoverModel.value)
-    if (file) {
-      const {url} = await FileApi.uploadFile(file)
-      payload.cover = url
-    }
-    await bookApi.update(payload)
-    toast.add({title: "成功", description: "修改成功", color: "success"})
-    openEditBookDialog.value = false
-    await fetchData()
-  } catch (error) {
-    console.error(error)
-    toast.add({title: "错误", description: "修改图书失败", color: "error"})
-  } finally {
-    submittingEditBook.value = false
-  }
 }
 
 </script>
