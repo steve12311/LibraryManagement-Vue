@@ -105,8 +105,12 @@ async function nextEntryStep() {
       publishTime.value = toCalendarDate(formData?.publishTime)
       coverModel.value = void 0
       entryStepper.value.next()
-    } catch (e) {
-      console.log(e)
+    } catch (error) {
+      toast.add({
+        title: "错误",
+        description: error instanceof Error ? error.message : "查询图书信息失败",
+        color: "error"
+      })
     } finally {
       checkingISBN.value = false
     }
@@ -147,8 +151,12 @@ async function submitStock() {
     toast.add({title: "成功", description: "入库成功", color: "success"})
     open.value = false
     emit("success")
-  } catch (e) {
-    console.log(e)
+  } catch (error) {
+    toast.add({
+      title: "错误",
+      description: error instanceof Error ? error.message : "图书入库失败",
+      color: "error"
+    })
   } finally {
     submittingStock.value = false
   }
