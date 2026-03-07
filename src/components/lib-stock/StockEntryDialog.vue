@@ -7,13 +7,27 @@ import FileApi from "@/api/file-api.ts";
 import type {CategoryLazyOption} from "@/api/library/category-api.ts";
 import {ElDialog, ElTreeSelect} from "element-plus";
 
+interface CategoryTreeNode {
+  level?: number
+  data?: {
+    value?: string | number
+  }
+}
+
+interface CoverFileLike {
+  file?: File
+  raw?: File
+}
+
+type CoverFileModel = File | CoverFileLike | Array<File | CoverFileLike>
+
 const open = defineModel<boolean>("open", {default: false})
 
 const props = defineProps<{
   publishOptions: SelectMenuItem[]
   categoryTreeOptions: CategoryLazyOption[]
   categoryTreeCacheData: CategoryLazyOption[]
-  loadCategoryNode: (node: any, resolve: (data: CategoryLazyOption[]) => void) => void
+  loadCategoryNode: (node: CategoryTreeNode, resolve: (data: CategoryLazyOption[]) => void) => void
 }>()
 
 const emit = defineEmits<{
@@ -60,18 +74,20 @@ function toCalendarDate(value?: Date | string) {
   return new CalendarDate(target.getFullYear(), target.getMonth() + 1, target.getDate())
 }
 
-function getCoverFileFromModel(model?: File): File | undefined {
+function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
   if (!model) return void 0
-  const value = model as any
-  if (value instanceof File) return value
-  if (value?.file instanceof File) return value.file
-  if (value?.raw instanceof File) return value.raw
-  if (Array.isArray(value) && value.length > 0) {
-    const first = value[0]
+  if (model instanceof File) return model
+  if (Array.isArray(model)) {
+    if (model.length === 0) return void 0
+    const first = model[0]
+    if (!first) return void 0
     if (first instanceof File) return first
-    if (first?.file instanceof File) return first.file
-    if (first?.raw instanceof File) return first.raw
+    if (first.file instanceof File) return first.file
+    if (first.raw instanceof File) return first.raw
+    return void 0
   }
+  if (model.file instanceof File) return model.file
+  if (model.raw instanceof File) return model.raw
   return void 0
 }
 
@@ -105,8 +121,12 @@ async function nextEntryStep() {
       publishTime.value = toCalendarDate(formData?.publishTime)
       coverModel.value = void 0
       entryStepper.value.next()
-    } catch (e) {
-      console.log(e)
+    } catch (error) {
+      toast.add({
+        title: "错误",
+        description: error instanceof Error ? error.message : "查询图书信息失败",
+        color: "error"
+      })
     } finally {
       checkingISBN.value = false
     }
@@ -147,8 +167,12 @@ async function submitStock() {
     toast.add({title: "成功", description: "入库成功", color: "success"})
     open.value = false
     emit("success")
-  } catch (e) {
-    console.log(e)
+  } catch (error) {
+    toast.add({
+      title: "错误",
+      description: error instanceof Error ? error.message : "图书入库失败",
+      color: "error"
+    })
   } finally {
     submittingStock.value = false
   }

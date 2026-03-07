@@ -1,3 +1,5 @@
+import type { ThemeMode } from "@/enums/settings/theme-enum";
+
 declare global {
   /**
    * 响应数据
@@ -67,7 +69,7 @@ declare global {
     /** 主题颜色 */
     themeColor: string;
     /** 主题模式(dark|light) */
-    theme: import("@/enums/settings/theme-enum").ThemeMode;
+    theme: ThemeMode;
     /** 布局大小(default |large |small) */
     size: string;
     /** 语言( zh-cn| en) */

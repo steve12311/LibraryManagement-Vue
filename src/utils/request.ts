@@ -8,6 +8,7 @@ import type { RetryRequestConfig } from "@/types/request";
 import {redirectToLogin} from "@/utils/auth";
 
 const {refreshTokenAndRetry} = useTokenRefresh();
+type BinaryResponseData = Blob | ArrayBuffer | ReadableStream<Uint8Array>;
 
 /**
  * 创建 HTTP 请求实例
@@ -44,19 +45,16 @@ httpRequest.interceptors.request.use(
 
         return requestConfig;
     },
-    (error) => {
-        console.error("Request interceptor error:", error);
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 /**
  * 响应拦截器 - 统一处理响应和错误
  */
-function unwrapResponse(response: AxiosResponse<ApiResponse<unknown>>): any {
+function unwrapResponse<T>(response: AxiosResponse<ApiResponse<T>>): T | AxiosResponse<BinaryResponseData> {
     const toast = useToast()
     // 如果响应是二进制数据，则直接返回response对象（用于文件下载、Excel导出、图片显示等）
     if (response.config.responseType === "stream" || response.config.responseType === "blob" || response.config.responseType === "arraybuffer") {
-        return response;
+        return response as unknown as AxiosResponse<BinaryResponseData>;
     }
 
     const {code, data, msg} = response.data;
@@ -68,14 +66,13 @@ function unwrapResponse(response: AxiosResponse<ApiResponse<unknown>>): any {
 
     // 业务错误
     toast.add({title: "错误", description: msg || "系统出错", color: "error"})
-    return Promise.reject(new Error(msg || "Business Error"));
+    throw new Error(msg || "Business Error");
 }
 
 httpRequest.interceptors.response.use(
     unwrapResponse,
     async (error: AxiosError<Partial<ApiResponse<unknown>>>) => {
         const toast = useToast()
-        console.error("Response interceptor error:", error);
 
         const requestConfig = (error.config || {}) as RetryRequestConfig;
         const response = error.response;

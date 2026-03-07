@@ -67,6 +67,8 @@ const assignRoleUserId = ref("")
 const assignRoleUsername = ref("")
 const avatarModel = ref<File>()
 const roleOptions = ref<SelectMenuItem[]>([])
+type AvatarFileItem = File | { file?: File; raw?: File }
+type AvatarFileModel = AvatarFileItem | AvatarFileItem[]
 const genderOptions = ref<OptionType[]>([
   {
     label: "保密",
@@ -239,18 +241,20 @@ watch(openAssignRoleModal, (isOpen) => {
   }
 })
 
-function getAvatarFileFromModel(model?: File): File | undefined {
+function getAvatarFileFromModel(model?: AvatarFileModel): File | undefined {
   if (!model) return void 0
-  const value = model as any
-  if (value instanceof File) return value
-  if (value?.file instanceof File) return value.file
-  if (value?.raw instanceof File) return value.raw
-  if (Array.isArray(value) && value.length > 0) {
-    const first = value[0]
+  if (model instanceof File) return model
+  if (Array.isArray(model)) {
+    if (model.length === 0) return void 0
+    const first = model[0]
+    if (!first) return void 0
     if (first instanceof File) return first
-    if (first?.file instanceof File) return first.file
-    if (first?.raw instanceof File) return first.raw
+    if (first.file instanceof File) return first.file
+    if (first.raw instanceof File) return first.raw
+    return void 0
   }
+  if (model.file instanceof File) return model.file
+  if (model.raw instanceof File) return model.raw
   return void 0
 }
 
@@ -278,8 +282,8 @@ async function updateUserStatus(userId: string | number | undefined, value: bool
     await UserAPI.changeStatus(userId, status)
     toast.add({title: "成功", description: "状态已更新", color: "success"})
     await fetchData()
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "状态更新失败", color: "error"})
   } finally {
     togglingStatusUserId.value = ""
   }
@@ -308,8 +312,8 @@ async function fetchRoleOptions() {
   loadingRoleOptions.value = true
   try {
     roleOptions.value = await RoleAPI.getOptions()
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "角色选项加载失败", color: "error"})
   } finally {
     loadingRoleOptions.value = false
   }
@@ -334,8 +338,8 @@ async function openEditUserModal(id: string | number) {
     }
     avatarModel.value = void 0
     openEditModal.value = true
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "加载用户信息失败", color: "error"})
   } finally {
     loadingEditUser.value = false
   }
@@ -369,8 +373,8 @@ async function openAssignRoleDialog(id: string | number, username?: string) {
       roleIds: Array.isArray(formData.roleIds) ? formData.roleIds.map(item => Number(item)) : []
     }
     openAssignRoleModal.value = true
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "加载角色分配信息失败", color: "error"})
   } finally {
     loadingAssignRole.value = false
     assigningRoleUserId.value = ""
@@ -422,8 +426,8 @@ async function submitEditUser() {
     }
     openEditModal.value = false
     await fetchData()
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: editModalMode.value === "add" ? "新增失败" : "修改失败", color: "error"})
   } finally {
     submittingEditUser.value = false
   }
@@ -447,8 +451,8 @@ async function submitAssignRole() {
     toast.add({title: "成功", description: "分配角色成功", color: "success"})
     openAssignRoleModal.value = false
     await fetchData()
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "分配角色失败", color: "error"})
   } finally {
     submittingAssignRole.value = false
   }
@@ -469,9 +473,9 @@ async function confirmResetPassword(id: string | number, username?: string) {
     resettingUserId.value = String(id)
     await UserAPI.resetPassword(id)
     toast.add({title: "成功", description: "密码已重置为默认密码 123456", color: "success"})
-  } catch (e: any) {
-    if (e !== "cancel" && e !== "close") {
-      console.log(e)
+  } catch (e: unknown) {
+    if (e === "cancel" || e === "close") {
+      return
     }
   } finally {
     resettingUserId.value = ""
@@ -498,9 +502,9 @@ async function confirmDeleteUsers(ids: Array<string | number>, usernames: string
     await UserAPI.delete(ids)
     toast.add({title: "成功", description: "删除成功", color: "success"})
     await fetchData()
-  } catch (e: any) {
-    if (e !== "cancel" && e !== "close") {
-      console.log(e)
+  } catch (e: unknown) {
+    if (e === "cancel" || e === "close") {
+      return
     }
   } finally {
     deletingUserId.value = ""
@@ -551,8 +555,8 @@ async function fetchData() {
     const data = await UserAPI.getPage(queryParams);
     pageData.value = data.list ?? [];
     total.value = data.total ?? 0;
-  } catch (e) {
-    console.log(e);
+  } catch {
+    toast.add({title: "错误", description: "用户数据加载失败", color: "error"})
   } finally {
     loadingPageData.value = false
   }

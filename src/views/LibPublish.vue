@@ -314,10 +314,7 @@ async function deletePublishBySelection() {
       confirmButtonText: "确定",
       cancelButtonText: "取消"
     })
-  } catch (error: any) {
-    if (error !== "cancel" && error !== "close") {
-      console.error(error)
-    }
+  } catch {
     return
   }
   try {

@@ -144,18 +144,23 @@ function resetProfileForm() {
   applyProfileToForm(profileInfo.value)
 }
 
-function getAvatarFileFromModel(model?: File): File | undefined {
+type AvatarFileItem = File | { file?: File; raw?: File }
+type AvatarFileModel = AvatarFileItem | AvatarFileItem[]
+
+function getAvatarFileFromModel(model?: AvatarFileModel): File | undefined {
   if (!model) return void 0
-  const value = model as any
-  if (value instanceof File) return value
-  if (value?.file instanceof File) return value.file
-  if (value?.raw instanceof File) return value.raw
-  if (Array.isArray(value) && value.length > 0) {
-    const first = value[0]
+  if (model instanceof File) return model
+  if (Array.isArray(model)) {
+    if (model.length === 0) return void 0
+    const first = model[0]
+    if (!first) return void 0
     if (first instanceof File) return first
-    if (first?.file instanceof File) return first.file
-    if (first?.raw instanceof File) return first.raw
+    if (first.file instanceof File) return first.file
+    if (first.raw instanceof File) return first.raw
+    return void 0
   }
+  if (model.file instanceof File) return model.file
+  if (model.raw instanceof File) return model.raw
   return void 0
 }
 
