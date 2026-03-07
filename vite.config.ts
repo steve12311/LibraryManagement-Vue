@@ -16,6 +16,10 @@ export default defineConfig(({mode}: ConfigEnv): UserConfig => {
                     manualChunks(id) {
                         if (!id.includes("node_modules")) return;
 
+                        if (id.includes("markstream-vue/dist/index8.js")) {
+                            return "ai-diagram-heavy";
+                        }
+
                         if (id.includes("markstream-vue")) {
                             return "ai-markdown";
                         }
