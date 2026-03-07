@@ -28,7 +28,7 @@ interface ActionGroupTable {
 const emits = defineEmits(['addRow', 'deleteRow', 'modifyRow', 'flush'])
 
 const props = defineProps<{
-  table?: ActionGroupTable,
+  table?: ActionGroupTable | null,
 }>()
 
 const selectedRowCount = computed(() => props.table?.tableApi?.getFilteredSelectedRowModel().flatRows.length ?? 0)
