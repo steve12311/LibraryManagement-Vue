@@ -3,11 +3,12 @@ import {h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
 import type {TableColumn} from "@nuxt/ui";
 import moment from "moment";
 import {ElMessageBox} from "element-plus";
-import UserAPI, {type UserForm, type UserPageVO} from "@/api/system/user-api.ts"
+import UserAPI, {type UserPageVO} from "@/api/system/user-api.ts"
 import {UserGenderTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
 import {useUserDialog} from "@/composables/system/user/useUserDialog";
 import {useUserForm} from "@/composables/system/user/useUserForm";
 import {useUserQuery} from "@/composables/system/user/useUserQuery";
+import {useUserSubmit} from "@/composables/system/user/useUserSubmit";
 
 onMounted(() => {
   handleQuery()
@@ -100,6 +101,22 @@ const {
   editUserState,
   assignRoleState,
   fetchRoleOptions,
+})
+const {
+  submitEditUser,
+  submitAssignRole,
+} = useUserSubmit({
+  editModalMode,
+  editingUserId,
+  assignRoleUserId,
+  editUserState,
+  assignRoleState,
+  submittingEditUser,
+  submittingAssignRole,
+  openEditModal,
+  openAssignRoleModal,
+  fetchData,
+  getAvatarFile: () => getAvatarFileFromModel(avatarModel.value),
 })
 const genderOptions = ref<OptionType[]>([
   {
@@ -275,15 +292,6 @@ function getAvatarFileFromModel(model?: AvatarFileModel): File | undefined {
   return void 0
 }
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result ?? ""))
-    reader.onerror = () => reject(reader.error)
-    reader.readAsDataURL(file)
-  })
-}
-
 function getGenderLabel(gender?: number) {
   if (gender === UserGenderTypeEnum.UNKNOWN) return "保密"
   if (gender === UserGenderTypeEnum.MAN) return "男"
@@ -313,74 +321,6 @@ function openEditUserModalBySelection() {
     return
   }
   openEditUserModal(selectedRow.id)
-}
-
-async function submitEditUser() {
-  if (editModalMode.value === "edit" && !editingUserId.value) {
-    toast.add({title: "错误", description: "用户ID不能为空", color: "error"})
-    return
-  }
-  if (!editUserState.value.nickname?.trim()) {
-    toast.add({title: "错误", description: "昵称不能为空", color: "error"})
-    return
-  }
-  if (!Array.isArray(editUserState.value.roleIds) || editUserState.value.roleIds.length === 0) {
-    toast.add({title: "错误", description: "请至少选择一个角色", color: "error"})
-    return
-  }
-  const payload: UserForm = {
-    ...editUserState.value,
-    id: editModalMode.value === "edit" ? Number(editingUserId.value) : Number(editUserState.value.id ?? 0),
-    roleIds: Array.isArray(editUserState.value.roleIds)
-        ? editUserState.value.roleIds.map(item => Number(item))
-        : []
-  }
-
-  try {
-    submittingEditUser.value = true
-    const file = getAvatarFileFromModel(avatarModel.value)
-    if (file) {
-      payload.avatar = await fileToBase64(file)
-    }
-    if (editModalMode.value === "add") {
-      await UserAPI.create(payload)
-      toast.add({title: "成功", description: "新增成功", color: "success"})
-    } else {
-      await UserAPI.update(editingUserId.value, payload)
-      toast.add({title: "成功", description: "修改成功", color: "success"})
-    }
-    openEditModal.value = false
-    await fetchData()
-  } catch {
-    toast.add({title: "错误", description: editModalMode.value === "add" ? "新增失败" : "修改失败", color: "error"})
-  } finally {
-    submittingEditUser.value = false
-  }
-}
-
-async function submitAssignRole() {
-  if (!assignRoleUserId.value) {
-    toast.add({title: "错误", description: "用户ID不能为空", color: "error"})
-    return
-  }
-  const payload: UserForm = {
-    ...assignRoleState.value,
-    id: Number(assignRoleUserId.value),
-    roleIds: Array.isArray(assignRoleState.value.roleIds)
-        ? assignRoleState.value.roleIds.map(item => Number(item))
-        : []
-  }
-  try {
-    submittingAssignRole.value = true
-    await UserAPI.update(assignRoleUserId.value, payload)
-    toast.add({title: "成功", description: "分配角色成功", color: "success"})
-    openAssignRoleModal.value = false
-    await fetchData()
-  } catch {
-    toast.add({title: "错误", description: "分配角色失败", color: "error"})
-  } finally {
-    submittingAssignRole.value = false
-  }
 }
 
 async function confirmResetPassword(id: string | number, username?: string) {
