@@ -280,8 +280,8 @@ async function updateUserStatus(userId: string | number | undefined, value: bool
     await UserAPI.changeStatus(userId, status)
     toast.add({title: "成功", description: "状态已更新", color: "success"})
     await fetchData()
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "状态更新失败", color: "error"})
   } finally {
     togglingStatusUserId.value = ""
   }
@@ -310,8 +310,8 @@ async function fetchRoleOptions() {
   loadingRoleOptions.value = true
   try {
     roleOptions.value = await RoleAPI.getOptions()
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "角色选项加载失败", color: "error"})
   } finally {
     loadingRoleOptions.value = false
   }
@@ -336,8 +336,8 @@ async function openEditUserModal(id: string | number) {
     }
     avatarModel.value = void 0
     openEditModal.value = true
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "加载用户信息失败", color: "error"})
   } finally {
     loadingEditUser.value = false
   }
@@ -371,8 +371,8 @@ async function openAssignRoleDialog(id: string | number, username?: string) {
       roleIds: Array.isArray(formData.roleIds) ? formData.roleIds.map(item => Number(item)) : []
     }
     openAssignRoleModal.value = true
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "加载角色分配信息失败", color: "error"})
   } finally {
     loadingAssignRole.value = false
     assigningRoleUserId.value = ""
