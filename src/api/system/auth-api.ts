@@ -1,11 +1,11 @@
-import request from "@/utils/request.ts"
+import request from "@/utils/request"
 
 const AUTH_BASE_URL = "/api/v1/auth";
 
 const AuthAPI = {
     /** 刷新 token 接口*/
     refreshToken() {
-        return request<any, LoginResult>({
+        return request<unknown, LoginResult>({
             url: `${AUTH_BASE_URL}/refresh-token`,
             method: "post",
             headers: {
@@ -16,7 +16,7 @@ const AuthAPI = {
     },
     /** 获取验证码接口*/
     getCaptcha() {
-        return request<any, CaptchaInfo>({
+        return request<unknown, CaptchaInfo>({
             url: `${AUTH_BASE_URL}/captcha`,
             method: "get",
         });
@@ -29,7 +29,7 @@ const AuthAPI = {
             captchaCode: String(data.captchaCode ?? ""),
             captchaKey: String(data.captchaKey ?? ""),
         });
-        return request<any, LoginResult>({
+        return request<unknown, LoginResult>({
             url: `${AUTH_BASE_URL}/login`,
             method: "post",
             data: body.toString(),
@@ -39,14 +39,14 @@ const AuthAPI = {
             withCredentials: true,
         });
     },
-    logout(){
+    logout() {
         return request({
             url: `${AUTH_BASE_URL}/logout`,
             method: "delete",
             withCredentials: true,
-        })
+        });
     }
-}
+};
 
 /** 登录表单数据 */
 export interface LoginFormData {

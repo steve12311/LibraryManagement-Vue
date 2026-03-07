@@ -1,31 +1,24 @@
 import {defineStore} from "pinia";
-import {useAuthStoreHook} from "./auth-store.ts";
-import AuthAPI from "../../api/system/auth-api.ts";
-import {pinia} from "../index.ts";
-import type {LoginFormData} from "../../api/system/auth-api.ts"
-import type {UserInfo} from "../../api/system/user-api.ts"
-import UserAPI from "../../api/system/user-api.ts";
+import {useAuthStoreHook} from "./auth-store";
+import AuthAPI, { type LoginFormData } from "@/api/system/auth-api";
+import {pinia} from "../index";
+import type {UserInfo} from "@/api/system/user-api";
+import UserAPI from "@/api/system/user-api";
 import {ref} from "vue";
-import {usePermissionStoreHook} from "./permission-store.ts";
+import {usePermissionStoreHook} from "./permission-store";
 
 export const useUserStore = defineStore("user-store", () => {
     // 用户信息
     const userInfo = ref<UserInfo>({} as UserInfo);
 
-    function refreshToken() {
-        return new Promise<void>((resolve, reject) => {
-            AuthAPI.refreshToken()
-                .then((data: any) => {
-                    const {accessToken} = data;
-                    // 仅更新访问令牌，刷新令牌由 HttpOnly Cookie 托管
-                    useAuthStoreHook().setToken(accessToken);
-                    resolve();
-                })
-                .catch((error: any) => {
-                    console.log("refreshToken 刷新失败", error);
-                    reject(error);
-                });
-        });
+    async function refreshToken(): Promise<void> {
+        try {
+            const {accessToken} = await AuthAPI.refreshToken();
+            useAuthStoreHook().setToken(accessToken);
+        } catch (error) {
+            console.error("refreshToken 刷新失败", error);
+            throw error;
+        }
     }
 
     /**
@@ -33,21 +26,13 @@ export const useUserStore = defineStore("user-store", () => {
      *
      * @returns UserInfo 用户信息
      */
-    function getUserInfo() {
-        return new Promise<UserInfo>((resolve, reject) => {
-            UserAPI.getInfo()
-                .then((data) => {
-                    if (!data) {
-                        reject("Verification failed, please Login again.");
-                        return;
-                    }
-                    Object.assign(userInfo.value, {...data});
-                    resolve(data);
-                })
-                .catch((error) => {
-                    reject(error);
-                });
-        });
+    async function getUserInfo(): Promise<UserInfo> {
+        const data = await UserAPI.getInfo();
+        if (!data) {
+            throw new Error("获取用户信息失败，请重新登录");
+        }
+        userInfo.value = {...data};
+        return data;
     }
 
     /**
@@ -56,23 +41,13 @@ export const useUserStore = defineStore("user-store", () => {
      * @returns
      * @param LoginFormData
      */
-    function login(LoginFormData: LoginFormData) {
-        return new Promise<void>((resolve, reject) => {
-            AuthAPI.login(LoginFormData)
-                .then((data) => {
-                    const {accessToken} = data;
-                    useAuthStoreHook().setToken(accessToken);
-                    resolve();
-                })
-                .catch((error) => {
-                    reject(error);
-                });
-        });
+    async function login(loginFormData: LoginFormData): Promise<void> {
+        const {accessToken} = await AuthAPI.login(loginFormData);
+        useAuthStoreHook().setToken(accessToken);
     }
 
-    function resetAllState() {
+    async function resetAllState(): Promise<void> {
         resetUserState();
-        return Promise.resolve();
     }
 
     function resetUserState() {
@@ -95,7 +70,7 @@ export const useUserStore = defineStore("user-store", () => {
     }
 }, {
     persist: true,
-})
+});
 
 export function useUserStoreHook() {
     return useUserStore(pinia);

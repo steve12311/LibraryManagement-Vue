@@ -1,17 +1,13 @@
 import qs from "qs";
-import axios, {type AxiosResponse, type InternalAxiosRequestConfig} from "axios";
-import {ApiCodeEnum} from "../enums/api/code-enum.ts";
-import {authConfig} from "../settings.ts";
-import {useTokenRefresh} from "../composables/auth/useTokenRefresh.ts";
+import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
+import { ApiCodeEnum } from "@/enums/api/code-enum";
+import { authConfig } from "@/settings";
+import { useTokenRefresh } from "@/composables/auth/useTokenRefresh";
 import {useAuthStoreHook} from "@/store";
-import {redirectToLogin} from "./auth.ts";
+import type { RetryRequestConfig } from "@/types/request";
+import {redirectToLogin} from "@/utils/auth";
 
-const {refreshTokenAndRetry} = useTokenRefresh()
-
-type RetryRequestConfig = InternalAxiosRequestConfig & {
-    _retryCount?: number;
-    _skipAuthRefresh?: boolean;
-};
+const {refreshTokenAndRetry} = useTokenRefresh();
 
 /**
  * 创建 HTTP 请求实例
@@ -56,32 +52,33 @@ httpRequest.interceptors.request.use(
 /**
  * 响应拦截器 - 统一处理响应和错误
  */
+function unwrapResponse(response: AxiosResponse<ApiResponse<unknown>>): any {
+    const toast = useToast()
+    // 如果响应是二进制数据，则直接返回response对象（用于文件下载、Excel导出、图片显示等）
+    if (response.config.responseType === "stream" || response.config.responseType === "blob" || response.config.responseType === "arraybuffer") {
+        return response;
+    }
+
+    const {code, data, msg} = response.data;
+
+    // 请求成功
+    if (code === ApiCodeEnum.SUCCESS) {
+        return data;
+    }
+
+    // 业务错误
+    toast.add({title: "错误", description: msg || "系统出错", color: "error"})
+    return Promise.reject(new Error(msg || "Business Error"));
+}
+
 httpRequest.interceptors.response.use(
-    (response: AxiosResponse<ApiResponse>) => {
-        const toast = useToast()
-        // 如果响应是二进制数据，则直接返回response对象（用于文件下载、Excel导出、图片显示等）
-        if (response.config.responseType === "stream" || response.config.responseType === "blob" || response.config.responseType === "arraybuffer") {
-            return response;
-        }
-
-        const {code, data, msg} = response.data;
-
-        // 请求成功
-        if (code === ApiCodeEnum.SUCCESS) {
-            return data;
-        }
-
-        // 业务错误
-
-        toast.add({title: "错误", description: msg || "系统出错", color: "error"})
-        return Promise.reject(new Error(msg || "Business Error"));
-    },
-    async (error) => {
+    unwrapResponse,
+    async (error: AxiosError<Partial<ApiResponse<unknown>>>) => {
         const toast = useToast()
         console.error("Response interceptor error:", error);
 
-        const {config, response} = error;
-        const requestConfig = (config || {}) as RetryRequestConfig;
+        const requestConfig = (error.config || {}) as RetryRequestConfig;
+        const response = error.response;
 
         // 网络错误或服务器无响应
         if (!response) {
@@ -89,7 +86,7 @@ httpRequest.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        const data = response.data as Partial<ApiResponse> | undefined;
+        const data = response.data as Partial<ApiResponse<unknown>> | undefined;
         const code = data?.code;
         const msg = data?.msg;
 

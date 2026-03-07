@@ -1,12 +1,12 @@
 import type {RouteRecordRaw} from "vue-router";
 import router from "@/router";
-import {usePermissionStore} from "@/store/modules/permission-store.ts";
+import {usePermissionStore} from "@/store/modules/permission-store";
 import {useUserStore, useUserStoreHook} from "@/store";
 
 export function setupPermission() {
     const whiteList = ["/login"];
 
-    router.beforeEach(async (to, _) => {
+    router.beforeEach(async (to) => {
         const isLogin = useUserStoreHook().isLogin()
         try {
             if (!isLogin) {

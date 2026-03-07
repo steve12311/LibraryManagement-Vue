@@ -9,6 +9,6 @@ export function setupStore(app: App<Element>) {
     app.use(pinia);
 }
 
-export * from "./modules/auth-store.ts"
-export * from "./modules/user-store.ts"
+export * from "./modules/auth-store"
+export * from "./modules/user-store"
 export {pinia}

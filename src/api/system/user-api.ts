@@ -13,7 +13,7 @@ const UserAPI = {
      * @returns 登录用户昵称、头像信息，包括角色和权限
      */
     getInfo() {
-        return request<any, UserInfo>({
+        return request<unknown, UserInfo>({
             url: `${USER_BASE_URL}/me`,
             method: "get",
         });
@@ -24,84 +24,84 @@ const UserAPI = {
      * @param queryParams 查询参数
      */
     getPage(queryParams?: UserPageQuery) {
-        return request<any, PageResult<UserPageVO[]>>({
+        return request<unknown, PageResult<UserPageVO[]>>({
             url: `${USER_BASE_URL}/page`,
             method: "get",
             params: queryParams,
         });
     },
     getOptions() {
-        return request<any, SelectMenuItem[]>({
+        return request<unknown, SelectMenuItem[]>({
             url: `${USER_BASE_URL}/options`,
             method: "get",
-        })
+        });
     },
     changeStatus(userId: UserId, status: UserPageStatus) {
-        return request<any, string>({
+        return request<unknown, string>({
             url: `${USER_BASE_URL}/${userId}/status`,
             method: "put",
             params: {
                 status,
             },
-        })
+        });
     },
     getFormData(userId: UserId) {
-        return request<any, UserForm>({
+        return request<unknown, UserForm>({
             url: `${USER_BASE_URL}/${userId}/form`,
             method: "get",
-        })
+        });
     },
     /*如果不填重置的密码则后端默认会为123456*/
     resetPassword(userId: UserId, password?: string) {
-        return request<any, string>({
+        return request<unknown, string>({
             url: `${USER_BASE_URL}/${userId}/password/reset`,
             method: "put",
-            params: password ? {password} : undefined
-        })
+            params: password ? {password} : undefined,
+        });
     },
     /*更改自己的密码*/
     editPassword(data: PasswordUpdateForm) {
-        return request<any, string>({
+        return request<unknown, string>({
             url: `${USER_BASE_URL}/password`,
             method: "put",
             data: data,
-        })
+        });
     },
     getProfile() {
-        return request<any, UserProfile>({
+        return request<unknown, UserProfile>({
             url: `${USER_BASE_URL}/profile`,
             method: "get",
-        })
+        });
     },
     updateProfile(data: UserProfileForm) {
-        return request<any, string>({
+        return request<unknown, string>({
             url: `${USER_BASE_URL}/profile`,
             method: "put",
             data: data,
-        })
+        });
     },
     create(data: UserForm) {
-        return request<any, string>({
+        return request<unknown, string>({
             url: `${USER_BASE_URL}`,
             method: "post",
             data: data,
-        })
+        });
     },
     update(userId: UserId, data: UserForm) {
-        return request<any, string>({
+        return request<unknown, string>({
             url: `${USER_BASE_URL}/${userId}`,
             method: "put",
             data: data,
-        })
+        });
     },
     delete(ids: UserId[] | UserId) {
         const idsStr = Array.isArray(ids) ? ids.join(",") : String(ids);
-        return request<any, string>({
+        return request<unknown, string>({
             url: `${USER_BASE_URL}/${idsStr}`,
             method: "delete",
-        })
+        });
     }
-}
+};
 
 export interface UserProfileForm {
     id?: UserId;

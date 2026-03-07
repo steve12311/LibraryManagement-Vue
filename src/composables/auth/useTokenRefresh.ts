@@ -1,15 +1,6 @@
-import type {InternalAxiosRequestConfig} from "axios";
-import {useUserStoreHook} from "@/store";
-import {useAuthStoreHook} from "@/store";
-import {redirectToLogin} from "@/utils/auth.ts";
-
-/**
- * 可重试请求配置
- */
-type RetryRequestConfig = InternalAxiosRequestConfig & {
-    _retryCount?: number;
-    _skipAuthRefresh?: boolean;
-};
+import { useAuthStoreHook, useUserStoreHook } from "@/store";
+import type { HttpRequestExecutor, RetryRequestConfig } from "@/types/request";
+import { redirectToLogin } from "@/utils/auth";
 
 type PendingRequest = {
     config: RetryRequestConfig;
@@ -46,8 +37,8 @@ export function useTokenRefresh() {
      */
     async function refreshTokenAndRetry(
         config: RetryRequestConfig,
-        httpRequest: any
-    ): Promise<any> {
+        httpRequest: HttpRequestExecutor
+    ): Promise<unknown> {
         if (config._skipAuthRefresh) {
             return Promise.reject(new Error("当前请求禁止自动刷新令牌"));
         }
