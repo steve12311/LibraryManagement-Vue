@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
+import {h, onMounted, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import type {SelectItem, SelectMenuItem, TableColumn, TableRow} from "@nuxt/ui";
 import moment from "moment";
-import stockApi, {type StockForm, type StockPageVO, type StockQuery} from "@/api/library/stock-api.ts";
+import stockApi, {type StockForm, type StockPageVO} from "@/api/library/stock-api.ts";
 import bookApi, {type BookForm} from "@/api/library/book-api.ts";
 import FileApi from "@/api/file-api.ts";
 import categoryApi, {type CategoryLazyOption} from "@/api/library/category-api.ts";
@@ -12,6 +12,7 @@ import StockOutDialog from "@/components/lib-stock/StockOutDialog.vue";
 import EditBookDialog from "@/components/lib-stock/EditBookDialog.vue";
 import StockDetailDialog from "@/components/lib-stock/StockDetailDialog.vue";
 import StockEntryDialog from "@/components/lib-stock/StockEntryDialog.vue";
+import {useStockQuery} from "@/composables/library/stock/useStockQuery";
 
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
@@ -22,10 +23,7 @@ onMounted(() => {
 
 const date = new Date()
 const toast = useToast()
-const pageDate = shallowRef<StockPageVO[]>([])
-const loadingPageData = ref(false)
 const currentSelectedStock = ref<StockPageVO>()
-const imageCache = new Map<string, string>()
 const fieldItems = ref<SelectItem[]>([
   {
     label: "名称",
@@ -40,16 +38,10 @@ const fieldItems = ref<SelectItem[]>([
     value: "isbn"
   }
 ])
-const total = ref(0);
 const open = ref(false)
 const openEditBookDialog = ref(false)
 const openStockOutDialog = ref(false)
-const queryParams = reactive<StockQuery>({
-  pageNum: 1,
-  pageSize: 10,
-  field: "name",
-  keyword: void 0,
-})
+const {queryParams, pageDate, total, loadingPageData, handleQuery, resetQuery, fetchData} = useStockQuery()
 const table = useTemplateRef("table")
 const publishOptions = ref<SelectMenuItem[]>([])
 const categoryTreeOptions = ref<CategoryLazyOption[]>([])
@@ -174,67 +166,9 @@ interface CoverFileLike {
 
 type CoverFileModel = File | CoverFileLike | Array<File | CoverFileLike>
 
-// 查询（重置页码后获取数据）
-async function handleQuery() {
-  queryParams.pageNum = 1;
-  await fetchData();
-}
-
-function normalizeKeyword(value?: string) {
-  const keyword = String(value ?? "").trim()
-  return keyword || void 0
-}
-
-function applySearchParams() {
-  queryParams.keyword = normalizeKeyword(queryParams.keyword)
-}
-
-function resetQuery() {
-  queryParams.field = "name"
-  queryParams.keyword = void 0
-  queryParams.pageNum = 1
-  void fetchData()
-}
-
 function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
   open.value = true
   currentSelectedStock.value = row.original
-}
-
-async function fetchData() {
-  try {
-    loadingPageData.value = true
-    applySearchParams()
-    const data = await stockApi.getPage(queryParams)
-    total.value = data.total
-    pageDate.value = data.list.map((item) => ({
-      ...item,
-      bookImage: fetchImage(item.bookImage),
-    }))
-  } catch (e) {
-    console.error(e)
-    pageDate.value = []
-    total.value = 0
-    toast.add({title: "错误", description: "库存数据加载失败", color: "error"})
-  } finally {
-    loadingPageData.value = false
-  }
-}
-
-function fetchImage(originalUrl: string | undefined) {
-  if (!originalUrl) {
-    return void 0
-  }
-  const cachedUrl = imageCache.get(originalUrl)
-  if (cachedUrl) {
-    return cachedUrl
-  }
-  const resolvedUrl = FileApi.resolveUrl(originalUrl)
-  if (!resolvedUrl) {
-    return void 0
-  }
-  imageCache.set(originalUrl, resolvedUrl)
-  return resolvedUrl
 }
 
 function toCalendarDate(value?: Date | string) {
