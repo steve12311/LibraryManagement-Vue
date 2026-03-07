@@ -82,7 +82,7 @@ const columns = ref<TableColumn<MenuVO>[]>([
           icon: row.getIsExpanded() ? 'i-lucide-minus' : 'i-lucide-plus',
           class: !row.getCanExpand() && 'invisible',
           size: 'xs',
-          onClick: (ev: any) => {
+          onClick: (ev: Event) => {
             ev.stopPropagation()
             if (!row.getCanExpand()) return;
             row.toggleExpanded();
@@ -316,7 +316,7 @@ function normalizeMenuPayload() {
   return payload
 }
 
-function showMenuInfo(_: any, row: TableRow<MenuVO>) {
+function showMenuInfo(_: unknown, row: TableRow<MenuVO>) {
   const menuId = row.original.id
   if (row.original.type !== MenuTypeEnum.MENU || menuId === undefined || menuId === null) {
     return
