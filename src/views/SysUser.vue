@@ -424,8 +424,8 @@ async function submitEditUser() {
     }
     openEditModal.value = false
     await fetchData()
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: editModalMode.value === "add" ? "新增失败" : "修改失败", color: "error"})
   } finally {
     submittingEditUser.value = false
   }
@@ -449,8 +449,8 @@ async function submitAssignRole() {
     toast.add({title: "成功", description: "分配角色成功", color: "success"})
     openAssignRoleModal.value = false
     await fetchData()
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "分配角色失败", color: "error"})
   } finally {
     submittingAssignRole.value = false
   }
@@ -553,8 +553,8 @@ async function fetchData() {
     const data = await UserAPI.getPage(queryParams);
     pageData.value = data.list ?? [];
     total.value = data.total ?? 0;
-  } catch (e) {
-    console.log(e);
+  } catch {
+    toast.add({title: "错误", description: "用户数据加载失败", color: "error"})
   } finally {
     loadingPageData.value = false
   }
