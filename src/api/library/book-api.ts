@@ -5,20 +5,20 @@ const BOOK_BASE_URL = "/api/v1/book";
 
 const BookApi = {
     getOptions() {
-        return request<any, InputMenuItem[]>({
+        return request<unknown, InputMenuItem[]>({
             url: `${BOOK_BASE_URL}/options`,
             method: "GET",
         })
     },
     update(data: BookForm) {
-        return request({
+        return request<BookForm, string>({
             url: `${BOOK_BASE_URL}`,
             method: "put",
             data: data
         })
     },
     getFormData(isbn: string) {
-        return request<any, BookForm>({
+        return request<unknown, BookForm>({
             url: `${BOOK_BASE_URL}/${isbn}/form`,
             method: "get",
         })
