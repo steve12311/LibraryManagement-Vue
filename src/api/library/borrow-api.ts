@@ -8,21 +8,21 @@ export type BorrowStatusValue = 0 | 1 | 2;
 
 const BorrowApi = {
     getPage(queryParams?: BorrowQuery) {
-        return request<any, PageResult<BorrowPageVO[]>>({
+        return request<unknown, PageResult<BorrowPageVO[]>>({
             url: `${BORROW_BASE_URL}/page`,
             method: "get",
             params: queryParams,
         })
     },
     create(borrowForm: BorrowForm) {
-        return request<any, string>({
+        return request<BorrowForm, string>({
             url: `${BORROW_BASE_URL}`,
             method: "post",
             data: borrowForm,
         })
     },
     update(borrowId: BorrowId, borrowForm: BorrowForm) {
-        return request<any, string>({
+        return request<BorrowForm, string>({
             url: `${BORROW_BASE_URL}/${borrowId}`,
             method: "put",
             data: borrowForm,

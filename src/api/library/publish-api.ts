@@ -8,33 +8,33 @@ export type PublishQueryField = "publishName" | "address";
 
 const PublishApi = {
     getPage(queryParams?: PublishQuery) {
-        return request<any, PageResult<PublishPageVO[]>>({
+        return request<unknown, PageResult<PublishPageVO[]>>({
             url: `${PUBLISH_BASE_URL}/page`,
             method: "get",
             params: queryParams,
         })
     },
     getOptions() {
-        return request<any, SelectMenuItem[]>({
+        return request<unknown, SelectMenuItem[]>({
             url: `${PUBLISH_BASE_URL}/options`,
             method: "get",
         })
     },
     getFormData(id: PublishId) {
-        return request<any, PublishForm>({
+        return request<unknown, PublishForm>({
             url: `${PUBLISH_BASE_URL}/${id}/form`,
             method: "get",
         })
     },
     create(data: PublishForm) {
-        return request<any, string>({
+        return request<PublishForm, string>({
             url: `${PUBLISH_BASE_URL}`,
             method: "post",
             data,
         })
     },
     update(data: PublishForm) {
-        return request<any, string>({
+        return request<PublishForm, string>({
             url: `${PUBLISH_BASE_URL}`,
             method: "put",
             data,
@@ -42,7 +42,7 @@ const PublishApi = {
     },
     delete(deleteIds: PublishId[] | PublishId) {
         const deleteIdsStr = Array.isArray(deleteIds) ? deleteIds.join(",") : String(deleteIds);
-        return request<any, string>({url: `${PUBLISH_BASE_URL}/${deleteIdsStr}`, method: "delete"});
+        return request<unknown, string>({url: `${PUBLISH_BASE_URL}/${deleteIdsStr}`, method: "delete"});
     },
 }
 
