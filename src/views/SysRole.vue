@@ -349,8 +349,8 @@ async function openAssignUsersModal(id: string | number | undefined, name?: stri
   try {
     await fetchUserOptions()
     openAssignModal.value = true
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "打开分配用户失败", color: "error"})
   } finally {
     loadingAssignUsers.value = false
     assigningRoleId.value = ""
@@ -376,8 +376,8 @@ async function submitAssignUsers() {
     await RoleAPI.assignUsersToRole(Number(assignRoleId.value), userIds)
     toast.add({title: "成功", description: "分配用户成功", color: "success"})
     openAssignModal.value = false
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "分配用户失败", color: "error"})
   } finally {
     submittingAssignUsers.value = false
   }
@@ -438,8 +438,8 @@ async function updateRoleStatus(roleId: RoleId | undefined, value: boolean) {
     await RoleAPI.updateRoleStatus(roleId, status)
     toast.add({title: "成功", description: "状态已更新", color: "success"})
     await fetchData()
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "更新角色状态失败", color: "error"})
   } finally {
     roleStatusUpdatingId.value = ""
   }
@@ -452,8 +452,8 @@ async function fetchData() {
     const data = await RoleAPI.getPage(queryParams)
     roleList.value = data.list ?? [];
     total.value = data.total ?? 0;
-  } catch (e) {
-    console.log(e);
+  } catch {
+    toast.add({title: "错误", description: "获取角色列表失败", color: "error"})
   } finally {
     loadingPageData.value = false
   }
