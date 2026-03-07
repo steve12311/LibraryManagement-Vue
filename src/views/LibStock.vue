@@ -2,7 +2,7 @@
 import {h, onMounted, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import type {SelectItem, TableColumn, TableRow} from "@nuxt/ui";
 import moment from "moment";
-import stockApi, {type StockForm, type StockPageVO} from "@/api/library/stock-api.ts";
+import type {StockPageVO} from "@/api/library/stock-api.ts";
 import bookApi, {type BookForm} from "@/api/library/book-api.ts";
 import FileApi from "@/api/file-api.ts";
 import {CalendarDate} from "@internationalized/date";
@@ -12,6 +12,7 @@ import StockDetailDialog from "@/components/lib-stock/StockDetailDialog.vue";
 import StockEntryDialog from "@/components/lib-stock/StockEntryDialog.vue";
 import {useStockQuery} from "@/composables/library/stock/useStockQuery";
 import {useStockOptions} from "@/composables/library/stock/useStockOptions";
+import {useStockOut} from "@/composables/library/stock/useStockOut";
 
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
@@ -41,6 +42,15 @@ const open = ref(false)
 const openEditBookDialog = ref(false)
 const openStockOutDialog = ref(false)
 const {queryParams, pageDate, total, loadingPageData, handleQuery, resetQuery, fetchData} = useStockQuery()
+const {
+  stockOutNumber,
+  submittingStockOut,
+  openStockOutModal,
+  submitStockOut,
+} = useStockOut({
+  openStockOutDialog,
+  fetchData,
+})
 const table = useTemplateRef("table")
 const {
   publishOptions,
@@ -136,10 +146,6 @@ const columns = ref<TableColumn<StockPageVO>[]>([
 const loadingEditBook = ref(false)
 const submittingEditBook = ref(false)
 const editingIsbn = ref("")
-const stockOutIsbn = ref("")
-const stockOutNumber = ref(0)
-const stockOutMaxNumber = ref(0)
-const submittingStockOut = ref(false)
 const openEntryStepper = ref(false)
 const initialEditBookFormData: BookForm = {
   isbn: "",
@@ -199,22 +205,9 @@ function resetEditBookForm() {
   editingIsbn.value = ""
 }
 
-function resetStockOutForm() {
-  stockOutIsbn.value = ""
-  stockOutNumber.value = 0
-  stockOutMaxNumber.value = 0
-  submittingStockOut.value = false
-}
-
 watch(openEditBookDialog, (isOpen) => {
   if (!isOpen) {
     resetEditBookForm()
-  }
-})
-
-watch(openStockOutDialog, (isOpen) => {
-  if (!isOpen) {
-    resetStockOutForm()
   }
 })
 
@@ -281,52 +274,6 @@ async function submitEditBook() {
     toast.add({title: "错误", description: "修改图书失败", color: "error"})
   } finally {
     submittingEditBook.value = false
-  }
-}
-
-function openStockOutModal(row: StockPageVO) {
-  stockOutIsbn.value = row.isbn
-  stockOutMaxNumber.value = Math.max(0, Number(row.currentNumber ?? 0))
-  stockOutNumber.value = 0
-  openStockOutDialog.value = true
-}
-
-async function submitStockOut() {
-  if (!stockOutIsbn.value) {
-    toast.add({title: "错误", description: "ISBN不能为空", color: "error"})
-    return
-  }
-  if (stockOutNumber.value <= 0) {
-    toast.add({title: "错误", description: "出库数量必须大于0", color: "error"})
-    return
-  }
-  if (stockOutNumber.value > stockOutMaxNumber.value) {
-    toast.add({title: "错误", description: "出库数量不能大于可用库存", color: "error"})
-    return
-  }
-
-  try {
-    submittingStockOut.value = true
-    const formData = await stockApi.getFormData(stockOutIsbn.value)
-    if (!formData) {
-      toast.add({title: "错误", description: "未找到图书信息", color: "error"})
-      return
-    }
-
-    const payload: StockForm = {
-      ...formData,
-      isbn: stockOutIsbn.value,
-      stock: stockOutNumber.value,
-    }
-    await stockApi.update(payload)
-    toast.add({title: "成功", description: "出库成功", color: "success"})
-    openStockOutDialog.value = false
-    await fetchData()
-  } catch (error) {
-    console.error(error)
-    toast.add({title: "错误", description: "出库失败", color: "error"})
-  } finally {
-    submittingStockOut.value = false
   }
 }
 
