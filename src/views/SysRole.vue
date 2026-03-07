@@ -264,8 +264,7 @@ async function fetchUserOptions() {
   try {
     const options = await UserAPI.getOptions()
     userOptions.value = normalizeUserOptions(options ?? [])
-  } catch (e) {
-    console.log(e)
+  } catch {
     toast.add({title: "错误", description: "获取用户列表失败", color: "error"})
   }
 }
@@ -291,8 +290,8 @@ async function openEditRoleModal(id: string | number | undefined) {
       ...formData
     }, formData.id ?? id)
     openEditModal.value = true
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "获取角色信息失败", color: "error"})
   } finally {
     loadingEditRole.value = false
   }
@@ -333,8 +332,8 @@ async function submitEditRole() {
     }
     openEditModal.value = false
     await fetchData()
-  } catch (e) {
-    console.log(e)
+  } catch {
+    toast.add({title: "错误", description: "保存角色失败", color: "error"})
   } finally {
     submittingEditRole.value = false
   }
