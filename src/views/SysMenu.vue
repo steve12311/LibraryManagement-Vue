@@ -5,6 +5,13 @@ import type {TableColumn, TableRow} from "@nuxt/ui";
 import {MenuTypeEnum} from "@/enums/system/menu-enum.ts";
 import {ElTreeSelect, ElDrawer, ElDialog} from "element-plus";
 import WarningModal from "@/components/WarningModal.vue";
+import {
+  createMenuForm,
+  getCatalogRoutePathValue,
+  getIconInputValue,
+  normalizeMenuFormFromApi,
+  useMenuForm,
+} from "@/composables/system/menu/useMenuForm";
 
 onMounted(() => {
   handleQuery()
@@ -191,29 +198,8 @@ const columns = ref<TableColumn<MenuVO>[]>([
   }
 ])
 const menuOptions = ref<OptionType[]>([])
-const defaultMenuFormData: MenuForm = {
-  id: undefined,
-  parentId: 0,
-  visible: 1,
-  sort: 1,
-  type: MenuTypeEnum.MENU, // 默认菜单
-  alwaysShow: 0,
-  keepAlive: 1,
-  perms: [],
-  params: [],
-}
-
-function createMenuForm(overrides: Partial<MenuForm> = {}): MenuForm {
-  return {
-    ...defaultMenuFormData,
-    ...overrides,
-    perms: [...(overrides.perms ?? defaultMenuFormData.perms ?? [])],
-    params: [...(overrides.params ?? defaultMenuFormData.params ?? [])],
-  }
-}
-
-// 菜单表单数据
 const formData = ref<MenuForm>(createMenuForm());
+const {setIconInputValue, setCatalogRoutePathValue, normalizeMenuPayload} = useMenuForm(formData)
 const tabs = [
   {
     label: '菜单',
@@ -255,65 +241,6 @@ async function handleQuery() {
 function resetQuery() {
   searchForm.keywords = ""
   handleQuery()
-}
-
-function getIconInputValue(icon?: string) {
-  return (icon || "").replace("i-lucide-", "")
-}
-
-function setIconInputValue(value: string | number) {
-  const icon = String(value ?? "").trim()
-  formData.value.icon = icon ? `i-lucide-${icon}` : ""
-}
-
-function getCatalogRoutePathValue(routePath?: string) {
-  return (routePath || "").replace(/^\//, "")
-}
-
-function setCatalogRoutePathValue(value: string | number) {
-  formData.value.routePath = String(value ?? "").trim().replace(/^\/+/, "")
-}
-
-function normalizeMenuFormFromApi(data: MenuForm, parentId?: MenuId) {
-  const normalized = createMenuForm({
-    ...data,
-    parentId: data.parentId ?? parentId ?? 0,
-    perms: (data.perms ?? []).map((item) => ({...item})),
-    params: (data.params ?? []).map((item) => ({...item})),
-  })
-  if (normalized.id !== undefined && normalized.perms?.length) {
-    normalized.perms = normalized.perms.map((item) => ({
-      ...item,
-      parentId: item.parentId ?? normalized.id,
-    }))
-  }
-  return normalized
-}
-
-function normalizeMenuPayload() {
-  const payload = createMenuForm({
-    ...formData.value,
-    name: formData.value.name?.trim(),
-    routeName: formData.value.routeName?.trim(),
-    routePath: formData.value.routePath?.trim().replace(/^\/+/, ""),
-    component: formData.value.component?.trim(),
-    redirect: formData.value.redirect?.trim(),
-    perm: formData.value.perm?.trim(),
-    parentId: Number(formData.value.parentId ?? 0),
-    sort: Number(formData.value.sort ?? 1),
-  })
-
-  payload.visible = Number(payload.visible ?? 1) as MenuForm["visible"]
-  payload.alwaysShow = Number(payload.alwaysShow ?? 0) as MenuForm["alwaysShow"]
-  payload.keepAlive = Number(payload.keepAlive ?? 1) as MenuForm["keepAlive"]
-  payload.perms = (payload.perms ?? []).map((item) => ({
-    ...item,
-    parentId: payload.id ?? payload.parentId ?? 0,
-    label: item.label?.trim(),
-    value: item.value?.trim(),
-  }))
-
-  return payload
 }
 
 function showMenuInfo(_: unknown, row: TableRow<MenuVO>) {
