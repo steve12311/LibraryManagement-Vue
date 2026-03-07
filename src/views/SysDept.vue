@@ -8,9 +8,19 @@ const UBadge = resolveComponent('UBadge')
 const UFieldGroup = resolveComponent('UFieldGroup')
 const UTooltip = resolveComponent('UTooltip')
 
-const dataList = ref<any[]>([])
+interface DeptTableRow {
+  deptId?: number | string
+  deptName?: string
+  leader?: string
+  status?: number | string
+  createTime?: string | Date
+  userId?: number | string
+  children?: DeptTableRow[]
+}
+
+const dataList = ref<DeptTableRow[]>([])
 const table = useTemplateRef("table")
-const columns = ref<TableColumn<any>[]>([
+const columns = ref<TableColumn<DeptTableRow>[]>([
   {
     accessorKey: "deptId",
     header: "部门编号",
