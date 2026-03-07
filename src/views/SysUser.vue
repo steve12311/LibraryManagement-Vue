@@ -5,6 +5,7 @@ import moment from "moment";
 import {ElMessageBox} from "element-plus";
 import UserAPI, {type UserForm, type UserPageVO} from "@/api/system/user-api.ts"
 import {UserGenderTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
+import {useUserDialog} from "@/composables/system/user/useUserDialog";
 import {useUserForm} from "@/composables/system/user/useUserForm";
 import {useUserQuery} from "@/composables/system/user/useUserQuery";
 
@@ -78,6 +79,27 @@ const {
   submittingAssignRole,
   loadingAssignRole,
   assigningRoleUserId,
+})
+const {
+  openEditUserModal,
+  openAddUserModal,
+  openAssignRoleDialog,
+} = useUserDialog({
+  openEditModal,
+  openAssignRoleModal,
+  editModalMode,
+  editModalTitle,
+  loadingEditUser,
+  loadingAssignRole,
+  assigningRoleUserId,
+  editingUserId,
+  assignRoleUserId,
+  assignRoleUsername,
+  avatarModel,
+  initialUserFormData,
+  editUserState,
+  assignRoleState,
+  fetchRoleOptions,
 })
 const genderOptions = ref<OptionType[]>([
   {
@@ -281,68 +303,6 @@ async function updateUserStatus(userId: string | number | undefined, value: bool
     toast.add({title: "错误", description: "状态更新失败", color: "error"})
   } finally {
     togglingStatusUserId.value = ""
-  }
-}
-
-async function openEditUserModal(id: string | number) {
-  if (!id && id !== 0) return
-  loadingEditUser.value = true
-  editingUserId.value = String(id)
-  editModalMode.value = "edit"
-  editModalTitle.value = "修改用户信息"
-  try {
-    const [formData] = await Promise.all([
-      UserAPI.getFormData(id),
-      fetchRoleOptions()
-    ])
-    editUserState.value = {
-      ...initialUserFormData,
-      ...formData,
-      id: Number(formData.id ?? id),
-      roleIds: Array.isArray(formData.roleIds) ? formData.roleIds.map(item => Number(item)) : []
-    }
-    avatarModel.value = void 0
-    openEditModal.value = true
-  } catch {
-    toast.add({title: "错误", description: "加载用户信息失败", color: "error"})
-  } finally {
-    loadingEditUser.value = false
-  }
-}
-
-async function openAddUserModal() {
-  editingUserId.value = ""
-  editModalMode.value = "add"
-  editModalTitle.value = "新增用户"
-  editUserState.value = {...initialUserFormData}
-  avatarModel.value = void 0
-  await fetchRoleOptions()
-  openEditModal.value = true
-}
-
-async function openAssignRoleDialog(id: string | number, username?: string) {
-  if (!id && id !== 0) return
-  assigningRoleUserId.value = String(id)
-  loadingAssignRole.value = true
-  assignRoleUserId.value = String(id)
-  assignRoleUsername.value = username ?? ""
-  try {
-    const [formData] = await Promise.all([
-      UserAPI.getFormData(id),
-      fetchRoleOptions()
-    ])
-    assignRoleState.value = {
-      ...initialUserFormData,
-      ...formData,
-      id: Number(formData.id ?? id),
-      roleIds: Array.isArray(formData.roleIds) ? formData.roleIds.map(item => Number(item)) : []
-    }
-    openAssignRoleModal.value = true
-  } catch {
-    toast.add({title: "错误", description: "加载角色分配信息失败", color: "error"})
-  } finally {
-    loadingAssignRole.value = false
-    assigningRoleUserId.value = ""
   }
 }
 
