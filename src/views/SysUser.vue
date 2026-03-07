@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
+import {h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
 import type {SelectMenuItem, TableColumn} from "@nuxt/ui";
 import moment from "moment";
 import {ElMessageBox} from "element-plus";
-import UserAPI, {type UserForm, type UserPageQuery, type UserPageVO} from "@/api/system/user-api.ts"
+import UserAPI, {type UserForm, type UserPageVO} from "@/api/system/user-api.ts"
 import RoleAPI from "@/api/system/role-api.ts";
 import {UserGenderTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
+import {useUserQuery} from "@/composables/system/user/useUserQuery";
 
 onMounted(() => {
   handleQuery()
@@ -18,15 +19,7 @@ const UFieldGroup = resolveComponent('UFieldGroup')
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
 const toast = useToast()
-
-const queryParams = reactive<UserPageQuery>({
-  pageNum: 1,
-  pageSize: 10,
-});
-const searchForm = reactive({
-  keywords: "",
-  status: -1,
-})
+const {queryParams, searchForm, total, pageData, loadingPageData, handleQuery, resetQuery, fetchData} = useUserQuery()
 const statusQueryOptions = ref<OptionType[]>([
   {
     label: "全部状态",
@@ -41,8 +34,6 @@ const statusQueryOptions = ref<OptionType[]>([
     value: StatusTypeEnum.BAN,
   }
 ])
-const total = ref(0);
-const pageData = shallowRef<UserPageVO[]>([]);
 const table = useTemplateRef('table')
 const editForm = useTemplateRef('editForm')
 const columnVisibility = ref({
@@ -52,7 +43,6 @@ const openEditModal = ref(false)
 const openAssignRoleModal = ref(false)
 const editModalMode = ref<"add" | "edit">("add")
 const editModalTitle = ref("新增用户")
-const loadingPageData = ref(false)
 const loadingEditUser = ref(false)
 const submittingEditUser = ref(false)
 const loadingRoleOptions = ref(false)
@@ -529,38 +519,6 @@ function deleteUserBySelection() {
   confirmDeleteUsers(ids, usernames)
 }
 
-function applySearchParams() {
-  const keywords = searchForm.keywords.trim()
-  queryParams.keywords = keywords || undefined
-  queryParams.status = searchForm.status === -1 ? undefined : (searchForm.status as 0 | 1)
-}
-
-// 查询（重置页码后获取数据）
-function handleQuery() {
-  queryParams.pageNum = 1;
-  applySearchParams()
-  fetchData();
-}
-
-function resetQuery() {
-  searchForm.keywords = ""
-  searchForm.status = -1
-  handleQuery()
-}
-
-// 获取数据
-async function fetchData() {
-  try {
-    loadingPageData.value = true
-    const data = await UserAPI.getPage(queryParams);
-    pageData.value = data.list ?? [];
-    total.value = data.total ?? 0;
-  } catch {
-    toast.add({title: "错误", description: "用户数据加载失败", color: "error"})
-  } finally {
-    loadingPageData.value = false
-  }
-}
 </script>
 
 <template>
