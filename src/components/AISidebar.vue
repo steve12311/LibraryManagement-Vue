@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, defineAsyncComponent, ref} from 'vue'
 import {type UIMessage} from 'ai'
 import {getTextFromMessage} from '@nuxt/ui/utils/ai'
-import Markdown from 'markstream-vue'
 import {AIChat} from '@/utils/Chat.ts'
 
 const open = defineModel<boolean>('open', {default: false})
 const MAX_INPUT_LENGTH = 1000
+const Markdown = defineAsyncComponent(() => import('markstream-vue'))
 
 const toast = useToast()
 const copied = ref(false)
