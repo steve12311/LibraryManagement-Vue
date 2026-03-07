@@ -179,36 +179,11 @@ const {
   fetchEntryOptions,
   ensureCategoryNodeCache,
   fetchData,
-  getCoverFile: () => getCoverFileFromModel(editBookCoverModel.value),
 })
-
-interface CoverFileLike {
-  file?: File
-  raw?: File
-}
-
-type CoverFileModel = File | CoverFileLike | Array<File | CoverFileLike>
 
 function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
   open.value = true
   currentSelectedStock.value = row.original
-}
-
-function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
-  if (!model) return void 0
-  if (model instanceof File) return model
-  if (Array.isArray(model)) {
-    if (model.length === 0) return void 0
-    const first = model[0]
-    if (!first) return void 0
-    if (first instanceof File) return first
-    if (first.file instanceof File) return first.file
-    if (first.raw instanceof File) return first.raw
-    return void 0
-  }
-  if (model.file instanceof File) return model.file
-  if (model.raw instanceof File) return model.raw
-  return void 0
 }
 
 </script>

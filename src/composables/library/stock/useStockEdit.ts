@@ -1,9 +1,16 @@
 import {watch} from "vue";
 import type {Ref} from "vue";
 import {CalendarDate} from "@internationalized/date";
-import bookApi, {type BookForm} from "@/api/library/book-api.ts";
-import FileApi from "@/api/file-api.ts";
-import type {CategoryLazyOption} from "@/api/library/category-api.ts";
+import bookApi, {type BookForm} from "@/api/library/book-api";
+import FileApi from "@/api/file-api";
+import type {CategoryLazyOption} from "@/api/library/category-api";
+
+interface CoverFileLike {
+  file?: File
+  raw?: File
+}
+
+export type CoverFileModel = File | CoverFileLike | Array<File | CoverFileLike>
 
 interface UseStockEditOptions {
   openEditBookDialog: Ref<boolean>
@@ -13,19 +20,35 @@ interface UseStockEditOptions {
   submittingEditBook: Ref<boolean>
   editingIsbn: Ref<string>
   editBookState: Ref<BookForm>
-  editBookCoverModel: Ref<File | undefined>
+  editBookCoverModel: Ref<File | undefined> | Ref<CoverFileModel | undefined>
   editBookPublishTime: Ref<CalendarDate>
   categoryTreeCacheData: Ref<CategoryLazyOption[]>
   initialEditBookFormData: BookForm
   fetchEntryOptions: () => Promise<void>
   ensureCategoryNodeCache: (categoryId: unknown) => Promise<void>
   fetchData: () => Promise<void>
-  getCoverFile: () => File | undefined
 }
 
 function toCalendarDate(value?: Date | string) {
   const target = value ? new Date(value) : new Date()
   return new CalendarDate(target.getFullYear(), target.getMonth() + 1, target.getDate())
+}
+
+function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
+  if (!model) return void 0
+  if (model instanceof File) return model
+  if (Array.isArray(model)) {
+    if (model.length === 0) return void 0
+    const first = model[0]
+    if (!first) return void 0
+    if (first instanceof File) return first
+    if (first.file instanceof File) return first.file
+    if (first.raw instanceof File) return first.raw
+    return void 0
+  }
+  if (model.file instanceof File) return model.file
+  if (model.raw instanceof File) return model.raw
+  return void 0
 }
 
 export function useStockEdit(options: UseStockEditOptions) {
@@ -93,7 +116,7 @@ export function useStockEdit(options: UseStockEditOptions) {
 
     try {
       options.submittingEditBook.value = true
-      const file = options.getCoverFile()
+      const file = getCoverFileFromModel(options.editBookCoverModel.value)
       if (file) {
         const {url} = await FileApi.uploadFile(file)
         payload.cover = url
