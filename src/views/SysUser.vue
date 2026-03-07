@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import {h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
-import type {SelectMenuItem, TableColumn} from "@nuxt/ui";
+import type {TableColumn} from "@nuxt/ui";
 import moment from "moment";
 import {ElMessageBox} from "element-plus";
 import UserAPI, {type UserForm, type UserPageVO} from "@/api/system/user-api.ts"
-import RoleAPI from "@/api/system/role-api.ts";
 import {UserGenderTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
+import {useUserForm} from "@/composables/system/user/useUserForm";
 import {useUserQuery} from "@/composables/system/user/useUserQuery";
 
 onMounted(() => {
@@ -45,7 +45,6 @@ const editModalMode = ref<"add" | "edit">("add")
 const editModalTitle = ref("新增用户")
 const loadingEditUser = ref(false)
 const submittingEditUser = ref(false)
-const loadingRoleOptions = ref(false)
 const loadingAssignRole = ref(false)
 const submittingAssignRole = ref(false)
 const resettingUserId = ref("")
@@ -56,9 +55,30 @@ const editingUserId = ref("")
 const assignRoleUserId = ref("")
 const assignRoleUsername = ref("")
 const avatarModel = ref<File>()
-const roleOptions = ref<SelectMenuItem[]>([])
 type AvatarFileItem = File | { file?: File; raw?: File }
 type AvatarFileModel = AvatarFileItem | AvatarFileItem[]
+const {
+  initialUserFormData,
+  editUserState,
+  assignRoleState,
+  roleOptions,
+  loadingRoleOptions,
+  fetchRoleOptions,
+  resetEditUserForm,
+  resetAssignRoleForm,
+} = useUserForm({
+  avatarModel,
+  submittingEditUser,
+  loadingEditUser,
+  editingUserId,
+  editModalMode,
+  editModalTitle,
+  assignRoleUserId,
+  assignRoleUsername,
+  submittingAssignRole,
+  loadingAssignRole,
+  assigningRoleUserId,
+})
 const genderOptions = ref<OptionType[]>([
   {
     label: "保密",
@@ -73,21 +93,6 @@ const genderOptions = ref<OptionType[]>([
     value: UserGenderTypeEnum.WOMAN
   }
 ])
-const initialUserFormData: UserForm = {
-  id: 0,
-  username: "",
-  nickname: "",
-  mobile: "",
-  gender: UserGenderTypeEnum.UNKNOWN,
-  avatar: "",
-  email: "",
-  status: StatusTypeEnum.ACCESS,
-  deptId: 0,
-  roleIds: [],
-  openId: ""
-}
-const editUserState = ref<UserForm>({...initialUserFormData})
-const assignRoleState = ref<UserForm>({...initialUserFormData})
 const columns = ref<TableColumn<UserPageVO>[]>([
   {
     id: "select",
@@ -276,36 +281,6 @@ async function updateUserStatus(userId: string | number | undefined, value: bool
     toast.add({title: "错误", description: "状态更新失败", color: "error"})
   } finally {
     togglingStatusUserId.value = ""
-  }
-}
-
-function resetEditUserForm() {
-  editUserState.value = {...initialUserFormData}
-  avatarModel.value = void 0
-  submittingEditUser.value = false
-  loadingEditUser.value = false
-  editingUserId.value = ""
-  editModalMode.value = "add"
-  editModalTitle.value = "新增用户"
-}
-
-function resetAssignRoleForm() {
-  assignRoleState.value = {...initialUserFormData}
-  assignRoleUserId.value = ""
-  assignRoleUsername.value = ""
-  submittingAssignRole.value = false
-  loadingAssignRole.value = false
-  assigningRoleUserId.value = ""
-}
-
-async function fetchRoleOptions() {
-  loadingRoleOptions.value = true
-  try {
-    roleOptions.value = await RoleAPI.getOptions()
-  } catch {
-    toast.add({title: "错误", description: "角色选项加载失败", color: "error"})
-  } finally {
-    loadingRoleOptions.value = false
   }
 }
 
