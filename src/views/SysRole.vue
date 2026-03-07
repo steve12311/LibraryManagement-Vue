@@ -211,7 +211,7 @@ watch(openAssignModal, (isOpen) => {
 function normalizeUserOptions(items: SelectMenuItem[]) {
   return items.map((item) => {
     if (item && typeof item === "object" && !Array.isArray(item)) {
-      const avatarValue = (item as any).avatar
+      const avatarValue = (item as SelectMenuItem & { avatar?: unknown }).avatar
       if (typeof avatarValue === "string") {
         return {
           ...item,
@@ -404,9 +404,9 @@ async function confirmDeleteRoles(ids: RoleId[], names: string[] = []) {
     await RoleAPI.delete(ids)
     toast.add({title: "成功", description: "删除成功", color: "success"})
     await fetchData()
-  } catch (e: any) {
-    if (e !== "cancel" && e !== "close") {
-      console.log(e)
+  } catch (e: unknown) {
+    if (e === "cancel" || e === "close") {
+      return
     }
   } finally {
     deletingRoleId.value = ""
