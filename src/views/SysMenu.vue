@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
-import MenuAPI, {type MenuForm, type MenuId, type MenuQuery, type MenuVO} from "@/api/system/menu-api.ts";
+import {h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
+import MenuAPI, {type MenuForm, type MenuId, type MenuVO} from "@/api/system/menu-api.ts";
 import type {TableColumn, TableRow} from "@nuxt/ui";
 import {MenuTypeEnum} from "@/enums/system/menu-enum.ts";
 import {ElTreeSelect, ElDrawer, ElDialog} from "element-plus";
 import WarningModal from "@/components/WarningModal.vue";
+import {useMenuQuery} from "@/composables/system/menu/useMenuQuery";
 import {
   createMenuForm,
   getCatalogRoutePathValue,
@@ -26,6 +27,7 @@ const UCheckbox = resolveComponent('UCheckbox')
 const overlay = useOverlay()
 const modal = overlay.create(WarningModal)
 const toast = useToast()
+const {searchForm, menuTableData, loadingMenuList, handleQuery, resetQuery} = useMenuQuery()
 
 type Status = {
   visible: boolean;
@@ -41,12 +43,6 @@ const dialog = ref<Status>({
   title: "新增菜单",
 })
 const table = useTemplateRef("table");
-const queryParams = reactive<MenuQuery>({});
-const searchForm = reactive<MenuQuery>({
-  keywords: "",
-})
-const menuTableData = shallowRef<MenuVO[]>([]);
-const loadingMenuList = ref(false)
 const loadingMenuOptions = ref(false)
 const submittingMenu = ref(false)
 const columnVisibility = ref({
@@ -219,29 +215,6 @@ watch(tabActiveIndex, (value) => {
     formData.value.type = MenuTypeEnum.CATALOG;
   }
 }, {immediate: true})
-
-// 查询菜单
-function applySearchParams() {
-  const keywords = searchForm.keywords?.trim()
-  queryParams.keywords = keywords || undefined
-}
-
-async function handleQuery() {
-  try {
-    loadingMenuList.value = true
-    applySearchParams()
-    menuTableData.value = await MenuAPI.getList(queryParams)
-  } catch (error) {
-    console.error(error);
-  } finally {
-    loadingMenuList.value = false
-  }
-}
-
-function resetQuery() {
-  searchForm.keywords = ""
-  handleQuery()
-}
 
 function showMenuInfo(_: unknown, row: TableRow<MenuVO>) {
   const menuId = row.original.id
