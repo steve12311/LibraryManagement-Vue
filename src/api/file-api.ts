@@ -1,3 +1,4 @@
+import type { AxiosResponse } from "axios";
 import request from "@/utils/request";
 
 const FILE_BASE_URL = "/api/v1/files";
@@ -25,7 +26,7 @@ const FileApi = {
     },
     /** 上传文件 （传入 FormData，上传进度回调） */
     upload(formData: FormData, onProgress?: (percent: number) => void) {
-        return request<any, FileInfo>({
+        return request<unknown, FileInfo, FormData>({
             url: FILE_BASE_URL,
             method: "post",
             data: formData,
@@ -43,7 +44,7 @@ const FileApi = {
     uploadFile(file: File) {
         const formData = new FormData();
         formData.append("file", file);
-        return request<any, FileInfo>({
+        return request<unknown, FileInfo, FormData>({
             url: FILE_BASE_URL,
             method: "post",
             data: formData,
@@ -53,7 +54,7 @@ const FileApi = {
 
     /** 删除文件 */
     delete(filePath?: string) {
-        return request({
+        return request<unknown, unknown>({
             url: FILE_BASE_URL,
             method: "delete",
             params: {filePath},
@@ -63,7 +64,7 @@ const FileApi = {
     /** 下载文件 */
     download(url: string, fileName?: string) {
         const downloadUrl = FileApi.resolveUrl(url);
-        return request({
+        return request<unknown, AxiosResponse<Blob>>({
             url: downloadUrl,
             method: "get",
             responseType: "blob",
