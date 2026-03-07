@@ -6,16 +6,16 @@ export type CategoryStatus = 0 | 1;
 
 const CategoryApi = {
     getList(queryParams?: CategoryQuery) {
-        return request<any, CategoryVO[]>({url: `${CATEGORY_BASE_URL}`, method: "get", params: queryParams})
+        return request<unknown, CategoryVO[]>({url: `${CATEGORY_BASE_URL}`, method: "get", params: queryParams})
     },
     getOptions() {
-        return request<any, OptionType[]>({
+        return request<unknown, OptionType[]>({
             url: `${CATEGORY_BASE_URL}/options`,
             method: "get",
         })
     },
     getLazyOptions(parentId?: CategoryId) {
-        return request<any, CategoryLazyOption[]>({
+        return request<unknown, CategoryLazyOption[]>({
             url: `${CATEGORY_BASE_URL}/options/lazy`,
             method: "get",
             params: {
@@ -24,7 +24,7 @@ const CategoryApi = {
         })
     },
     getOptionNode(categoryId: CategoryId) {
-        return request<any, CategoryLazyOption | null>({
+        return request<unknown, CategoryLazyOption | null>({
             url: `${CATEGORY_BASE_URL}/options/node/${categoryId}`,
             method: "get",
         })
