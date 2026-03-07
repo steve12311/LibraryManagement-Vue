@@ -1,7 +1,7 @@
 import request from "@/utils/request";
-import {MenuTypeEnum} from "@/enums/system/menu-enum";
+import type {MenuTypeEnum} from "@/enums/system/menu-enum";
 import type {NavigationMenuItem} from "@nuxt/ui";
-import {usePermissionStoreHook} from "@/store/modules/permission-store.ts";
+import {usePermissionStoreHook} from "@/store/modules/permission-store";
 import type {RouteRecordRaw} from "vue-router";
 
 const MENU_BASE_URL = "/api/v1/menus";
@@ -13,18 +13,18 @@ export type MenuType = typeof MenuTypeEnum[keyof typeof MenuTypeEnum];
 const MenuAPI = {
     /** 获取当前用户的路由列表 */
     getRoutes() {
-        return request<any, RouteVO[]>({url: `${MENU_BASE_URL}/routes`, method: "get"});
+        return request<unknown, RouteVO[]>({url: `${MENU_BASE_URL}/routes`, method: "get"});
     },
     /** 获取菜单树形列表 */
     getList(queryParams: MenuQuery) {
-        return request<any, MenuVO[]>({url: `${MENU_BASE_URL}`, method: "get", params: queryParams});
+        return request<unknown, MenuVO[]>({url: `${MENU_BASE_URL}`, method: "get", params: queryParams});
     },
     getMenus(): NavigationMenuItem[] {
         return transformRoutesToMenus(usePermissionStoreHook().routes);
     },
     /** 获取菜单下拉数据源 */
     getOptions(onlyParent?: boolean) {
-        return request<any, OptionType[]>({
+        return request<unknown, OptionType[]>({
             url: `${MENU_BASE_URL}/options`,
             method: "get",
             params: onlyParent === undefined ? undefined : {onlyParent},
@@ -32,7 +32,7 @@ const MenuAPI = {
     },
     /** 获取菜单表单数据 */
     getFormData(id: MenuId) {
-        return request<any, MenuForm>({url: `${MENU_BASE_URL}/${id}/form`, method: "get"});
+        return request<unknown, MenuForm>({url: `${MENU_BASE_URL}/${id}/form`, method: "get"});
     },
 
     /** 新增菜单 */
