@@ -9,40 +9,40 @@ export type RoleDataScope = 1 | 2 | 3 | 4;
 const RoleAPI = {
     /** 获取角色分页数据 */
     getPage(queryParams?: RolePageQuery) {
-        return request<any, PageResult<RolePageVO[]>>({
+        return request<unknown, PageResult<RolePageVO[]>>({
             url: `${ROLE_BASE_URL}/page`,
             method: "get",
             params: queryParams,
         });
     },
     getOptions() {
-        return request<any, SelectMenuItem[]>({
+        return request<unknown, SelectMenuItem[]>({
             url: `${ROLE_BASE_URL}/options`,
             method: "get",
         })
     },
     getRoleForm(roleId: RoleId) {
-        return request<any, RoleForm>({
+        return request<unknown, RoleForm>({
             url: `${ROLE_BASE_URL}/${roleId}/form`,
             method: "get",
         })
     },
     create(data: RoleForm) {
-        return request<any, string>({
+        return request<unknown, string, RoleForm>({
             url: `${ROLE_BASE_URL}`,
             method: "post",
             data: data,
         })
     },
     update(id: RoleId, data: RoleForm) {
-        return request<any, string>({
+        return request<unknown, string, RoleForm>({
             url: `${ROLE_BASE_URL}/${id}`,
             method: "put",
             data: data,
         })
     },
     updateRoleStatus(id: RoleId, status: RoleStatus) {
-        return request<any, string>({
+        return request<unknown, string>({
             url: `${ROLE_BASE_URL}/${id}/status`,
             method: "put",
             params: {
@@ -52,19 +52,19 @@ const RoleAPI = {
     },
     delete(ids: RoleId[] | RoleId) {
         const idsStr = Array.isArray(ids) ? ids.join(",") : String(ids);
-        return request<any, string>({
+        return request<unknown, string>({
             url: `${ROLE_BASE_URL}/${idsStr}`,
             method: "delete",
         })
     },
     getRoleMenuIds(roleId: RoleId) {
-        return request<any, number[]>({
+        return request<unknown, number[]>({
             url: `${ROLE_BASE_URL}/${roleId}/menuIds`,
             method: "get",
         })
     },
     assignMenusToRole(roleId: RoleId, menuIds: number[]) {
-        return request<any, string>({
+        return request<unknown, string, number[]>({
             url: `${ROLE_BASE_URL}/${roleId}/menus`,
             method: "put",
             data: menuIds,
@@ -72,7 +72,7 @@ const RoleAPI = {
     },
     assignUsersToRole(roleId: RoleId, userIds: number[]) {
         const idsStr = userIds.join(",");
-        return request<any, string>({
+        return request<unknown, string>({
             url: `${ROLE_BASE_URL}/${roleId}/users`,
             method: "put",
             params: {
