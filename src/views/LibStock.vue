@@ -160,6 +160,20 @@ const editBookState = ref<BookForm>({...initialEditBookFormData})
 const editBookCoverModel = ref<File>()
 const editBookPublishTime = shallowRef(new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate()))
 
+interface CategoryTreeNode {
+  level?: number
+  data?: {
+    value?: string | number
+  }
+}
+
+interface CoverFileLike {
+  file?: File
+  raw?: File
+}
+
+type CoverFileModel = File | CoverFileLike | Array<File | CoverFileLike>
+
 // 查询（重置页码后获取数据）
 async function handleQuery() {
   queryParams.pageNum = 1;
@@ -182,7 +196,7 @@ function resetQuery() {
   void fetchData()
 }
 
-function showBookDetailInfo(_: any, row: TableRow<StockPageVO>) {
+function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
   open.value = true
   currentSelectedStock.value = row.original
 }
@@ -228,9 +242,9 @@ function toCalendarDate(value?: Date | string) {
   return new CalendarDate(target.getFullYear(), target.getMonth() + 1, target.getDate())
 }
 
-function getCoverFileFromModel(model?: File): File | undefined {
+function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
   if (!model) return void 0
-  const value = model as any
+  const value = model
   if (value instanceof File) return value
   if (value?.file instanceof File) return value.file
   if (value?.raw instanceof File) return value.raw
@@ -305,7 +319,7 @@ async function ensureCategoryNodeCache(categoryId: unknown) {
   mergeCategoryCacheNode(node)
 }
 
-async function loadCategoryTreeNode(node: any, resolve: (data: CategoryLazyOption[]) => void) {
+async function loadCategoryTreeNode(node: CategoryTreeNode, resolve: (data: CategoryLazyOption[]) => void) {
   if (node?.level === 0) {
     resolve(categoryTreeOptions.value)
     return
