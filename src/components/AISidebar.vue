@@ -49,6 +49,10 @@ function usePrompt(prompt: string) {
   submitMessage(prompt)
 }
 
+function hasAssistantText(message: UIMessage) {
+  return message.role === 'assistant' && getTextFromMessage(message).trim() !== ''
+}
+
 async function copy(_: MouseEvent, message: UIMessage) {
   try {
     if (!navigator?.clipboard?.writeText) {
@@ -136,7 +140,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
       >
         <template #content="{ message }">
           <Markdown
-              v-if="message.role === 'assistant'"
+              v-if="hasAssistantText(message)"
               :content="getTextFromMessage(message)"
               class="*:first:mt-0 *:last:mb-0"
           />
