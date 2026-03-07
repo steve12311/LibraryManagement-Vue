@@ -7,13 +7,27 @@ import FileApi from "@/api/file-api.ts";
 import type {CategoryLazyOption} from "@/api/library/category-api.ts";
 import {ElDialog, ElTreeSelect} from "element-plus";
 
+interface CategoryTreeNode {
+  level?: number
+  data?: {
+    value?: string | number
+  }
+}
+
+interface CoverFileLike {
+  file?: File
+  raw?: File
+}
+
+type CoverFileModel = File | CoverFileLike | Array<File | CoverFileLike>
+
 const open = defineModel<boolean>("open", {default: false})
 
 const props = defineProps<{
   publishOptions: SelectMenuItem[]
   categoryTreeOptions: CategoryLazyOption[]
   categoryTreeCacheData: CategoryLazyOption[]
-  loadCategoryNode: (node: any, resolve: (data: CategoryLazyOption[]) => void) => void
+  loadCategoryNode: (node: CategoryTreeNode, resolve: (data: CategoryLazyOption[]) => void) => void
 }>()
 
 const emit = defineEmits<{
@@ -60,9 +74,9 @@ function toCalendarDate(value?: Date | string) {
   return new CalendarDate(target.getFullYear(), target.getMonth() + 1, target.getDate())
 }
 
-function getCoverFileFromModel(model?: File): File | undefined {
+function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
   if (!model) return void 0
-  const value = model as any
+  const value = model
   if (value instanceof File) return value
   if (value?.file instanceof File) return value.file
   if (value?.raw instanceof File) return value.raw
