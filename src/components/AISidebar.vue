@@ -60,8 +60,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
     setTimeout(() => {
       copied.value = false
     }, 2000)
-  } catch (error) {
-    console.error(error)
+  } catch {
     toast.add({title: "错误", description: "复制失败，请稍后重试", color: "error"})
   }
 }
@@ -203,6 +202,10 @@ async function copy(_: MouseEvent, message: UIMessage) {
     </template>
   </USlideover>
 </template>
+
+<style>
+@import "markstream-vue/index.css";
+</style>
 
 <style scoped>
 .ai-welcome {
