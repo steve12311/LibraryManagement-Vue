@@ -1,0 +1,6 @@
+dist
+node_modules
+coverage
+auto-imports.d.ts
+components.d.ts
+src/api/openapi.json
