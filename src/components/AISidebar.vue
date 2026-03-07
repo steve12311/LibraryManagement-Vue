@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, defineAsyncComponent, ref} from 'vue'
 import {type UIMessage} from 'ai'
 import {getTextFromMessage} from '@nuxt/ui/utils/ai'
-import Markdown from 'markstream-vue'
 import {AIChat} from '@/utils/Chat.ts'
 
 const open = defineModel<boolean>('open', {default: false})
 const MAX_INPUT_LENGTH = 1000
+const Markdown = defineAsyncComponent(() => import('markstream-vue'))
 
 const toast = useToast()
 const copied = ref(false)
@@ -49,6 +49,10 @@ function usePrompt(prompt: string) {
   submitMessage(prompt)
 }
 
+function hasAssistantText(message: UIMessage) {
+  return message.role === 'assistant' && getTextFromMessage(message).trim() !== ''
+}
+
 async function copy(_: MouseEvent, message: UIMessage) {
   try {
     if (!navigator?.clipboard?.writeText) {
@@ -60,8 +64,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
     setTimeout(() => {
       copied.value = false
     }, 2000)
-  } catch (error) {
-    console.error(error)
+  } catch {
     toast.add({title: "错误", description: "复制失败，请稍后重试", color: "error"})
   }
 }
@@ -137,7 +140,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
       >
         <template #content="{ message }">
           <Markdown
-              v-if="message.role === 'assistant'"
+              v-if="hasAssistantText(message)"
               :content="getTextFromMessage(message)"
               class="*:first:mt-0 *:last:mb-0"
           />
@@ -203,6 +206,10 @@ async function copy(_: MouseEvent, message: UIMessage) {
     </template>
   </USlideover>
 </template>
+
+<style>
+@import "markstream-vue/index.css";
+</style>
 
 <style scoped>
 .ai-welcome {
