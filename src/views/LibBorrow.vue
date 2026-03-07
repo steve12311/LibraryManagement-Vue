@@ -33,7 +33,7 @@ const delayForm = useTemplateRef("delayForm")
 const table = useTemplateRef("table")
 const inputDate = useTemplateRef("inputDate")
 
-const pageData = ref<BorrowPageVO[]>([])
+const pageData = shallowRef<BorrowPageVO[]>([])
 const total = ref(0)
 const open = ref(false)
 const openConfirm = ref(false)

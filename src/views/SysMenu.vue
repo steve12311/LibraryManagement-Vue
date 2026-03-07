@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef, watch} from "vue";
+import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import MenuAPI, {type MenuForm, type MenuId, type MenuQuery, type MenuVO} from "@/api/system/menu-api.ts";
 import type {TableColumn, TableRow} from "@nuxt/ui";
 import {MenuTypeEnum} from "@/enums/system/menu-enum.ts";
@@ -38,7 +38,7 @@ const queryParams = reactive<MenuQuery>({});
 const searchForm = reactive<MenuQuery>({
   keywords: "",
 })
-const menuTableData = ref<MenuVO[]>([]);
+const menuTableData = shallowRef<MenuVO[]>([]);
 const loadingMenuList = ref(false)
 const loadingMenuOptions = ref(false)
 const submittingMenu = ref(false)

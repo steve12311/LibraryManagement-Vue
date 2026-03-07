@@ -22,7 +22,7 @@ onMounted(() => {
 
 const date = new Date()
 const toast = useToast()
-const pageDate = ref<StockPageVO[]>([])
+const pageDate = shallowRef<StockPageVO[]>([])
 const loadingPageData = ref(false)
 const currentSelectedStock = ref<StockPageVO>()
 const imageCache = new Map<string, string>()

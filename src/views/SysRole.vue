@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef, watch} from "vue";
+import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import type {SelectMenuItem, TableColumn} from "@nuxt/ui";
 import moment from "moment";
 import {ElMessageBox} from "element-plus";
@@ -38,7 +38,7 @@ const queryParams = reactive<RolePageQuery>({
 const searchForm = reactive({
   keywords: "",
 })
-const roleList = ref<RolePageVO[]>([])
+const roleList = shallowRef<RolePageVO[]>([])
 const openEditModal = ref(false)
 const openAssignModal = ref(false)
 const editModalMode = ref<"add" | "edit">("add")

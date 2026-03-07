@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef, watch} from "vue";
+import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import type {SelectItem, TableColumn} from "@nuxt/ui";
 import moment from "moment";
 import {ElMessageBox} from "element-plus";
@@ -21,7 +21,7 @@ const toast = useToast()
 const table = useTemplateRef("table")
 const form = useTemplateRef("form")
 
-const pageData = ref<PublishPageVO[]>([])
+const pageData = shallowRef<PublishPageVO[]>([])
 const total = ref(0)
 const open = ref(false)
 const editModalMode = ref<"add" | "edit">("add")

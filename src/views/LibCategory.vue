@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef} from "vue";
+import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef} from "vue";
 import type {SelectItem, TableColumn} from "@nuxt/ui";
 import categoryApi, {
   type CategoryId,
@@ -12,7 +12,7 @@ const UButton = resolveComponent('UButton')
 const toast = useToast()
 const table = useTemplateRef("table")
 
-const categoryList = ref<CategoryVO[]>([])
+const categoryList = shallowRef<CategoryVO[]>([])
 const loadingCategoryList = ref(false)
 const requestSerial = ref(0)
 const queryParams = reactive<CategoryQuery>({

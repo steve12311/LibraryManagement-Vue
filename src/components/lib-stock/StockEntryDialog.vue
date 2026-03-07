@@ -211,7 +211,7 @@ async function submitStock() {
                   </UFieldGroup>
                   <UFieldGroup class="w-full gap-2">
                     <UFormField class="w-full" label="出版社">
-                      <USelect v-model="state.pressId" class="w-full" :items="props.publishOptions"/>
+                      <USelectMenu virtualize v-model="state.pressId" class="w-full" :items="props.publishOptions"/>
                     </UFormField>
                     <UFormField class="w-full" label="数量">
                       <UInputNumber v-model="state.stock" :min="0" class="w-full"/>

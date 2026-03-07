@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, useTemplateRef, watch} from "vue";
+import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import type {SelectMenuItem, TableColumn} from "@nuxt/ui";
 import moment from "moment";
 import {ElMessageBox} from "element-plus";
@@ -42,7 +42,7 @@ const statusQueryOptions = ref<OptionType[]>([
   }
 ])
 const total = ref(0);
-const pageData = ref<UserPageVO[]>([]);
+const pageData = shallowRef<UserPageVO[]>([]);
 const table = useTemplateRef('table')
 const editForm = useTemplateRef('editForm')
 const columnVisibility = ref({
