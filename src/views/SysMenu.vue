@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import {h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
 import MenuAPI, {type MenuForm, type MenuId, type MenuVO} from "@/api/system/menu-api.ts";
-import type {TableColumn, TableRow} from "@nuxt/ui";
+import type {TableColumn} from "@nuxt/ui";
 import {MenuTypeEnum} from "@/enums/system/menu-enum.ts";
 import {ElTreeSelect, ElDrawer, ElDialog} from "element-plus";
 import WarningModal from "@/components/WarningModal.vue";
+import {useMenuDialog} from "@/composables/system/menu/useMenuDialog";
 import {useMenuQuery} from "@/composables/system/menu/useMenuQuery";
 import {
   createMenuForm,
   getCatalogRoutePathValue,
   getIconInputValue,
-  normalizeMenuFormFromApi,
   useMenuForm,
 } from "@/composables/system/menu/useMenuForm";
 
@@ -28,22 +28,7 @@ const overlay = useOverlay()
 const modal = overlay.create(WarningModal)
 const toast = useToast()
 const {searchForm, menuTableData, loadingMenuList, handleQuery, resetQuery} = useMenuQuery()
-
-type Status = {
-  visible: boolean;
-  title: string;
-}
-const mode = ref<'add' | 'edit' | 'show'>('show');
-const slider = ref<Status>({
-  visible: false,
-  title: "菜单详情",
-})
-const dialog = ref<Status>({
-  visible: false,
-  title: "新增菜单",
-})
 const table = useTemplateRef("table");
-const loadingMenuOptions = ref(false)
 const submittingMenu = ref(false)
 const columnVisibility = ref({
   id: false,
@@ -193,7 +178,6 @@ const columns = ref<TableColumn<MenuVO>[]>([
     }
   }
 ])
-const menuOptions = ref<OptionType[]>([])
 const formData = ref<MenuForm>(createMenuForm());
 const {setIconInputValue, setCatalogRoutePathValue, normalizeMenuPayload} = useMenuForm(formData)
 const tabs = [
@@ -207,6 +191,16 @@ const tabs = [
   }
 ]
 const tabActiveIndex = ref("0")
+const {
+  mode,
+  slider,
+  dialog,
+  menuOptions,
+  loadingMenuOptions,
+  showMenuInfo,
+  openAddMenu,
+  openEditByRow,
+} = useMenuDialog(formData, tabActiveIndex)
 
 watch(tabActiveIndex, (value) => {
   if (value === "0") {
@@ -215,35 +209,6 @@ watch(tabActiveIndex, (value) => {
     formData.value.type = MenuTypeEnum.CATALOG;
   }
 }, {immediate: true})
-
-function showMenuInfo(_: unknown, row: TableRow<MenuVO>) {
-  const menuId = row.original.id
-  if (row.original.type !== MenuTypeEnum.MENU || menuId === undefined || menuId === null) {
-    return
-  }
-  mode.value = "show";
-  openMenuDialog(void 0, menuId)
-}
-
-function openAddMenu(parentId: MenuId = 0) {
-  mode.value = "add";
-  tabActiveIndex.value = "0"
-  openMenuDialog(parentId)
-}
-
-function openEditByRow(row: MenuVO) {
-  if (row.id === undefined || row.id === null) {
-    toast.add({title: "错误", description: "菜单ID不存在，无法编辑", color: "error"})
-    return
-  }
-  tabActiveIndex.value = row.type === MenuTypeEnum.CATALOG ? "1" : "0"
-  editMenu(row.parentId, row.id)
-}
-
-function editMenu(parentId?: MenuId, menuId?: MenuId) {
-  mode.value = "edit";
-  openMenuDialog(parentId, menuId)
-}
 
 function editSelectedMenu() {
   const selectedRows = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows ?? []
@@ -285,38 +250,6 @@ async function deleteMenu() {
     console.error(error)
   } finally {
     table.value?.tableApi?.toggleAllPageRowsSelected(false)
-  }
-}
-
-async function openMenuDialog(parentId?: MenuId, menuId?: MenuId) {
-  loadingMenuOptions.value = true
-  try {
-    const options = await MenuAPI.getOptions(true)
-    menuOptions.value = [{value: 0, label: "顶级菜单", children: options}]
-
-    if (menuId === undefined || menuId === null) {
-      formData.value = createMenuForm({
-        parentId: Number(parentId ?? 0),
-        type: tabActiveIndex.value === "1" ? MenuTypeEnum.CATALOG : MenuTypeEnum.MENU,
-      })
-      dialog.value.title = "新增菜单";
-      dialog.value.visible = true;
-      return
-    }
-
-    const data = await MenuAPI.getFormData(menuId)
-    formData.value = normalizeMenuFormFromApi(data, parentId)
-    tabActiveIndex.value = formData.value.type === MenuTypeEnum.CATALOG ? "1" : "0"
-    if (mode.value === 'show') {
-      slider.value.visible = true;
-    } else {
-      dialog.value.title = "编辑菜单"
-      dialog.value.visible = true;
-    }
-  } catch (error) {
-    console.error(error)
-  } finally {
-    loadingMenuOptions.value = false
   }
 }
 
