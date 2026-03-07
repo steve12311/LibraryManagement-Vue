@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
-import type {SelectItem, SelectMenuItem, TableColumn, TableRow} from "@nuxt/ui";
+import {h, onMounted, ref, resolveComponent, shallowRef, useTemplateRef} from "vue";
+import type {SelectItem, TableColumn, TableRow} from "@nuxt/ui";
 import moment from "moment";
-import stockApi, {type StockForm, type StockPageVO, type StockQuery} from "@/api/library/stock-api.ts";
-import bookApi, {type BookForm} from "@/api/library/book-api.ts";
-import FileApi from "@/api/file-api.ts";
-import categoryApi, {type CategoryLazyOption} from "@/api/library/category-api.ts";
-import publishApi from "@/api/library/publish-api.ts";
+import type {StockPageVO} from "@/api/library/stock-api.ts";
+import type {BookForm} from "@/api/library/book-api.ts";
 import {CalendarDate} from "@internationalized/date";
 import StockOutDialog from "@/components/lib-stock/StockOutDialog.vue";
 import EditBookDialog from "@/components/lib-stock/EditBookDialog.vue";
 import StockDetailDialog from "@/components/lib-stock/StockDetailDialog.vue";
 import StockEntryDialog from "@/components/lib-stock/StockEntryDialog.vue";
+import {useStockQuery} from "@/composables/library/stock/useStockQuery";
+import {useStockOptions} from "@/composables/library/stock/useStockOptions";
+import {useStockOut} from "@/composables/library/stock/useStockOut";
+import {useStockEdit} from "@/composables/library/stock/useStockEdit";
 
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
@@ -21,11 +22,7 @@ onMounted(() => {
 })
 
 const date = new Date()
-const toast = useToast()
-const pageDate = shallowRef<StockPageVO[]>([])
-const loadingPageData = ref(false)
 const currentSelectedStock = ref<StockPageVO>()
-const imageCache = new Map<string, string>()
 const fieldItems = ref<SelectItem[]>([
   {
     label: "名称",
@@ -40,21 +37,29 @@ const fieldItems = ref<SelectItem[]>([
     value: "isbn"
   }
 ])
-const total = ref(0);
 const open = ref(false)
 const openEditBookDialog = ref(false)
 const openStockOutDialog = ref(false)
-const queryParams = reactive<StockQuery>({
-  pageNum: 1,
-  pageSize: 10,
-  field: "name",
-  keyword: void 0,
+const {queryParams, pageDate, total, loadingPageData, handleQuery, resetQuery, fetchData} = useStockQuery()
+const {
+  stockOutNumber,
+  submittingStockOut,
+  openStockOutModal,
+  submitStockOut,
+} = useStockOut({
+  openStockOutDialog,
+  fetchData,
 })
 const table = useTemplateRef("table")
-const publishOptions = ref<SelectMenuItem[]>([])
-const categoryTreeOptions = ref<CategoryLazyOption[]>([])
-const categoryTreeCacheData = ref<CategoryLazyOption[]>([])
-const loadingOptions = ref(false)
+const {
+  publishOptions,
+  categoryTreeOptions,
+  categoryTreeCacheData,
+  loadingOptions,
+  ensureCategoryNodeCache,
+  loadCategoryTreeNode,
+  fetchEntryOptions,
+} = useStockOptions()
 const columns = ref<TableColumn<StockPageVO>[]>([
   {
     id: "bookImage",
@@ -140,10 +145,6 @@ const columns = ref<TableColumn<StockPageVO>[]>([
 const loadingEditBook = ref(false)
 const submittingEditBook = ref(false)
 const editingIsbn = ref("")
-const stockOutIsbn = ref("")
-const stockOutNumber = ref(0)
-const stockOutMaxNumber = ref(0)
-const submittingStockOut = ref(false)
 const openEntryStepper = ref(false)
 const initialEditBookFormData: BookForm = {
   isbn: "",
@@ -159,304 +160,30 @@ const initialEditBookFormData: BookForm = {
 const editBookState = ref<BookForm>({...initialEditBookFormData})
 const editBookCoverModel = ref<File>()
 const editBookPublishTime = shallowRef(new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate()))
-
-interface CategoryTreeNode {
-  level?: number
-  data?: {
-    value?: string | number
-  }
-}
-
-interface CoverFileLike {
-  file?: File
-  raw?: File
-}
-
-type CoverFileModel = File | CoverFileLike | Array<File | CoverFileLike>
-
-// 查询（重置页码后获取数据）
-async function handleQuery() {
-  queryParams.pageNum = 1;
-  await fetchData();
-}
-
-function normalizeKeyword(value?: string) {
-  const keyword = String(value ?? "").trim()
-  return keyword || void 0
-}
-
-function applySearchParams() {
-  queryParams.keyword = normalizeKeyword(queryParams.keyword)
-}
-
-function resetQuery() {
-  queryParams.field = "name"
-  queryParams.keyword = void 0
-  queryParams.pageNum = 1
-  void fetchData()
-}
+const {
+  openEntryModal,
+  openEditBookModal,
+  submitEditBook,
+} = useStockEdit({
+  openEditBookDialog,
+  openEntryStepper,
+  loadingOptions,
+  loadingEditBook,
+  submittingEditBook,
+  editingIsbn,
+  editBookState,
+  editBookCoverModel,
+  editBookPublishTime,
+  categoryTreeCacheData,
+  initialEditBookFormData,
+  fetchEntryOptions,
+  ensureCategoryNodeCache,
+  fetchData,
+})
 
 function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
   open.value = true
   currentSelectedStock.value = row.original
-}
-
-async function fetchData() {
-  try {
-    loadingPageData.value = true
-    applySearchParams()
-    const data = await stockApi.getPage(queryParams)
-    total.value = data.total
-    pageDate.value = data.list.map((item) => ({
-      ...item,
-      bookImage: fetchImage(item.bookImage),
-    }))
-  } catch (e) {
-    console.error(e)
-    pageDate.value = []
-    total.value = 0
-    toast.add({title: "错误", description: "库存数据加载失败", color: "error"})
-  } finally {
-    loadingPageData.value = false
-  }
-}
-
-function fetchImage(originalUrl: string | undefined) {
-  if (!originalUrl) {
-    return void 0
-  }
-  const cachedUrl = imageCache.get(originalUrl)
-  if (cachedUrl) {
-    return cachedUrl
-  }
-  const resolvedUrl = FileApi.resolveUrl(originalUrl)
-  if (!resolvedUrl) {
-    return void 0
-  }
-  imageCache.set(originalUrl, resolvedUrl)
-  return resolvedUrl
-}
-
-function toCalendarDate(value?: Date | string) {
-  const target = value ? new Date(value) : new Date()
-  return new CalendarDate(target.getFullYear(), target.getMonth() + 1, target.getDate())
-}
-
-function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
-  if (!model) return void 0
-  if (model instanceof File) return model
-  if (Array.isArray(model)) {
-    if (model.length === 0) return void 0
-    const first = model[0]
-    if (!first) return void 0
-    if (first instanceof File) return first
-    if (first.file instanceof File) return first.file
-    if (first.raw instanceof File) return first.raw
-    return void 0
-  }
-  if (model.file instanceof File) return model.file
-  if (model.raw instanceof File) return model.raw
-  return void 0
-}
-
-function resetEditBookForm() {
-  editBookState.value = {...initialEditBookFormData}
-  editBookCoverModel.value = void 0
-  editBookPublishTime.value = toCalendarDate()
-  categoryTreeCacheData.value = []
-  submittingEditBook.value = false
-  editingIsbn.value = ""
-}
-
-function resetStockOutForm() {
-  stockOutIsbn.value = ""
-  stockOutNumber.value = 0
-  stockOutMaxNumber.value = 0
-  submittingStockOut.value = false
-}
-
-watch(openEditBookDialog, (isOpen) => {
-  if (!isOpen) {
-    resetEditBookForm()
-  }
-})
-
-watch(openStockOutDialog, (isOpen) => {
-  if (!isOpen) {
-    resetStockOutForm()
-  }
-})
-
-async function fetchPublishOptions() {
-  publishOptions.value = await publishApi.getOptions()
-}
-
-function normalizeCategoryId(value: unknown): number | undefined {
-  const id = Number(value)
-  if (!Number.isInteger(id) || id < 0) {
-    return void 0
-  }
-  return id
-}
-
-function mergeCategoryCacheNode(node?: CategoryLazyOption | null) {
-  if (!node) return
-  const nodeId = normalizeCategoryId(node.value)
-  if (nodeId === void 0) return
-  const rest = categoryTreeCacheData.value.filter((item) => normalizeCategoryId(item.value) !== nodeId)
-  categoryTreeCacheData.value = [...rest, node]
-}
-
-async function fetchCategoryRootOptions() {
-  categoryTreeOptions.value = await categoryApi.getLazyOptions(0)
-}
-
-async function ensureCategoryNodeCache(categoryId: unknown) {
-  const id = normalizeCategoryId(categoryId)
-  if (id === void 0) return
-  if (categoryTreeCacheData.value.some((item) => normalizeCategoryId(item.value) === id)) {
-    return
-  }
-  const node = await categoryApi.getOptionNode(id)
-  mergeCategoryCacheNode(node)
-}
-
-async function loadCategoryTreeNode(node: CategoryTreeNode, resolve: (data: CategoryLazyOption[]) => void) {
-  if (node?.level === 0) {
-    resolve(categoryTreeOptions.value)
-    return
-  }
-
-  const parentId = normalizeCategoryId(node?.data?.value)
-  if (parentId === void 0) {
-    resolve([])
-    return
-  }
-
-  try {
-    const children = await categoryApi.getLazyOptions(parentId)
-    resolve(children || [])
-  } catch (error) {
-    console.error(error)
-    toast.add({title: "错误", description: "加载分类节点失败", color: "error"})
-    resolve([])
-  }
-}
-
-async function fetchEntryOptions() {
-  await Promise.all([fetchPublishOptions(), fetchCategoryRootOptions()])
-}
-
-async function openEntryModal() {
-  loadingOptions.value = true
-  try {
-    await fetchEntryOptions()
-    openEntryStepper.value = true
-  } catch (error) {
-    console.error(error)
-    toast.add({title: "错误", description: "加载书籍选项失败", color: "error"})
-  } finally {
-    loadingOptions.value = false
-  }
-}
-
-async function openEditBookModal(isbn: string) {
-  if (!isbn) return
-  editingIsbn.value = isbn
-  loadingEditBook.value = true
-  try {
-    const [formData] = await Promise.all([
-      bookApi.getFormData(isbn),
-      fetchEntryOptions(),
-    ])
-    editBookState.value = {...formData}
-    editBookPublishTime.value = toCalendarDate(formData.publishTime)
-    await ensureCategoryNodeCache(formData.categoryId)
-    editBookCoverModel.value = void 0
-    openEditBookDialog.value = true
-  } catch (error) {
-    console.error(error)
-    toast.add({title: "错误", description: "加载图书信息失败", color: "error"})
-  } finally {
-    loadingEditBook.value = false
-  }
-}
-
-async function submitEditBook() {
-  if (!editingIsbn.value) {
-    toast.add({title: "错误", description: "ISBN不能为空", color: "error"})
-    return
-  }
-
-  const payload: BookForm = {
-    ...editBookState.value,
-    isbn: editingIsbn.value,
-    publishTime: new Date(editBookPublishTime.value.toString())
-  }
-
-  try {
-    submittingEditBook.value = true
-    const file = getCoverFileFromModel(editBookCoverModel.value)
-    if (file) {
-      const {url} = await FileApi.uploadFile(file)
-      payload.cover = url
-    }
-    await bookApi.update(payload)
-    toast.add({title: "成功", description: "修改成功", color: "success"})
-    openEditBookDialog.value = false
-    await fetchData()
-  } catch (error) {
-    console.error(error)
-    toast.add({title: "错误", description: "修改图书失败", color: "error"})
-  } finally {
-    submittingEditBook.value = false
-  }
-}
-
-function openStockOutModal(row: StockPageVO) {
-  stockOutIsbn.value = row.isbn
-  stockOutMaxNumber.value = Math.max(0, Number(row.currentNumber ?? 0))
-  stockOutNumber.value = 0
-  openStockOutDialog.value = true
-}
-
-async function submitStockOut() {
-  if (!stockOutIsbn.value) {
-    toast.add({title: "错误", description: "ISBN不能为空", color: "error"})
-    return
-  }
-  if (stockOutNumber.value <= 0) {
-    toast.add({title: "错误", description: "出库数量必须大于0", color: "error"})
-    return
-  }
-  if (stockOutNumber.value > stockOutMaxNumber.value) {
-    toast.add({title: "错误", description: "出库数量不能大于可用库存", color: "error"})
-    return
-  }
-
-  try {
-    submittingStockOut.value = true
-    const formData = await stockApi.getFormData(stockOutIsbn.value)
-    if (!formData) {
-      toast.add({title: "错误", description: "未找到图书信息", color: "error"})
-      return
-    }
-
-    const payload: StockForm = {
-      ...formData,
-      isbn: stockOutIsbn.value,
-      stock: stockOutNumber.value,
-    }
-    await stockApi.update(payload)
-    toast.add({title: "成功", description: "出库成功", color: "success"})
-    openStockOutDialog.value = false
-    await fetchData()
-  } catch (error) {
-    console.error(error)
-    toast.add({title: "错误", description: "出库失败", color: "error"})
-  } finally {
-    submittingStockOut.value = false
-  }
 }
 
 </script>

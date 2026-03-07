@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
-import type {SelectMenuItem, TableColumn} from "@nuxt/ui";
+import {h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
+import type {TableColumn} from "@nuxt/ui";
 import moment from "moment";
-import {ElMessageBox} from "element-plus";
-import UserAPI, {type UserForm, type UserPageQuery, type UserPageVO} from "@/api/system/user-api.ts"
-import RoleAPI from "@/api/system/role-api.ts";
+import type {UserPageVO} from "@/api/system/user-api.ts"
 import {UserGenderTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
+import {useUserActions} from "@/composables/system/user/useUserActions";
+import {useUserDialog} from "@/composables/system/user/useUserDialog";
+import {useUserForm} from "@/composables/system/user/useUserForm";
+import {useUserQuery} from "@/composables/system/user/useUserQuery";
+import {useUserSubmit} from "@/composables/system/user/useUserSubmit";
 
 onMounted(() => {
   handleQuery()
@@ -17,16 +20,7 @@ const UCheckbox = resolveComponent('UCheckbox')
 const UFieldGroup = resolveComponent('UFieldGroup')
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
-const toast = useToast()
-
-const queryParams = reactive<UserPageQuery>({
-  pageNum: 1,
-  pageSize: 10,
-});
-const searchForm = reactive({
-  keywords: "",
-  status: -1,
-})
+const {queryParams, searchForm, total, pageData, loadingPageData, handleQuery, resetQuery, fetchData} = useUserQuery()
 const statusQueryOptions = ref<OptionType[]>([
   {
     label: "全部状态",
@@ -41,8 +35,6 @@ const statusQueryOptions = ref<OptionType[]>([
     value: StatusTypeEnum.BAN,
   }
 ])
-const total = ref(0);
-const pageData = shallowRef<UserPageVO[]>([]);
 const table = useTemplateRef('table')
 const editForm = useTemplateRef('editForm')
 const columnVisibility = ref({
@@ -52,10 +44,8 @@ const openEditModal = ref(false)
 const openAssignRoleModal = ref(false)
 const editModalMode = ref<"add" | "edit">("add")
 const editModalTitle = ref("新增用户")
-const loadingPageData = ref(false)
 const loadingEditUser = ref(false)
 const submittingEditUser = ref(false)
-const loadingRoleOptions = ref(false)
 const loadingAssignRole = ref(false)
 const submittingAssignRole = ref(false)
 const resettingUserId = ref("")
@@ -66,9 +56,81 @@ const editingUserId = ref("")
 const assignRoleUserId = ref("")
 const assignRoleUsername = ref("")
 const avatarModel = ref<File>()
-const roleOptions = ref<SelectMenuItem[]>([])
 type AvatarFileItem = File | { file?: File; raw?: File }
 type AvatarFileModel = AvatarFileItem | AvatarFileItem[]
+const {
+  initialUserFormData,
+  editUserState,
+  assignRoleState,
+  roleOptions,
+  loadingRoleOptions,
+  fetchRoleOptions,
+  resetEditUserForm,
+  resetAssignRoleForm,
+} = useUserForm({
+  avatarModel,
+  submittingEditUser,
+  loadingEditUser,
+  editingUserId,
+  editModalMode,
+  editModalTitle,
+  assignRoleUserId,
+  assignRoleUsername,
+  submittingAssignRole,
+  loadingAssignRole,
+  assigningRoleUserId,
+})
+const {
+  openEditUserModal,
+  openAddUserModal,
+  openAssignRoleDialog,
+} = useUserDialog({
+  openEditModal,
+  openAssignRoleModal,
+  editModalMode,
+  editModalTitle,
+  loadingEditUser,
+  loadingAssignRole,
+  assigningRoleUserId,
+  editingUserId,
+  assignRoleUserId,
+  assignRoleUsername,
+  avatarModel,
+  initialUserFormData,
+  editUserState,
+  assignRoleState,
+  fetchRoleOptions,
+})
+const {
+  submitEditUser,
+  submitAssignRole,
+} = useUserSubmit({
+  editModalMode,
+  editingUserId,
+  assignRoleUserId,
+  editUserState,
+  assignRoleState,
+  submittingEditUser,
+  submittingAssignRole,
+  openEditModal,
+  openAssignRoleModal,
+  fetchData,
+  getAvatarFile: () => getAvatarFileFromModel(avatarModel.value),
+})
+const {
+  openEditUserModalBySelection,
+  confirmResetPassword,
+  confirmDeleteUsers,
+  updateUserStatus,
+  deleteUserBySelection,
+} = useUserActions({
+  table,
+  openEditUserModal,
+  fetchData,
+  resettingUserId,
+  deletingUserId,
+  togglingStatusUserId,
+})
 const genderOptions = ref<OptionType[]>([
   {
     label: "保密",
@@ -83,21 +145,6 @@ const genderOptions = ref<OptionType[]>([
     value: UserGenderTypeEnum.WOMAN
   }
 ])
-const initialUserFormData: UserForm = {
-  id: 0,
-  username: "",
-  nickname: "",
-  mobile: "",
-  gender: UserGenderTypeEnum.UNKNOWN,
-  avatar: "",
-  email: "",
-  status: StatusTypeEnum.ACCESS,
-  deptId: 0,
-  roleIds: [],
-  openId: ""
-}
-const editUserState = ref<UserForm>({...initialUserFormData})
-const assignRoleState = ref<UserForm>({...initialUserFormData})
 const columns = ref<TableColumn<UserPageVO>[]>([
   {
     id: "select",
@@ -258,308 +305,11 @@ function getAvatarFileFromModel(model?: AvatarFileModel): File | undefined {
   return void 0
 }
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result ?? ""))
-    reader.onerror = () => reject(reader.error)
-    reader.readAsDataURL(file)
-  })
-}
-
 function getGenderLabel(gender?: number) {
   if (gender === UserGenderTypeEnum.UNKNOWN) return "保密"
   if (gender === UserGenderTypeEnum.MAN) return "男"
   if (gender === UserGenderTypeEnum.WOMAN) return "女"
   return "-"
-}
-
-async function updateUserStatus(userId: string | number | undefined, value: boolean) {
-  if (userId === undefined || userId === null || userId === "") return
-  try {
-    togglingStatusUserId.value = String(userId)
-    const status = value ? StatusTypeEnum.ACCESS : StatusTypeEnum.BAN
-    await UserAPI.changeStatus(userId, status)
-    toast.add({title: "成功", description: "状态已更新", color: "success"})
-    await fetchData()
-  } catch {
-    toast.add({title: "错误", description: "状态更新失败", color: "error"})
-  } finally {
-    togglingStatusUserId.value = ""
-  }
-}
-
-function resetEditUserForm() {
-  editUserState.value = {...initialUserFormData}
-  avatarModel.value = void 0
-  submittingEditUser.value = false
-  loadingEditUser.value = false
-  editingUserId.value = ""
-  editModalMode.value = "add"
-  editModalTitle.value = "新增用户"
-}
-
-function resetAssignRoleForm() {
-  assignRoleState.value = {...initialUserFormData}
-  assignRoleUserId.value = ""
-  assignRoleUsername.value = ""
-  submittingAssignRole.value = false
-  loadingAssignRole.value = false
-  assigningRoleUserId.value = ""
-}
-
-async function fetchRoleOptions() {
-  loadingRoleOptions.value = true
-  try {
-    roleOptions.value = await RoleAPI.getOptions()
-  } catch {
-    toast.add({title: "错误", description: "角色选项加载失败", color: "error"})
-  } finally {
-    loadingRoleOptions.value = false
-  }
-}
-
-async function openEditUserModal(id: string | number) {
-  if (!id && id !== 0) return
-  loadingEditUser.value = true
-  editingUserId.value = String(id)
-  editModalMode.value = "edit"
-  editModalTitle.value = "修改用户信息"
-  try {
-    const [formData] = await Promise.all([
-      UserAPI.getFormData(id),
-      fetchRoleOptions()
-    ])
-    editUserState.value = {
-      ...initialUserFormData,
-      ...formData,
-      id: Number(formData.id ?? id),
-      roleIds: Array.isArray(formData.roleIds) ? formData.roleIds.map(item => Number(item)) : []
-    }
-    avatarModel.value = void 0
-    openEditModal.value = true
-  } catch {
-    toast.add({title: "错误", description: "加载用户信息失败", color: "error"})
-  } finally {
-    loadingEditUser.value = false
-  }
-}
-
-async function openAddUserModal() {
-  editingUserId.value = ""
-  editModalMode.value = "add"
-  editModalTitle.value = "新增用户"
-  editUserState.value = {...initialUserFormData}
-  avatarModel.value = void 0
-  await fetchRoleOptions()
-  openEditModal.value = true
-}
-
-async function openAssignRoleDialog(id: string | number, username?: string) {
-  if (!id && id !== 0) return
-  assigningRoleUserId.value = String(id)
-  loadingAssignRole.value = true
-  assignRoleUserId.value = String(id)
-  assignRoleUsername.value = username ?? ""
-  try {
-    const [formData] = await Promise.all([
-      UserAPI.getFormData(id),
-      fetchRoleOptions()
-    ])
-    assignRoleState.value = {
-      ...initialUserFormData,
-      ...formData,
-      id: Number(formData.id ?? id),
-      roleIds: Array.isArray(formData.roleIds) ? formData.roleIds.map(item => Number(item)) : []
-    }
-    openAssignRoleModal.value = true
-  } catch {
-    toast.add({title: "错误", description: "加载角色分配信息失败", color: "error"})
-  } finally {
-    loadingAssignRole.value = false
-    assigningRoleUserId.value = ""
-  }
-}
-
-function openEditUserModalBySelection() {
-  const selectedRow = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows?.[0]?.original
-  if (!selectedRow?.id) {
-    toast.add({title: "错误", description: "请选择需要修改的用户", color: "error"})
-    return
-  }
-  openEditUserModal(selectedRow.id)
-}
-
-async function submitEditUser() {
-  if (editModalMode.value === "edit" && !editingUserId.value) {
-    toast.add({title: "错误", description: "用户ID不能为空", color: "error"})
-    return
-  }
-  if (!editUserState.value.nickname?.trim()) {
-    toast.add({title: "错误", description: "昵称不能为空", color: "error"})
-    return
-  }
-  if (!Array.isArray(editUserState.value.roleIds) || editUserState.value.roleIds.length === 0) {
-    toast.add({title: "错误", description: "请至少选择一个角色", color: "error"})
-    return
-  }
-  const payload: UserForm = {
-    ...editUserState.value,
-    id: editModalMode.value === "edit" ? Number(editingUserId.value) : Number(editUserState.value.id ?? 0),
-    roleIds: Array.isArray(editUserState.value.roleIds)
-        ? editUserState.value.roleIds.map(item => Number(item))
-        : []
-  }
-
-  try {
-    submittingEditUser.value = true
-    const file = getAvatarFileFromModel(avatarModel.value)
-    if (file) {
-      payload.avatar = await fileToBase64(file)
-    }
-    if (editModalMode.value === "add") {
-      await UserAPI.create(payload)
-      toast.add({title: "成功", description: "新增成功", color: "success"})
-    } else {
-      await UserAPI.update(editingUserId.value, payload)
-      toast.add({title: "成功", description: "修改成功", color: "success"})
-    }
-    openEditModal.value = false
-    await fetchData()
-  } catch {
-    toast.add({title: "错误", description: editModalMode.value === "add" ? "新增失败" : "修改失败", color: "error"})
-  } finally {
-    submittingEditUser.value = false
-  }
-}
-
-async function submitAssignRole() {
-  if (!assignRoleUserId.value) {
-    toast.add({title: "错误", description: "用户ID不能为空", color: "error"})
-    return
-  }
-  const payload: UserForm = {
-    ...assignRoleState.value,
-    id: Number(assignRoleUserId.value),
-    roleIds: Array.isArray(assignRoleState.value.roleIds)
-        ? assignRoleState.value.roleIds.map(item => Number(item))
-        : []
-  }
-  try {
-    submittingAssignRole.value = true
-    await UserAPI.update(assignRoleUserId.value, payload)
-    toast.add({title: "成功", description: "分配角色成功", color: "success"})
-    openAssignRoleModal.value = false
-    await fetchData()
-  } catch {
-    toast.add({title: "错误", description: "分配角色失败", color: "error"})
-  } finally {
-    submittingAssignRole.value = false
-  }
-}
-
-async function confirmResetPassword(id: string | number, username?: string) {
-  if (!id && id !== 0) return
-  try {
-    await ElMessageBox.confirm(
-        `确定重置用户 ${username ? `${username}` : ""} 的密码吗？`,
-        "重置密码",
-        {
-          type: "warning",
-          confirmButtonText: "确定",
-          cancelButtonText: "取消"
-        }
-    )
-    resettingUserId.value = String(id)
-    await UserAPI.resetPassword(id)
-    toast.add({title: "成功", description: "密码已重置为默认密码 123456", color: "success"})
-  } catch (e: unknown) {
-    if (e === "cancel" || e === "close") {
-      return
-    }
-  } finally {
-    resettingUserId.value = ""
-  }
-}
-
-async function confirmDeleteUsers(ids: Array<string | number>, usernames: string[] = []) {
-  if (!ids.length) return
-  const usernameText = usernames[0]?.trim()
-  const content = ids.length === 1
-      ? `确定删除用户 ${usernameText || ids[0]} 吗？`
-      : `确定删除选中的 ${ids.length} 个用户吗？`
-  try {
-    await ElMessageBox.confirm(
-        content,
-        "删除用户",
-        {
-          type: "warning",
-          confirmButtonText: "确定",
-          cancelButtonText: "取消"
-        }
-    )
-    deletingUserId.value = ids.length === 1 ? String(ids[0] ?? "") : "__batch__"
-    await UserAPI.delete(ids)
-    toast.add({title: "成功", description: "删除成功", color: "success"})
-    await fetchData()
-  } catch (e: unknown) {
-    if (e === "cancel" || e === "close") {
-      return
-    }
-  } finally {
-    deletingUserId.value = ""
-  }
-}
-
-function deleteUserBySelection() {
-  const selectedRows = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows ?? []
-  if (!selectedRows.length) {
-    toast.add({title: "错误", description: "请选择需要删除的用户", color: "error"})
-    return
-  }
-  const deleteUsers = selectedRows
-      .map(row => row.original)
-      .filter(item => item.id && Number(item.id) !== 1)
-  if (!deleteUsers.length) {
-    toast.add({title: "错误", description: "超级管理员不可删除", color: "error"})
-    return
-  }
-  const ids = deleteUsers.map(item => item.id)
-  const usernames = deleteUsers.map(item => item.username ?? "")
-  confirmDeleteUsers(ids, usernames)
-}
-
-function applySearchParams() {
-  const keywords = searchForm.keywords.trim()
-  queryParams.keywords = keywords || undefined
-  queryParams.status = searchForm.status === -1 ? undefined : (searchForm.status as 0 | 1)
-}
-
-// 查询（重置页码后获取数据）
-function handleQuery() {
-  queryParams.pageNum = 1;
-  applySearchParams()
-  fetchData();
-}
-
-function resetQuery() {
-  searchForm.keywords = ""
-  searchForm.status = -1
-  handleQuery()
-}
-
-// 获取数据
-async function fetchData() {
-  try {
-    loadingPageData.value = true
-    const data = await UserAPI.getPage(queryParams);
-    pageData.value = data.list ?? [];
-    total.value = data.total ?? 0;
-  } catch {
-    toast.add({title: "错误", description: "用户数据加载失败", color: "error"})
-  } finally {
-    loadingPageData.value = false
-  }
 }
 </script>
 

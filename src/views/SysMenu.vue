@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
-import MenuAPI, {type MenuForm, type MenuId, type MenuQuery, type MenuVO} from "@/api/system/menu-api.ts";
-import type {TableColumn, TableRow} from "@nuxt/ui";
+import {h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
+import {type MenuForm, type MenuVO} from "@/api/system/menu-api.ts";
+import type {TableColumn} from "@nuxt/ui";
 import {MenuTypeEnum} from "@/enums/system/menu-enum.ts";
 import {ElTreeSelect, ElDrawer, ElDialog} from "element-plus";
 import WarningModal from "@/components/WarningModal.vue";
+import {useMenuActions} from "@/composables/system/menu/useMenuActions";
+import {useMenuDialog} from "@/composables/system/menu/useMenuDialog";
+import {useMenuQuery} from "@/composables/system/menu/useMenuQuery";
+import {useMenuSubmit} from "@/composables/system/menu/useMenuSubmit";
+import {
+  createMenuForm,
+  getCatalogRoutePathValue,
+  getIconInputValue,
+  useMenuForm,
+} from "@/composables/system/menu/useMenuForm";
 
 onMounted(() => {
   handleQuery()
@@ -18,29 +28,8 @@ const UCheckbox = resolveComponent('UCheckbox')
 
 const overlay = useOverlay()
 const modal = overlay.create(WarningModal)
-const toast = useToast()
-
-type Status = {
-  visible: boolean;
-  title: string;
-}
-const mode = ref<'add' | 'edit' | 'show'>('show');
-const slider = ref<Status>({
-  visible: false,
-  title: "菜单详情",
-})
-const dialog = ref<Status>({
-  visible: false,
-  title: "新增菜单",
-})
+const {searchForm, menuTableData, loadingMenuList, handleQuery, resetQuery} = useMenuQuery()
 const table = useTemplateRef("table");
-const queryParams = reactive<MenuQuery>({});
-const searchForm = reactive<MenuQuery>({
-  keywords: "",
-})
-const menuTableData = shallowRef<MenuVO[]>([]);
-const loadingMenuList = ref(false)
-const loadingMenuOptions = ref(false)
 const submittingMenu = ref(false)
 const columnVisibility = ref({
   id: false,
@@ -190,30 +179,8 @@ const columns = ref<TableColumn<MenuVO>[]>([
     }
   }
 ])
-const menuOptions = ref<OptionType[]>([])
-const defaultMenuFormData: MenuForm = {
-  id: undefined,
-  parentId: 0,
-  visible: 1,
-  sort: 1,
-  type: MenuTypeEnum.MENU, // 默认菜单
-  alwaysShow: 0,
-  keepAlive: 1,
-  perms: [],
-  params: [],
-}
-
-function createMenuForm(overrides: Partial<MenuForm> = {}): MenuForm {
-  return {
-    ...defaultMenuFormData,
-    ...overrides,
-    perms: [...(overrides.perms ?? defaultMenuFormData.perms ?? [])],
-    params: [...(overrides.params ?? defaultMenuFormData.params ?? [])],
-  }
-}
-
-// 菜单表单数据
 const formData = ref<MenuForm>(createMenuForm());
+const {setIconInputValue, setCatalogRoutePathValue, normalizeMenuPayload} = useMenuForm(formData)
 const tabs = [
   {
     label: '菜单',
@@ -225,6 +192,29 @@ const tabs = [
   }
 ]
 const tabActiveIndex = ref("0")
+const {
+  mode,
+  slider,
+  dialog,
+  menuOptions,
+  loadingMenuOptions,
+  showMenuInfo,
+  openAddMenu,
+  openEditByRow,
+} = useMenuDialog(formData, tabActiveIndex)
+const {editSelectedMenu, deleteMenu} = useMenuActions({
+  table,
+  modal,
+  openEditByRow,
+  handleQuery,
+})
+const {handleSubmit, addPerm, removePerm} = useMenuSubmit(
+  formData,
+  dialog,
+  submittingMenu,
+  handleQuery,
+  normalizeMenuPayload,
+)
 
 watch(tabActiveIndex, (value) => {
   if (value === "0") {
@@ -234,249 +224,6 @@ watch(tabActiveIndex, (value) => {
   }
 }, {immediate: true})
 
-// 查询菜单
-function applySearchParams() {
-  const keywords = searchForm.keywords?.trim()
-  queryParams.keywords = keywords || undefined
-}
-
-async function handleQuery() {
-  try {
-    loadingMenuList.value = true
-    applySearchParams()
-    menuTableData.value = await MenuAPI.getList(queryParams)
-  } catch (error) {
-    console.error(error);
-  } finally {
-    loadingMenuList.value = false
-  }
-}
-
-function resetQuery() {
-  searchForm.keywords = ""
-  handleQuery()
-}
-
-function getIconInputValue(icon?: string) {
-  return (icon || "").replace("i-lucide-", "")
-}
-
-function setIconInputValue(value: string | number) {
-  const icon = String(value ?? "").trim()
-  formData.value.icon = icon ? `i-lucide-${icon}` : ""
-}
-
-function getCatalogRoutePathValue(routePath?: string) {
-  return (routePath || "").replace(/^\//, "")
-}
-
-function setCatalogRoutePathValue(value: string | number) {
-  formData.value.routePath = String(value ?? "").trim().replace(/^\/+/, "")
-}
-
-function normalizeMenuFormFromApi(data: MenuForm, parentId?: MenuId) {
-  const normalized = createMenuForm({
-    ...data,
-    parentId: data.parentId ?? parentId ?? 0,
-    perms: (data.perms ?? []).map((item) => ({...item})),
-    params: (data.params ?? []).map((item) => ({...item})),
-  })
-  if (normalized.id !== undefined && normalized.perms?.length) {
-    normalized.perms = normalized.perms.map((item) => ({
-      ...item,
-      parentId: item.parentId ?? normalized.id,
-    }))
-  }
-  return normalized
-}
-
-function normalizeMenuPayload() {
-  const payload = createMenuForm({
-    ...formData.value,
-    name: formData.value.name?.trim(),
-    routeName: formData.value.routeName?.trim(),
-    routePath: formData.value.routePath?.trim().replace(/^\/+/, ""),
-    component: formData.value.component?.trim(),
-    redirect: formData.value.redirect?.trim(),
-    perm: formData.value.perm?.trim(),
-    parentId: Number(formData.value.parentId ?? 0),
-    sort: Number(formData.value.sort ?? 1),
-  })
-
-  payload.visible = Number(payload.visible ?? 1) as MenuForm["visible"]
-  payload.alwaysShow = Number(payload.alwaysShow ?? 0) as MenuForm["alwaysShow"]
-  payload.keepAlive = Number(payload.keepAlive ?? 1) as MenuForm["keepAlive"]
-  payload.perms = (payload.perms ?? []).map((item) => ({
-    ...item,
-    parentId: payload.id ?? payload.parentId ?? 0,
-    label: item.label?.trim(),
-    value: item.value?.trim(),
-  }))
-
-  return payload
-}
-
-function showMenuInfo(_: unknown, row: TableRow<MenuVO>) {
-  const menuId = row.original.id
-  if (row.original.type !== MenuTypeEnum.MENU || menuId === undefined || menuId === null) {
-    return
-  }
-  mode.value = "show";
-  openMenuDialog(void 0, menuId)
-}
-
-function openAddMenu(parentId: MenuId = 0) {
-  mode.value = "add";
-  tabActiveIndex.value = "0"
-  openMenuDialog(parentId)
-}
-
-function openEditByRow(row: MenuVO) {
-  if (row.id === undefined || row.id === null) {
-    toast.add({title: "错误", description: "菜单ID不存在，无法编辑", color: "error"})
-    return
-  }
-  tabActiveIndex.value = row.type === MenuTypeEnum.CATALOG ? "1" : "0"
-  editMenu(row.parentId, row.id)
-}
-
-function editMenu(parentId?: MenuId, menuId?: MenuId) {
-  mode.value = "edit";
-  openMenuDialog(parentId, menuId)
-}
-
-function editSelectedMenu() {
-  const selectedRows = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows ?? []
-  if (selectedRows.length !== 1) {
-    toast.add({title: "错误", description: "请选择一条菜单进行修改", color: "error"})
-    return
-  }
-  const selectedRow = selectedRows[0]
-  if (!selectedRow) {
-    return
-  }
-  openEditByRow(selectedRow.original)
-}
-
-async function deleteMenu() {
-  const selectedRows = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows ?? []
-  const deleteIds = selectedRows
-      .map((row) => row.original.id)
-      .filter((id): id is MenuId => id !== undefined && id !== null)
-
-  if (!deleteIds.length) {
-    toast.add({title: "错误", description: "请选择需要删除的菜单", color: "error"})
-    return
-  }
-
-  const instance = await modal.open({
-    content: "确定要删除吗？",
-  })
-  if (!instance) {
-    table.value?.tableApi?.toggleAllPageRowsSelected(false)
-    return
-  }
-
-  try {
-    await MenuAPI.delete(deleteIds)
-    await handleQuery()
-    toast.add({title: "成功", description: "删除成功", color: "success"})
-  } catch (error) {
-    console.error(error)
-  } finally {
-    table.value?.tableApi?.toggleAllPageRowsSelected(false)
-  }
-}
-
-async function openMenuDialog(parentId?: MenuId, menuId?: MenuId) {
-  loadingMenuOptions.value = true
-  try {
-    const options = await MenuAPI.getOptions(true)
-    menuOptions.value = [{value: 0, label: "顶级菜单", children: options}]
-
-    if (menuId === undefined || menuId === null) {
-      formData.value = createMenuForm({
-        parentId: Number(parentId ?? 0),
-        type: tabActiveIndex.value === "1" ? MenuTypeEnum.CATALOG : MenuTypeEnum.MENU,
-      })
-      dialog.value.title = "新增菜单";
-      dialog.value.visible = true;
-      return
-    }
-
-    const data = await MenuAPI.getFormData(menuId)
-    formData.value = normalizeMenuFormFromApi(data, parentId)
-    tabActiveIndex.value = formData.value.type === MenuTypeEnum.CATALOG ? "1" : "0"
-    if (mode.value === 'show') {
-      slider.value.visible = true;
-    } else {
-      dialog.value.title = "编辑菜单"
-      dialog.value.visible = true;
-    }
-  } catch (error) {
-    console.error(error)
-  } finally {
-    loadingMenuOptions.value = false
-  }
-}
-
-async function handleSubmit() {
-  if (submittingMenu.value) {
-    return
-  }
-  const payload = normalizeMenuPayload()
-  const menuId = payload.id
-  if (payload.type == MenuTypeEnum.MENU && Number(payload.parentId) === 0) {
-    toast.add({title: "错误", description: "顶级菜单不能为菜单", color: "error"})
-    return;
-  }
-  if (!payload.name?.trim()) {
-    toast.add({title: "错误", description: "菜单名称不能为空", color: "error"})
-    return
-  }
-  if (payload.type === MenuTypeEnum.MENU && (!payload.routeName || !payload.routePath || !payload.component)) {
-    toast.add({title: "错误", description: "菜单的路由名称、路径、组件不能为空", color: "error"})
-    return
-  }
-  if (payload.type === MenuTypeEnum.CATALOG && !payload.routePath) {
-    toast.add({title: "错误", description: "目录的路由路径不能为空", color: "error"})
-    return
-  }
-  if (menuId !== undefined && menuId !== null && Number(payload.parentId) === menuId) {
-    toast.add({title: "错误", description: "父级菜单不能为当前菜单", color: "error"})
-    return
-  }
-
-  try {
-    submittingMenu.value = true
-    if (menuId !== undefined && menuId !== null) {
-      await MenuAPI.update(menuId, payload)
-      toast.add({title: "成功", description: "修改成功", color: "success"})
-    } else {
-      await MenuAPI.create(payload)
-      toast.add({title: "成功", description: "新增成功", color: "success"})
-    }
-    dialog.value.visible = false
-    await handleQuery()
-  } catch (error) {
-    console.error(error)
-  } finally {
-    submittingMenu.value = false
-  }
-}
-
-function addPerm() {
-  if (!formData.value.perms) {
-    formData.value.perms = []
-  }
-  formData.value.perms.push({})
-}
-
-function removePerm(index: number) {
-  if (formData.value.perms) {
-    formData.value.perms.splice(index, 1)
-  }
-}
 </script>
 
 <template>
