@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import {useTemplateRef} from 'vue'
 import type {SelectMenuItem} from '@nuxt/ui'
-import {CalendarDate} from '@internationalized/date'
+import type {CalendarDate} from '@internationalized/date'
 import {ElDialog, ElTreeSelect} from 'element-plus'
-import type {BookForm} from '@/api/library/book-api.ts'
-import type {CategoryLazyOption} from '@/api/library/category-api.ts'
+import type {BookForm} from '@/api/library/book-api'
+import type {CategoryLazyOption} from '@/api/library/category-api'
+
+interface CategoryTreeNode {
+  level?: number
+  data?: {
+    value?: string | number
+  }
+}
 
 const open = defineModel<boolean>('open', {default: false})
 const state = defineModel<BookForm>('state', {required: true})
@@ -15,7 +22,7 @@ withDefaults(defineProps<{
   publishOptions: SelectMenuItem[]
   categoryTreeOptions: CategoryLazyOption[]
   categoryTreeCacheData: CategoryLazyOption[]
-  loadCategoryNode: (node: any, resolve: (data: CategoryLazyOption[]) => void) => void
+  loadCategoryNode: (node: CategoryTreeNode, resolve: (data: CategoryLazyOption[]) => void) => void
   submitting?: boolean
 }>(), {
   submitting: false
