@@ -2,9 +2,9 @@
 import {h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
 import type {TableColumn} from "@nuxt/ui";
 import moment from "moment";
-import {ElMessageBox} from "element-plus";
 import UserAPI, {type UserPageVO} from "@/api/system/user-api.ts"
 import {UserGenderTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
+import {useUserActions} from "@/composables/system/user/useUserActions";
 import {useUserDialog} from "@/composables/system/user/useUserDialog";
 import {useUserForm} from "@/composables/system/user/useUserForm";
 import {useUserQuery} from "@/composables/system/user/useUserQuery";
@@ -117,6 +117,17 @@ const {
   openAssignRoleModal,
   fetchData,
   getAvatarFile: () => getAvatarFileFromModel(avatarModel.value),
+})
+const {
+  openEditUserModalBySelection,
+  confirmResetPassword,
+  confirmDeleteUsers,
+} = useUserActions({
+  table,
+  openEditUserModal,
+  fetchData,
+  resettingUserId,
+  deletingUserId,
 })
 const genderOptions = ref<OptionType[]>([
   {
@@ -311,68 +322,6 @@ async function updateUserStatus(userId: string | number | undefined, value: bool
     toast.add({title: "错误", description: "状态更新失败", color: "error"})
   } finally {
     togglingStatusUserId.value = ""
-  }
-}
-
-function openEditUserModalBySelection() {
-  const selectedRow = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows?.[0]?.original
-  if (!selectedRow?.id) {
-    toast.add({title: "错误", description: "请选择需要修改的用户", color: "error"})
-    return
-  }
-  openEditUserModal(selectedRow.id)
-}
-
-async function confirmResetPassword(id: string | number, username?: string) {
-  if (!id && id !== 0) return
-  try {
-    await ElMessageBox.confirm(
-        `确定重置用户 ${username ? `${username}` : ""} 的密码吗？`,
-        "重置密码",
-        {
-          type: "warning",
-          confirmButtonText: "确定",
-          cancelButtonText: "取消"
-        }
-    )
-    resettingUserId.value = String(id)
-    await UserAPI.resetPassword(id)
-    toast.add({title: "成功", description: "密码已重置为默认密码 123456", color: "success"})
-  } catch (e: unknown) {
-    if (e === "cancel" || e === "close") {
-      return
-    }
-  } finally {
-    resettingUserId.value = ""
-  }
-}
-
-async function confirmDeleteUsers(ids: Array<string | number>, usernames: string[] = []) {
-  if (!ids.length) return
-  const usernameText = usernames[0]?.trim()
-  const content = ids.length === 1
-      ? `确定删除用户 ${usernameText || ids[0]} 吗？`
-      : `确定删除选中的 ${ids.length} 个用户吗？`
-  try {
-    await ElMessageBox.confirm(
-        content,
-        "删除用户",
-        {
-          type: "warning",
-          confirmButtonText: "确定",
-          cancelButtonText: "取消"
-        }
-    )
-    deletingUserId.value = ids.length === 1 ? String(ids[0] ?? "") : "__batch__"
-    await UserAPI.delete(ids)
-    toast.add({title: "成功", description: "删除成功", color: "success"})
-    await fetchData()
-  } catch (e: unknown) {
-    if (e === "cancel" || e === "close") {
-      return
-    }
-  } finally {
-    deletingUserId.value = ""
   }
 }
 
