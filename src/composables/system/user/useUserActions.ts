@@ -1,6 +1,7 @@
 import type {Ref} from "vue";
 import {ElMessageBox} from "element-plus";
 import UserAPI, {type UserPageVO} from "@/api/system/user-api";
+import {StatusTypeEnum} from "@/enums/system/status-enum";
 
 type SelectedUserRow = {
   original: UserPageVO
@@ -20,6 +21,7 @@ interface UseUserActionsOptions {
   fetchData: () => Promise<void>
   resettingUserId: Ref<string>
   deletingUserId: Ref<string>
+  togglingStatusUserId: Ref<string>
 }
 
 export function useUserActions(options: UseUserActionsOptions) {
@@ -87,9 +89,44 @@ export function useUserActions(options: UseUserActionsOptions) {
     }
   }
 
+  async function updateUserStatus(userId: string | number | undefined, value: boolean) {
+    if (userId === undefined || userId === null || userId === "") return
+    try {
+      options.togglingStatusUserId.value = String(userId)
+      const status = value ? StatusTypeEnum.ACCESS : StatusTypeEnum.BAN
+      await UserAPI.changeStatus(userId, status)
+      toast.add({title: "成功", description: "状态已更新", color: "success"})
+      await options.fetchData()
+    } catch {
+      toast.add({title: "错误", description: "状态更新失败", color: "error"})
+    } finally {
+      options.togglingStatusUserId.value = ""
+    }
+  }
+
+  function deleteUserBySelection() {
+    const selectedRows = options.table.value?.tableApi?.getFilteredSelectedRowModel().flatRows ?? []
+    if (!selectedRows.length) {
+      toast.add({title: "错误", description: "请选择需要删除的用户", color: "error"})
+      return
+    }
+    const deleteUsers = selectedRows
+      .map((row) => row.original)
+      .filter((item) => item.id && Number(item.id) !== 1)
+    if (!deleteUsers.length) {
+      toast.add({title: "错误", description: "超级管理员不可删除", color: "error"})
+      return
+    }
+    const ids = deleteUsers.map((item) => item.id)
+    const usernames = deleteUsers.map((item) => item.username ?? "")
+    void confirmDeleteUsers(ids, usernames)
+  }
+
   return {
     openEditUserModalBySelection,
     confirmResetPassword,
     confirmDeleteUsers,
+    updateUserStatus,
+    deleteUserBySelection,
   }
 }

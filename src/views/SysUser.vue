@@ -2,7 +2,7 @@
 import {h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
 import type {TableColumn} from "@nuxt/ui";
 import moment from "moment";
-import UserAPI, {type UserPageVO} from "@/api/system/user-api.ts"
+import type {UserPageVO} from "@/api/system/user-api.ts"
 import {UserGenderTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
 import {useUserActions} from "@/composables/system/user/useUserActions";
 import {useUserDialog} from "@/composables/system/user/useUserDialog";
@@ -20,7 +20,6 @@ const UCheckbox = resolveComponent('UCheckbox')
 const UFieldGroup = resolveComponent('UFieldGroup')
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
-const toast = useToast()
 const {queryParams, searchForm, total, pageData, loadingPageData, handleQuery, resetQuery, fetchData} = useUserQuery()
 const statusQueryOptions = ref<OptionType[]>([
   {
@@ -122,12 +121,15 @@ const {
   openEditUserModalBySelection,
   confirmResetPassword,
   confirmDeleteUsers,
+  updateUserStatus,
+  deleteUserBySelection,
 } = useUserActions({
   table,
   openEditUserModal,
   fetchData,
   resettingUserId,
   deletingUserId,
+  togglingStatusUserId,
 })
 const genderOptions = ref<OptionType[]>([
   {
@@ -309,40 +311,6 @@ function getGenderLabel(gender?: number) {
   if (gender === UserGenderTypeEnum.WOMAN) return "女"
   return "-"
 }
-
-async function updateUserStatus(userId: string | number | undefined, value: boolean) {
-  if (userId === undefined || userId === null || userId === "") return
-  try {
-    togglingStatusUserId.value = String(userId)
-    const status = value ? StatusTypeEnum.ACCESS : StatusTypeEnum.BAN
-    await UserAPI.changeStatus(userId, status)
-    toast.add({title: "成功", description: "状态已更新", color: "success"})
-    await fetchData()
-  } catch {
-    toast.add({title: "错误", description: "状态更新失败", color: "error"})
-  } finally {
-    togglingStatusUserId.value = ""
-  }
-}
-
-function deleteUserBySelection() {
-  const selectedRows = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows ?? []
-  if (!selectedRows.length) {
-    toast.add({title: "错误", description: "请选择需要删除的用户", color: "error"})
-    return
-  }
-  const deleteUsers = selectedRows
-      .map(row => row.original)
-      .filter(item => item.id && Number(item.id) !== 1)
-  if (!deleteUsers.length) {
-    toast.add({title: "错误", description: "超级管理员不可删除", color: "error"})
-    return
-  }
-  const ids = deleteUsers.map(item => item.id)
-  const usernames = deleteUsers.map(item => item.username ?? "")
-  confirmDeleteUsers(ids, usernames)
-}
-
 </script>
 
 <template>
