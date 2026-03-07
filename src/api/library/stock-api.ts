@@ -10,27 +10,27 @@ const StockApi = {
      * @param queryParams
      */
     getPage(queryParams?: StockQuery) {
-        return request<any, PageResult<StockPageVO[]>>({
+        return request<unknown, PageResult<StockPageVO[]>>({
             url: `${STOCK_BASE_URL}/page`,
             method: "get",
             params: queryParams,
         })
     },
     getFormData(isbn: string) {
-        return request<any, StockForm | null>({
+        return request<unknown, StockForm | null>({
             url: `${STOCK_BASE_URL}/${isbn}`,
             method: "get",
         })
     },
     create(stockForm: StockForm) {
-        return request<any, string>({
+        return request<StockForm, string>({
             url: `${STOCK_BASE_URL}`,
             method: "post",
             data: stockForm,
         })
     },
     update(stockForm: StockForm) {
-        return request<any, string>({
+        return request<StockForm, string>({
             url: `${STOCK_BASE_URL}`,
             method: "put",
             data: stockForm,
