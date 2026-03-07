@@ -67,6 +67,8 @@ const assignRoleUserId = ref("")
 const assignRoleUsername = ref("")
 const avatarModel = ref<File>()
 const roleOptions = ref<SelectMenuItem[]>([])
+type AvatarFileItem = File | { file?: File; raw?: File }
+type AvatarFileModel = AvatarFileItem | AvatarFileItem[]
 const genderOptions = ref<OptionType[]>([
   {
     label: "保密",
@@ -239,18 +241,18 @@ watch(openAssignRoleModal, (isOpen) => {
   }
 })
 
-function getAvatarFileFromModel(model?: File): File | undefined {
+function getAvatarFileFromModel(model?: AvatarFileModel): File | undefined {
   if (!model) return void 0
-  const value = model as any
-  if (value instanceof File) return value
-  if (value?.file instanceof File) return value.file
-  if (value?.raw instanceof File) return value.raw
-  if (Array.isArray(value) && value.length > 0) {
-    const first = value[0]
+  if (model instanceof File) return model
+  if (Array.isArray(model) && model.length > 0) {
+    const first = model[0]
     if (first instanceof File) return first
-    if (first?.file instanceof File) return first.file
-    if (first?.raw instanceof File) return first.raw
+    if (first.file instanceof File) return first.file
+    if (first.raw instanceof File) return first.raw
+    return void 0
   }
+  if (model.file instanceof File) return model.file
+  if (model.raw instanceof File) return model.raw
   return void 0
 }
 
@@ -469,9 +471,9 @@ async function confirmResetPassword(id: string | number, username?: string) {
     resettingUserId.value = String(id)
     await UserAPI.resetPassword(id)
     toast.add({title: "成功", description: "密码已重置为默认密码 123456", color: "success"})
-  } catch (e: any) {
-    if (e !== "cancel" && e !== "close") {
-      console.log(e)
+  } catch (e: unknown) {
+    if (e === "cancel" || e === "close") {
+      return
     }
   } finally {
     resettingUserId.value = ""
@@ -498,9 +500,9 @@ async function confirmDeleteUsers(ids: Array<string | number>, usernames: string
     await UserAPI.delete(ids)
     toast.add({title: "成功", description: "删除成功", color: "success"})
     await fetchData()
-  } catch (e: any) {
-    if (e !== "cancel" && e !== "close") {
-      console.log(e)
+  } catch (e: unknown) {
+    if (e === "cancel" || e === "close") {
+      return
     }
   } finally {
     deletingUserId.value = ""
