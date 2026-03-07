@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import {h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
-import MenuAPI, {type MenuForm, type MenuId, type MenuVO} from "@/api/system/menu-api.ts";
+import {type MenuForm, type MenuVO} from "@/api/system/menu-api.ts";
 import type {TableColumn} from "@nuxt/ui";
 import {MenuTypeEnum} from "@/enums/system/menu-enum.ts";
 import {ElTreeSelect, ElDrawer, ElDialog} from "element-plus";
 import WarningModal from "@/components/WarningModal.vue";
+import {useMenuActions} from "@/composables/system/menu/useMenuActions";
 import {useMenuDialog} from "@/composables/system/menu/useMenuDialog";
 import {useMenuQuery} from "@/composables/system/menu/useMenuQuery";
 import {useMenuSubmit} from "@/composables/system/menu/useMenuSubmit";
@@ -27,7 +28,6 @@ const UCheckbox = resolveComponent('UCheckbox')
 
 const overlay = useOverlay()
 const modal = overlay.create(WarningModal)
-const toast = useToast()
 const {searchForm, menuTableData, loadingMenuList, handleQuery, resetQuery} = useMenuQuery()
 const table = useTemplateRef("table");
 const submittingMenu = ref(false)
@@ -202,6 +202,12 @@ const {
   openAddMenu,
   openEditByRow,
 } = useMenuDialog(formData, tabActiveIndex)
+const {editSelectedMenu, deleteMenu} = useMenuActions({
+  table,
+  modal,
+  openEditByRow,
+  handleQuery,
+})
 const {handleSubmit, addPerm, removePerm} = useMenuSubmit(
   formData,
   dialog,
@@ -217,49 +223,6 @@ watch(tabActiveIndex, (value) => {
     formData.value.type = MenuTypeEnum.CATALOG;
   }
 }, {immediate: true})
-
-function editSelectedMenu() {
-  const selectedRows = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows ?? []
-  if (selectedRows.length !== 1) {
-    toast.add({title: "错误", description: "请选择一条菜单进行修改", color: "error"})
-    return
-  }
-  const selectedRow = selectedRows[0]
-  if (!selectedRow) {
-    return
-  }
-  openEditByRow(selectedRow.original)
-}
-
-async function deleteMenu() {
-  const selectedRows = table.value?.tableApi?.getFilteredSelectedRowModel().flatRows ?? []
-  const deleteIds = selectedRows
-      .map((row) => row.original.id)
-      .filter((id): id is MenuId => id !== undefined && id !== null)
-
-  if (!deleteIds.length) {
-    toast.add({title: "错误", description: "请选择需要删除的菜单", color: "error"})
-    return
-  }
-
-  const instance = await modal.open({
-    content: "确定要删除吗？",
-  })
-  if (!instance) {
-    table.value?.tableApi?.toggleAllPageRowsSelected(false)
-    return
-  }
-
-  try {
-    await MenuAPI.delete(deleteIds)
-    await handleQuery()
-    toast.add({title: "成功", description: "删除成功", color: "success"})
-  } catch (error) {
-    console.error(error)
-  } finally {
-    table.value?.tableApi?.toggleAllPageRowsSelected(false)
-  }
-}
 
 </script>
 
