@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import {onMounted, ref, useTemplateRef} from "vue";
-import type {TreeItem} from '@nuxt/ui'
+
+interface SelectTreeItem {
+  label?: string
+  value: OptionType["value"]
+}
 
 const props = defineProps<{
   items: OptionType[];
   disabled?: boolean
 }>()
-const inputValue = defineModel<any>("selectValue")
+const inputValue = defineModel<OptionType["value"] | undefined>("selectValue")
 
 onMounted(() => {
   treeWidth.value = inputEl.value?.inputRef?.getBoundingClientRect().width || 0
@@ -17,14 +21,14 @@ const inputLabel = ref("")
 const inputEl = useTemplateRef("input")
 const treeWidth = ref(0)
 
-function onSelect(_: any, item: TreeItem) {
+function onSelect(_: unknown, item: SelectTreeItem) {
   inputLabel.value = item.label || ""
   inputValue.value = item.value
 }
 
 function findOptionByValue(
     options: OptionType[],
-    value: any
+    value: OptionType["value"] | undefined
 ): OptionType | undefined {
   // 遍历当前层级的选项
   for (const option of options) {
