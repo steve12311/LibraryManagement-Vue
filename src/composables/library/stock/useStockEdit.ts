@@ -125,8 +125,12 @@ export function useStockEdit(options: UseStockEditOptions) {
       toast.add({title: "成功", description: "修改成功", color: "success"})
       options.openEditBookDialog.value = false
       await options.fetchData()
-    } catch {
-      toast.add({title: "错误", description: "修改图书失败", color: "error"})
+    } catch (error) {
+      toast.add({
+        title: "错误",
+        description: error instanceof Error ? error.message : "修改图书失败",
+        color: "error"
+      })
     } finally {
       options.submittingEditBook.value = false
     }

@@ -9,6 +9,7 @@ import {redirectToLogin} from "@/utils/auth";
 
 const {refreshTokenAndRetry} = useTokenRefresh();
 type BinaryResponseData = Blob | ArrayBuffer | ReadableStream<Uint8Array>;
+const BUSINESS_ACCESS_DENIED_CODE = "A0301";
 
 /**
  * 创建 HTTP 请求实例
@@ -87,8 +88,7 @@ httpRequest.interceptors.response.use(
         const code = data?.code;
         const msg = data?.msg;
 
-        // HTTP 状态兜底处理
-        if ((response.status === 401 || response.status === 403) && authConfig.enableTokenRefresh && !requestConfig._skipAuthRefresh) {
+        if (response.status === 401 && authConfig.enableTokenRefresh && !requestConfig._skipAuthRefresh) {
             return refreshTokenAndRetry(requestConfig, httpRequest);
         }
 
@@ -110,6 +110,21 @@ httpRequest.interceptors.response.use(
                 return Promise.reject(new Error(msg || "Refresh Token Invalid"));
 
             default:
+                if (response.status === 403) {
+                    toast.add({title: "错误", description: msg || "无权限访问当前功能", color: "error"})
+                    return Promise.reject(new Error(msg || "Forbidden"));
+                }
+
+                if (code === BUSINESS_ACCESS_DENIED_CODE) {
+                    toast.add({title: "错误", description: msg || "无权访问当前资源", color: "error"})
+                    return Promise.reject(new Error(msg || "Business Forbidden"));
+                }
+
+                if (response.status >= 500 || code === ApiCodeEnum.ERROR) {
+                    toast.add({title: "错误", description: "系统繁忙，请稍后再试", color: "error"})
+                    return Promise.reject(new Error(msg || "System Error"));
+                }
+
                 toast.add({title: "错误", description: msg || "请求失败", color: "error"})
                 return Promise.reject(new Error(msg || "Request Error"));
         }

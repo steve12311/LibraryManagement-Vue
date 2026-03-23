@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref} from "vue";
+import {computed, h, onMounted, reactive, ref, resolveComponent} from "vue";
+import type {TableColumn} from "@nuxt/ui";
 import * as v from "valibot";
 import {useRouter} from "vue-router";
 import UserAPI, {
+  type MyBorrowPageVO,
   type PasswordUpdateForm,
   type UserGender,
   type UserProfile,
@@ -10,6 +12,7 @@ import UserAPI, {
 } from "@/api/system/user-api.ts";
 import {useUserStore} from "@/store";
 import {UserGenderTypeEnum} from "@/enums/system/status-enum.ts";
+import {useMyBorrowOrders} from "@/composables/system/user/useMyBorrowOrders";
 
 const PHONE_PATTERN = /^$|^1(3\d|4[5-9]|5[0-35-9]|6[2567]|7[0-8]|8\d|9[0-35-9])\d{8}$/
 const EMAIL_PATTERN = /^$|^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -18,6 +21,7 @@ const MAX_AVATAR_SIZE = 2 * 1024 * 1024
 const router = useRouter()
 const toast = useToast()
 const userStore = useUserStore()
+const UBadge = resolveComponent("UBadge")
 
 const loadingProfile = ref(false)
 const submittingProfile = ref(false)
@@ -57,9 +61,67 @@ const createTimeText = computed(() => formatDateTime(profileInfo.value.createTim
 const hasPasswordValue = computed(() => {
   return Boolean(passwordState.oldPassword || passwordState.newPassword || passwordState.confirmPassword)
 })
+const {
+  myBorrowOrders,
+  totalMyBorrowOrders,
+  loadingMyBorrowOrders,
+  myBorrowQueryParams,
+  myBorrowStatusFilter,
+  myBorrowStatusItems,
+  fetchMyBorrowOrders,
+  handleBorrowQuery,
+  resetBorrowQuery,
+  getBorrowStatusLabel,
+  getBorrowStatusColor,
+  formatBorrowReturnTime,
+} = useMyBorrowOrders()
+const borrowColumns = ref<TableColumn<MyBorrowPageVO>[]>([
+  {
+    id: "book",
+    header: "图书信息",
+    cell: ({row}) => {
+      const cover = row.original.cover
+      return h("div", {class: "flex min-w-0 items-center gap-3"}, [
+        cover
+          ? h("img", {
+            src: cover,
+            alt: row.original.bookName,
+            class: "h-14 w-10 rounded-md border border-default bg-elevated object-cover"
+          })
+          : h("div", {
+            class: "flex h-14 w-10 items-center justify-center rounded-md border border-default bg-elevated text-[10px] text-muted"
+          }, "暂无封面"),
+        h("div", {class: "min-w-0 space-y-1"}, [
+          h("p", {class: "truncate font-medium text-highlighted"}, row.original.bookName || "-"),
+          h("p", {class: "text-xs text-muted"}, `ISBN ${row.original.isbn || "-"}`)
+        ])
+      ])
+    }
+  },
+  {
+    accessorKey: "borrowId",
+    header: "借阅单号",
+  },
+  {
+    accessorKey: "returnTime",
+    header: "应还时间",
+    cell: ({row}) => formatBorrowReturnTime(row.original.returnTime),
+  },
+  {
+    accessorKey: "status",
+    header: "状态",
+    cell: ({row}) => {
+      return h(UBadge, {
+        color: getBorrowStatusColor(row.original.status),
+        variant: "subtle",
+        class: "capitalize",
+      }, () => getBorrowStatusLabel(row.original.status))
+    }
+  }
+])
 
 onMounted(() => {
-  void fetchProfile()
+  void refreshPage()
 })
 
 function createProfile(): UserProfile {
@@ -197,6 +259,13 @@ async function fetchProfile() {
   }
 }
 
+async function refreshPage() {
+  await Promise.all([
+    fetchProfile(),
+    fetchMyBorrowOrders(),
+  ])
+}
+
 async function submitProfile() {
   if (submittingProfile.value || loadingProfile.value) return
   const nickname = normalizeText(profileForm.nickname)
@@ -320,8 +389,8 @@ function formatDateTime(value?: Date | string) {
             icon="i-lucide-refresh-cw"
             variant="soft"
             color="neutral"
-            :loading="loadingProfile"
-            @click="fetchProfile"
+            :loading="loadingProfile || loadingMyBorrowOrders"
+            @click="refreshPage"
         >
           刷新信息
         </UButton>
@@ -481,6 +550,73 @@ function formatDateTime(value?: Date | string) {
         </UForm>
       </UCard>
     </div>
+
+    <UCard class="borrow-card">
+      <template #header>
+        <div class="borrow-header">
+          <div>
+            <p class="text-lg font-semibold text-highlighted">我的借阅订单</p>
+            <p class="mt-1 text-sm text-muted">仅展示当前登录账号的借阅记录，并按应还时间升序排列。</p>
+          </div>
+          <div class="borrow-actions">
+            <USelect
+                v-model="myBorrowStatusFilter"
+                :items="myBorrowStatusItems"
+                class="w-32"
+            />
+            <UButton icon="i-lucide-filter" variant="soft" :loading="loadingMyBorrowOrders" @click="handleBorrowQuery">
+              筛选
+            </UButton>
+            <UButton variant="ghost" color="neutral" :disabled="loadingMyBorrowOrders" @click="resetBorrowQuery">
+              重置
+            </UButton>
+            <UButton
+                icon="i-lucide-refresh-cw"
+                variant="ghost"
+                color="neutral"
+                :loading="loadingMyBorrowOrders"
+                @click="fetchMyBorrowOrders"
+            >
+              刷新列表
+            </UButton>
+          </div>
+        </div>
+      </template>
+
+      <div v-if="loadingMyBorrowOrders" class="space-y-3">
+        <div
+            v-for="item in 4"
+            :key="item"
+            class="h-16 animate-pulse rounded-xl bg-elevated"
+        />
+      </div>
+      <div v-else-if="myBorrowOrders.length === 0" class="borrow-empty">
+        <p class="text-base font-medium text-highlighted">暂无借阅订单</p>
+        <p class="mt-1 text-sm text-muted">当前筛选条件下没有查到借阅记录。</p>
+      </div>
+      <UTable
+          v-else
+          class="h-full"
+          :data="myBorrowOrders"
+          :columns="borrowColumns"
+          :loading="loadingMyBorrowOrders"
+          loading-color="primary"
+          loading-animation="carousel"
+      />
+
+      <template #footer>
+        <div class="flex flex-wrap items-center justify-between gap-3 border-default pt-4">
+          <p class="text-xs text-muted">共 {{ totalMyBorrowOrders }} 条借阅记录</p>
+          <UPagination
+              v-if="totalMyBorrowOrders > myBorrowQueryParams.pageSize"
+              v-model:page="myBorrowQueryParams.pageNum"
+              :total="totalMyBorrowOrders"
+              :items-per-page="myBorrowQueryParams.pageSize"
+              @update:page="fetchMyBorrowOrders"
+          />
+        </div>
+      </template>
+    </UCard>
   </div>
 </template>
 
@@ -490,7 +626,8 @@ function formatDateTime(value?: Date | string) {
 }
 
 .profile-card,
-.password-card {
+.password-card,
+.borrow-card {
   background: linear-gradient(145deg, rgb(255 255 255 / 96%) 0%, rgb(248 250 252 / 92%) 100%);
   border: 1px solid rgb(226 232 240 / 70%);
   box-shadow: 0 8px 24px rgb(15 23 42 / 6%);
@@ -521,5 +658,28 @@ function formatDateTime(value?: Date | string) {
   padding: 2px 10px;
   border: 1px dashed rgb(148 163 184 / 70%);
   border-radius: 9999px;
+}
+
+.borrow-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.borrow-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.borrow-empty {
+  border: 1px dashed rgb(203 213 225 / 90%);
+  border-radius: 16px;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  background: rgb(248 250 252 / 75%);
 }
 </style>

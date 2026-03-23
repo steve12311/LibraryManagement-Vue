@@ -19,6 +19,9 @@ const AuthAPI = {
         return request<unknown, CaptchaInfo>({
             url: `${AUTH_BASE_URL}/captcha`,
             method: "get",
+            headers: {
+                Authorization: "no-auth",
+            },
         });
     },
     /** 登录接口*/
@@ -34,6 +37,7 @@ const AuthAPI = {
             method: "post",
             data: body.toString(),
             headers: {
+                Authorization: "no-auth",
                 "Content-Type": "application/x-www-form-urlencoded",
             },
             withCredentials: true,
