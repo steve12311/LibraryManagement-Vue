@@ -5,6 +5,7 @@ import type {CalendarDate} from '@internationalized/date'
 import {ElDialog, ElTreeSelect} from 'element-plus'
 import type {BookForm} from '@/api/library/book-api'
 import type {CategoryLazyOption} from '@/api/library/category-api'
+import {SAFE_IMAGE_UPLOAD_ACCEPT, SAFE_IMAGE_UPLOAD_DESCRIPTION} from '@/api/file-api'
 
 interface CategoryTreeNode {
   level?: number
@@ -61,9 +62,9 @@ const editBookInputDate = useTemplateRef('editBookInputDate')
         <UFormField class="w-full" label="封面">
           <UFileUpload
               v-model="coverModel"
-              accept="image/*"
+              :accept="SAFE_IMAGE_UPLOAD_ACCEPT"
               label="上传图片拖到此处"
-              description="SVG, PNG, JPG or GIF (最大支持2MB)"
+              :description="SAFE_IMAGE_UPLOAD_DESCRIPTION"
               class="w-full min-h-48"
           />
         </UFormField>

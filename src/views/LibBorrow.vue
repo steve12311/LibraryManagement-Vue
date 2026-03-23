@@ -6,13 +6,20 @@ import {CalendarDate} from "@internationalized/date";
 import borrowApi, {
   type BorrowForm,
   type BorrowPageVO,
-  type BorrowQuery,
-  type BorrowStatusValue
+  type BorrowQuery
 } from "@/api/library/borrow-api.ts";
 import userApi from "@/api/system/user-api.ts";
 import bookApi from "@/api/library/book-api.ts";
 import * as v from "valibot";
 import {ElMessageBox} from "element-plus";
+import type { BorrowStatusFilterValue, BorrowStatusValue } from "@/enums/system/borrow-status-enum";
+import {
+  createBorrowStatusItems,
+  getBorrowStatusColor,
+  getBorrowStatusLabel,
+  isBorrowReturned,
+  resolveBorrowStatus
+} from "@/utils/borrow-status";
 
 const UAvatar = resolveComponent("UAvatar")
 const UBadge = resolveComponent("UBadge")
@@ -26,7 +33,6 @@ onMounted(() => {
 
 const toast = useToast()
 const date = new Date()
-type BorrowStatusFilter = BorrowStatusValue | -1
 
 const form = useTemplateRef("form")
 const delayForm = useTemplateRef("delayForm")
@@ -52,7 +58,7 @@ const queryParams = reactive<BorrowQuery>({
 const searchForm = reactive({
   field: "isbn" as BorrowQuery["field"],
   keyword: "",
-  status: -1 as BorrowStatusFilter,
+  status: -1 as BorrowStatusFilterValue,
 })
 
 const userOptions = ref<SelectMenuItem[]>([])
@@ -71,24 +77,7 @@ const fieldItems = ref<SelectItem[]>([
     value: "status"
   }
 ])
-const statusItems = ref<SelectItem[]>([
-  {
-    label: "全部",
-    value: -1
-  },
-  {
-    label: "已归还",
-    value: 0
-  },
-  {
-    label: "借阅中",
-    value: 1
-  },
-  {
-    label: "已逾期",
-    value: 2
-  }
-])
+const statusItems = ref<SelectItem[]>(createBorrowStatusItems(true))
 
 const delayDay = ref(1)
 const selectedDelayBorrowId = ref("")
@@ -149,18 +138,19 @@ const columns = ref<TableColumn<BorrowPageVO>[]>([
     id: "status",
     header: "状态",
     cell: ({row}) => {
+      const status = getRowBorrowStatus(row.original)
       return h(UBadge, {
         class: "capitalize",
         variant: "subtle",
-        color: getBorrowStatus(row.original)
-      }, () => getBorrowText(row.original))
+        color: getBorrowStatusColor(status)
+      }, () => getBorrowStatusLabel(status))
     },
   },
   {
     id: "action",
     header: "操作",
     cell: ({row}) => {
-      if (getBorrowState(row.original) === "returned") {
+      if (isBorrowReturned(getRowBorrowStatus(row.original))) {
         return
       }
       return h(UFieldGroup, undefined, () => [
@@ -222,36 +212,8 @@ function parseDate(value?: Date | string | null) {
   return target
 }
 
-function getBorrowState(row: BorrowPageVO) {
-  if (parseDate(row.realityReturnTime)) {
-    return "returned" as const
-  }
-  const dueDate = parseDate(row.returnTime)
-  if (!dueDate) {
-    return "borrowing" as const
-  }
-  const dueDateStart = new Date(dueDate)
-  dueDateStart.setHours(0, 0, 0, 0)
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-  if (dueDateStart < now) {
-    return "overdue" as const
-  }
-  return "borrowing" as const
-}
-
-function getBorrowText(row: BorrowPageVO) {
-  const status = getBorrowState(row)
-  if (status === "overdue") return "已逾期"
-  if (status === "returned") return "已归还"
-  return "借阅中"
-}
-
-function getBorrowStatus(row: BorrowPageVO) {
-  const status = getBorrowState(row)
-  if (status === "overdue") return "error" as const
-  if (status === "returned") return "neutral" as const
-  return "success" as const
+function getRowBorrowStatus(row: BorrowPageVO): BorrowStatusValue {
+  return resolveBorrowStatus(row.returnTime, row.realityReturnTime)
 }
 
 function applySearchParams() {

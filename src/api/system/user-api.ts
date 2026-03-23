@@ -1,5 +1,6 @@
 import request from "@/utils/request";
 import type {SelectMenuItem} from "@nuxt/ui";
+import type { BorrowStatusValue } from "@/enums/system/borrow-status-enum";
 
 const USER_BASE_URL = "/api/v1/users";
 export type UserId = number | string;
@@ -73,6 +74,13 @@ const UserAPI = {
             method: "get",
         });
     },
+    getMyBorrowPage(queryParams?: MyBorrowPageQuery) {
+        return request<unknown, PageResult<MyBorrowPageVO[]>>({
+            url: `${USER_BASE_URL}/me/borrows/page`,
+            method: "get",
+            params: queryParams,
+        });
+    },
     updateProfile(data: UserProfileForm) {
         return request<unknown, string>({
             url: `${USER_BASE_URL}/profile`,
@@ -137,6 +145,26 @@ export interface UserProfile {
     roleNames: string;
 
     createTime: UserDateValue;
+}
+
+export type MyBorrowPageStatus = BorrowStatusValue;
+
+export interface MyBorrowPageVO {
+    borrowId: string;
+
+    isbn: string;
+
+    cover?: string;
+
+    bookName: string;
+
+    returnTime: UserDateValue;
+
+    status: MyBorrowPageStatus;
+}
+
+export interface MyBorrowPageQuery extends PageQuery {
+    status?: MyBorrowPageStatus;
 }
 
 export interface PasswordUpdateForm {

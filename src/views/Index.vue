@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import {computed, defineAsyncComponent, onMounted, reactive, ref, watch} from "vue";
-import stockApi, {type StockPageVO, type StockQuery} from "@/api/library/stock-api.ts";
+import publicBookApi, {type PublicBookPageVO, type PublicBookQuery} from "@/api/public-book-api";
 import FileApi from "@/api/file-api.ts";
 
-interface HomeBookCard extends StockPageVO {
+interface HomeBookCard extends PublicBookPageVO {
   coverPreview?: string;
 }
 
@@ -18,7 +18,7 @@ const searchKeyword = ref("")
 const activeKeyword = ref("")
 const books = ref<HomeBookCard[]>([])
 const fetchSerial = ref(0)
-const queryParams = reactive<StockQuery>({
+const queryParams = reactive<PublicBookQuery>({
   pageNum: 1,
   pageSize: 9,
   field: "name",
@@ -85,7 +85,7 @@ async function fetchBooks() {
   const currentFetchSerial = ++fetchSerial.value
   try {
     loading.value = true
-    const data = await stockApi.getPage({
+    const data = await publicBookApi.getPage({
       ...queryParams,
       keyword: queryParams.keyword
     })
@@ -94,7 +94,7 @@ async function fetchBooks() {
     books.value = data.list.map((book) => {
       return {
         ...book,
-        coverPreview: fetchCover(book.bookImage)
+        coverPreview: fetchCover(book.coverUrl)
       }
     })
   } catch (error) {
@@ -110,19 +110,19 @@ async function fetchBooks() {
   }
 }
 
-function fetchCover(originalUrl?: string) {
-  if (!originalUrl) {
+function fetchCover(coverUrl?: string) {
+  if (!coverUrl) {
     return void 0
   }
-  const cachedUrl = imageCache.get(originalUrl)
+  const cachedUrl = imageCache.get(coverUrl)
   if (cachedUrl) {
     return cachedUrl
   }
-  const resolvedUrl = FileApi.resolveUrl(originalUrl)
+  const resolvedUrl = FileApi.resolveUrl(coverUrl)
   if (!resolvedUrl) {
     return void 0
   }
-  imageCache.set(originalUrl, resolvedUrl)
+  imageCache.set(coverUrl, resolvedUrl)
   return resolvedUrl
 }
 
@@ -137,21 +137,12 @@ function formatDate(date?: Date | string) {
   return currentDate.toLocaleDateString("zh-CN")
 }
 
-function getStockLabel(book: HomeBookCard) {
-  if (book.currentNumber <= 0) {
-    return "暂不可借"
-  }
-  return `可借 ${book.currentNumber} 本`
+function getAvailabilityLabel(book: HomeBookCard) {
+  return book.available ? "可借" : "无库存"
 }
 
-function getStockColor(book: HomeBookCard) {
-  if (book.currentNumber <= 0) {
-    return "error"
-  }
-  if (book.currentNumber <= 3) {
-    return "warning"
-  }
-  return "success"
+function getAvailabilityColor(book: HomeBookCard) {
+  return book.available ? "success" : "error"
 }
 </script>
 
@@ -171,7 +162,7 @@ function getStockColor(book: HomeBookCard) {
               只用一个搜索框，快速找到你要的图书
             </h1>
             <p class="mt-2 text-sm text-muted">
-              输入书名后按回车或点击搜索，即可查看库存与可借数量。
+              输入书名后按回车或点击搜索，即可查看公开书目信息与可借状态。
             </p>
             <form class="mt-6 flex flex-col gap-3 sm:flex-row" @submit.prevent="handleSearch">
               <UInput
@@ -273,8 +264,8 @@ function getStockColor(book: HomeBookCard) {
                   <p class="text-sm text-muted">作者：{{ book.author || "未知" }}</p>
                   <p class="text-sm text-muted">出版社：{{ book.publishName || "未知" }}</p>
                   <div class="flex items-center gap-2">
-                    <UBadge :color="getStockColor(book)" variant="subtle">{{ getStockLabel(book) }}</UBadge>
-                    <span class="text-xs text-muted">总库存 {{ book.stockNumber }}</span>
+                    <UBadge :color="getAvailabilityColor(book)" variant="subtle">{{ getAvailabilityLabel(book) }}</UBadge>
+                    <span class="text-xs text-muted">{{ book.categoryName || "未分类" }}</span>
                   </div>
                 </div>
               </div>
