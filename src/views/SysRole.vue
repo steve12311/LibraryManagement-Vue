@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
+import {h, nextTick, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import type {SelectMenuItem, TableColumn} from "@nuxt/ui";
 import moment from "moment";
-import {ElMessageBox} from "element-plus";
+import {ElMessageBox, ElTree} from "element-plus";
+import type {TreeInstance} from "element-plus";
 import UserAPI from "@/api/system/user-api.ts";
 import RoleAPI, {
   type RoleForm,
@@ -12,6 +13,11 @@ import RoleAPI, {
   type RoleStatus
 } from "@/api/system/role-api.ts";
 import {DataScopeTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
+import {
+  collectReplayCheckedMenuIds,
+  type RoleMenuOption,
+  useRoleMenuAssign
+} from "@/composables/system/role/useRoleMenuAssign";
 
 onMounted(() => {
   handleQuery()
@@ -26,7 +32,8 @@ const UTooltip = resolveComponent('UTooltip')
 const toast = useToast()
 const table = useTemplateRef("table")
 const roleForm = useTemplateRef("roleForm")
-const assignForm = useTemplateRef("assignForm")
+const assignUsersForm = useTemplateRef("assignUsersForm")
+const assignMenuTree = useTemplateRef<TreeInstance>("assignMenuTree")
 const columnVisibility = ref({
   id: false,
 })
@@ -40,7 +47,8 @@ const searchForm = reactive({
 })
 const roleList = shallowRef<RolePageVO[]>([])
 const openEditModal = ref(false)
-const openAssignModal = ref(false)
+const openAssignUsersModal = ref(false)
+const openAssignMenuModal = ref(false)
 const editModalMode = ref<"add" | "edit">("add")
 const editModalTitle = ref("新增角色")
 const loadingPageData = ref(false)
@@ -48,14 +56,21 @@ const loadingEditRole = ref(false)
 const submittingEditRole = ref(false)
 const loadingAssignUsers = ref(false)
 const submittingAssignUsers = ref(false)
+const loadingAssignMenus = ref(false)
+const submittingAssignMenus = ref(false)
 const editingRoleId = ref("")
 const assigningRoleId = ref("")
+const assigningMenuRoleId = ref("")
 const deletingRoleId = ref("")
 const roleStatusUpdatingId = ref("")
-const assignRoleId = ref("")
-const assignRoleName = ref("")
+const assignUsersRoleId = ref("")
+const assignUsersRoleName = ref("")
 const userOptions = ref<SelectMenuItem[]>([])
 const assignUserIds = ref<Array<string | number>>([])
+const menuTreeProps = {
+  label: "label",
+  children: "children"
+} as const
 const statusOptions = ref<OptionType[]>([
   {
     label: "启用",
@@ -93,6 +108,19 @@ const initialRoleFormData: RoleForm = {
   dataScope: DataScopeTypeEnum.ALL as RoleForm["dataScope"]
 }
 const roleState = ref<RoleForm>({...initialRoleFormData})
+const {
+  assignMenuRoleName,
+  menuTreeOptions,
+  assignedMenuIds,
+  resetAssignMenuForm,
+  openAssignMenuDialog,
+  submitAssignMenus,
+} = useRoleMenuAssign({
+  openAssignMenuModal,
+  loadingAssignMenus,
+  submittingAssignMenus,
+  assigningMenuRoleId,
+})
 const columns = ref<TableColumn<RolePageVO>[]>([
   {
     id: "select",
@@ -167,9 +195,17 @@ const columns = ref<TableColumn<RolePageVO>[]>([
             }
           }),
         ]),
-        // h(UTooltip, {text: "数据权限", delayDuration: 0}, () => [
-        //   h(UButton, {icon: "i-lucide-lock-keyhole", variant: "ghost"}),
-        // ]),
+        h(UTooltip, {text: "分配菜单", delayDuration: 0}, () => [
+          h(UButton, {
+            icon: "i-lucide-shield-check",
+            variant: "ghost",
+            loading: loadingAssignMenus.value && assigningMenuRoleId.value === String(row.original.id),
+            onClick: (ev: Event) => {
+              ev.stopPropagation()
+              openAssignMenuDialog(row.original.id, row.original.name)
+            }
+          }),
+        ]),
         h(UTooltip, {text: "分配用户", delayDuration: 0}, () => [
           h(UButton, {
             icon: "i-lucide-user",
@@ -177,7 +213,7 @@ const columns = ref<TableColumn<RolePageVO>[]>([
             loading: loadingAssignUsers.value && assigningRoleId.value === String(row.original.id),
             onClick: (ev: Event) => {
               ev.stopPropagation()
-              openAssignUsersModal(row.original.id, row.original.name)
+              openAssignUsersDialog(row.original.id, row.original.name)
             }
           }),
         ]),
@@ -202,10 +238,20 @@ watch(openEditModal, (isOpen) => {
     resetEditRoleForm()
   }
 })
-watch(openAssignModal, (isOpen) => {
+watch(openAssignUsersModal, (isOpen) => {
   if (!isOpen) {
     resetAssignUsersForm()
   }
+})
+watch(openAssignMenuModal, async (isOpen) => {
+  if (!isOpen) {
+    resetAssignMenuForm()
+    return
+  }
+  await nextTick()
+  assignMenuTree.value?.setCheckedKeys(
+      collectReplayCheckedMenuIds(menuTreeOptions.value, assignedMenuIds.value)
+  )
 })
 
 function normalizeUserOptions(items: SelectMenuItem[]) {
@@ -253,8 +299,8 @@ function resetEditRoleForm() {
 
 function resetAssignUsersForm() {
   assignUserIds.value = []
-  assignRoleId.value = ""
-  assignRoleName.value = ""
+  assignUsersRoleId.value = ""
+  assignUsersRoleName.value = ""
   submittingAssignUsers.value = false
   loadingAssignUsers.value = false
   assigningRoleId.value = ""
@@ -339,16 +385,16 @@ async function submitEditRole() {
   }
 }
 
-async function openAssignUsersModal(id: string | number | undefined, name?: string) {
+async function openAssignUsersDialog(id: string | number | undefined, name?: string) {
   if (id === undefined || id === null || id === "") return
   assigningRoleId.value = String(id)
   loadingAssignUsers.value = true
-  assignRoleId.value = String(id)
-  assignRoleName.value = name ?? ""
+  assignUsersRoleId.value = String(id)
+  assignUsersRoleName.value = name ?? ""
   assignUserIds.value = []
   try {
     await fetchUserOptions()
-    openAssignModal.value = true
+    openAssignUsersModal.value = true
   } catch {
     toast.add({title: "错误", description: "打开分配用户失败", color: "error"})
   } finally {
@@ -358,7 +404,7 @@ async function openAssignUsersModal(id: string | number | undefined, name?: stri
 }
 
 async function submitAssignUsers() {
-  if (!assignRoleId.value) {
+  if (!assignUsersRoleId.value) {
     toast.add({title: "错误", description: "角色ID不能为空", color: "error"})
     return
   }
@@ -373,9 +419,9 @@ async function submitAssignUsers() {
 
   try {
     submittingAssignUsers.value = true
-    await RoleAPI.assignUsersToRole(Number(assignRoleId.value), userIds)
+    await RoleAPI.assignUsersToRole(Number(assignUsersRoleId.value), userIds)
     toast.add({title: "成功", description: "分配用户成功", color: "success"})
-    openAssignModal.value = false
+    openAssignUsersModal.value = false
   } catch {
     toast.add({title: "错误", description: "分配用户失败", color: "error"})
   } finally {
@@ -470,12 +516,71 @@ function resetQuery() {
   searchForm.keywords = ""
   handleQuery()
 }
+
+function getSelectedMenuIds() {
+  const checkedKeys = assignMenuTree.value?.getCheckedKeys(false) ?? []
+  const halfCheckedKeys = assignMenuTree.value?.getHalfCheckedKeys() ?? []
+  return Array.from(new Set(
+      [...checkedKeys, ...halfCheckedKeys]
+          .map((item) => Number(item))
+          .filter((item) => Number.isInteger(item) && item > 0)
+  ))
+}
+
+function getMenuOptionLabel(node: RoleMenuOption) {
+  return node.label || "-"
+}
+
+function getMenuOptionTag(node: RoleMenuOption) {
+  return node.tag?.trim() || ""
+}
+
+async function submitAssignMenusForm() {
+  await submitAssignMenus(getSelectedMenuIds())
+}
 </script>
 
 <template>
-  <UModal v-model:open="openAssignModal" :title="`分配用户${assignRoleName ? ` - ${assignRoleName}` : ''}`">
+  <UModal v-model:open="openAssignMenuModal" :title="`分配菜单${assignMenuRoleName ? ` - ${assignMenuRoleName}` : ''}`">
     <template #body>
-      <UForm ref="assignForm" @submit="submitAssignUsers" class="space-y-4">
+      <div class="space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-sm text-muted">勾选后保存，即可更新当前角色的菜单与按钮权限。</p>
+        </div>
+        <div class="max-h-[420px] overflow-auto rounded-lg border border-default p-3">
+          <ElTree
+              ref="assignMenuTree"
+              node-key="value"
+              show-checkbox
+              default-expand-all
+              :data="menuTreeOptions"
+              :props="menuTreeProps"
+              empty-text="暂无可分配菜单"
+          >
+            <template #default="{ data }">
+              <div class="flex min-w-0 flex-1 items-center justify-between gap-3 py-1 pr-2">
+                <span class="truncate text-sm text-highlighted">{{ getMenuOptionLabel(data) }}</span>
+                <div class="flex min-w-0 items-center gap-2 text-xs text-muted">
+                  <span v-if="getMenuOptionTag(data)" class="truncate">
+                    {{ getMenuOptionTag(data) }}
+                  </span>
+                </div>
+              </div>
+            </template>
+          </ElTree>
+        </div>
+      </div>
+    </template>
+    <template #footer>
+      <div class="flex justify-end w-full gap-2">
+        <UButton label="取消" variant="ghost" @click="openAssignMenuModal=false"/>
+        <UButton label="保存" :loading="submittingAssignMenus" @click="submitAssignMenusForm"/>
+      </div>
+    </template>
+  </UModal>
+  <UModal v-model:open="openAssignUsersModal" :title="`分配用户${assignUsersRoleName ? ` - ${assignUsersRoleName}` : ''}`">
+    <template #body>
+      <UForm ref="assignUsersForm" @submit="submitAssignUsers" class="space-y-4">
         <UFormField class="w-full" label="用户" required>
           <USelectMenu
               multiple
@@ -492,8 +597,8 @@ function resetQuery() {
     </template>
     <template #footer>
       <div class="flex justify-end w-full gap-2">
-        <UButton label="取消" variant="ghost" @click="openAssignModal=false"/>
-        <UButton label="保存" :loading="submittingAssignUsers" @click="assignForm?.submit()"/>
+        <UButton label="取消" variant="ghost" @click="openAssignUsersModal=false"/>
+        <UButton label="保存" :loading="submittingAssignUsers" @click="assignUsersForm?.submit()"/>
       </div>
     </template>
   </UModal>
