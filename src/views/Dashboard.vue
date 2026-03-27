@@ -127,33 +127,36 @@ const securityMetrics = computed(() => [
 <template>
   <div class="page-scroll h-full overflow-y-auto overflow-x-hidden rounded-2xl border border-default bg-slate-50/70">
     <div class="mx-auto flex max-w-[1600px] flex-col gap-6 px-4 py-6 lg:px-6">
-      <section class="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <UCard class="rounded-3xl border border-default bg-gradient-to-br from-cyan-50 via-white to-sky-50 shadow-sm" :ui="{ body: 'p-6 lg:p-7' }">
-          <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div class="space-y-3">
-              <div class="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-3 py-1 text-xs font-semibold tracking-[0.24em] text-cyan-700">
+      <section class="space-y-4">
+        <UCard class="rounded-3xl border border-default shadow-sm" :ui="{ body: 'p-6 lg:p-7' }">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="space-y-2">
+              <div class="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.24em] text-muted">
                 <UIcon name="i-lucide-chart-column-big" class="h-4 w-4"/>
-                DATA COCKPIT
+                系统管理
               </div>
               <div>
-                <h1 class="text-3xl font-bold tracking-tight text-highlighted">校园图书馆数据大屏</h1>
+                <h1 class="text-2xl font-semibold tracking-tight text-highlighted">数据分析</h1>
                 <p class="mt-2 max-w-3xl text-sm leading-6 text-muted">
-                  面向后台管理员的运营驾驶舱，集中查看馆藏、借阅、操作审计与认证风险的关键指标。
+                  集中查看馆藏、借阅、操作审计与认证风险的关键指标，用于日常巡检与趋势判断。
                 </p>
               </div>
             </div>
-            <div class="grid gap-3 rounded-2xl border border-cyan-100 bg-white/80 p-4 text-sm text-slate-600 shadow-sm sm:grid-cols-2">
-              <div>
-                <p class="text-xs uppercase tracking-[0.2em] text-muted">当前窗口</p>
-                <p class="mt-1 font-medium text-highlighted">
-                  {{ trendWindowItems.find((item) => item.value === activeTrendWindow)?.label || "-" }}
-                </p>
+
+            <div class="rounded-2xl border border-default bg-elevated/60 p-4 text-sm text-slate-600">
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <p class="text-xs uppercase tracking-[0.2em] text-muted">当前窗口</p>
+                  <p class="mt-1 font-medium text-highlighted">
+                    {{ trendWindowItems.find((item) => item.value === activeTrendWindow)?.label || "-" }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-xs uppercase tracking-[0.2em] text-muted">最后刷新</p>
+                  <p class="mt-1 font-medium text-highlighted">{{ lastUpdatedAt || "-" }}</p>
+                </div>
               </div>
-              <div>
-                <p class="text-xs uppercase tracking-[0.2em] text-muted">最后刷新</p>
-                <p class="mt-1 font-medium text-highlighted">{{ lastUpdatedAt || "-" }}</p>
-              </div>
-              <div class="sm:col-span-2 flex justify-end">
+              <div class="mt-4 flex justify-end">
                 <UButton
                   icon="i-lucide-refresh-cw"
                   :loading="refreshingAll"
@@ -169,26 +172,27 @@ const securityMetrics = computed(() => [
         <UCard class="rounded-3xl border border-default shadow-sm" :ui="{ body: 'p-6' }">
           <div class="flex items-start justify-between gap-4">
             <div>
-              <p class="text-xs font-semibold tracking-[0.24em] text-muted">观察重点</p>
-              <h2 class="mt-2 text-xl font-semibold text-highlighted">今日异常与运营摘要</h2>
+              <p class="text-xs font-semibold tracking-[0.24em] text-muted">异常摘要</p>
+              <h2 class="mt-2 text-lg font-semibold text-highlighted">今日需重点关注</h2>
+              <p class="mt-1 text-sm text-muted">快速扫描认证风险、逾期压力与后台写操作负载。</p>
             </div>
-            <UIcon name="i-lucide-scan-eye" class="h-5 w-5 text-cyan-600"/>
+            <UIcon name="i-lucide-scan-eye" class="h-5 w-5 text-muted"/>
           </div>
-          <div class="mt-5 grid gap-3">
+          <div class="mt-5 grid gap-3 md:grid-cols-3">
             <div class="rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
-              <p class="text-sm font-medium text-rose-700">登录失败需关注</p>
-              <p class="mt-2 text-3xl font-bold text-rose-900">{{ overview.todayLoginFailureCount }}</p>
-              <p class="mt-1 text-xs text-rose-700/80">今日登录失败次数</p>
+              <p class="text-sm font-medium text-rose-700">登录失败</p>
+              <p class="mt-2 text-2xl font-bold text-rose-900">{{ overview.todayLoginFailureCount }}</p>
+              <p class="mt-1 text-xs text-rose-700/80">今日失败次数</p>
             </div>
             <div class="rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
-              <p class="text-sm font-medium text-amber-700">逾期催还压力</p>
-              <p class="mt-2 text-3xl font-bold text-amber-900">{{ overview.overdueTotal }}</p>
-              <p class="mt-1 text-xs text-amber-700/80">当前逾期记录数量</p>
+              <p class="text-sm font-medium text-amber-700">逾期记录</p>
+              <p class="mt-2 text-2xl font-bold text-amber-900">{{ overview.overdueTotal }}</p>
+              <p class="mt-1 text-xs text-amber-700/80">当前待催还数量</p>
             </div>
             <div class="rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
-              <p class="text-sm font-medium text-sky-700">后台写操作压力</p>
-              <p class="mt-2 text-3xl font-bold text-sky-900">{{ overview.todayOperSuccessCount + overview.todayOperFailureCount }}</p>
-              <p class="mt-1 text-xs text-sky-700/80">今日后台写操作总次数</p>
+              <p class="text-sm font-medium text-sky-700">后台写操作</p>
+              <p class="mt-2 text-2xl font-bold text-sky-900">{{ overview.todayOperSuccessCount + overview.todayOperFailureCount }}</p>
+              <p class="mt-1 text-xs text-sky-700/80">今日总操作次数</p>
             </div>
           </div>
         </UCard>
@@ -197,8 +201,8 @@ const securityMetrics = computed(() => [
       <section class="space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-lg font-semibold text-highlighted">总览指标</h2>
-            <p class="text-sm text-muted">按馆藏、流通和安全三组查看当前全局状态。</p>
+            <h2 class="text-lg font-semibold text-highlighted">关键指标总览</h2>
+            <p class="text-sm text-muted">按馆藏、流通和安全三组查看当前运行状态。</p>
           </div>
           <p v-if="blockErrors.overview" class="text-sm text-error">{{ blockErrors.overview }}</p>
         </div>
@@ -265,7 +269,7 @@ const securityMetrics = computed(() => [
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 class="text-lg font-semibold text-highlighted">趋势分析</h2>
-              <p class="text-sm text-muted">固定窗口切换，不开放自由参数输入。</p>
+              <p class="text-sm text-muted">按固定时间窗口查看业务与安全走势。</p>
             </div>
             <div class="flex flex-wrap gap-2">
               <UButton
@@ -306,7 +310,7 @@ const securityMetrics = computed(() => [
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-lg font-semibold text-highlighted">排行观察</h2>
-              <p class="text-sm text-muted">按近 24 小时 / 近 30 天口径查看重点 Top 榜单。</p>
+              <p class="text-sm text-muted">按固定统计口径查看重点排行结果。</p>
             </div>
           </div>
           <p v-if="blockErrors.ranking" class="text-sm text-error">{{ blockErrors.ranking }}</p>
@@ -347,8 +351,8 @@ const securityMetrics = computed(() => [
       <section class="space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-lg font-semibold text-highlighted">最近事件</h2>
-            <p class="text-sm text-muted">三类事件同时可见，翻页互不影响。</p>
+            <h2 class="text-lg font-semibold text-highlighted">最近记录</h2>
+            <p class="text-sm text-muted">三类记录同时可见，翻页互不影响。</p>
           </div>
           <p v-if="blockErrors.recentEvents" class="text-sm text-error">{{ blockErrors.recentEvents }}</p>
         </div>
