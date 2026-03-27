@@ -31,6 +31,14 @@ export default defineConfig(({mode}: ConfigEnv): UserConfig => {
                             return "ai-runtime";
                         }
 
+                        if (id.includes("/node_modules/echarts/")) {
+                            return "dashboard-echarts";
+                        }
+
+                        if (id.includes("/node_modules/zrender/")) {
+                            return "dashboard-zrender";
+                        }
+
                         if (id.includes("@nuxt/ui")) {
                             return "nuxt-ui";
                         }
