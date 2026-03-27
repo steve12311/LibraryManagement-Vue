@@ -147,9 +147,7 @@ function getAvailabilityColor(book: HomeBookCard) {
 </script>
 
 <template>
-  <div class="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-default bg-linear-to-b from-cyan-50 via-white to-blue-50">
-    <div class="pointer-events-none absolute -left-20 -top-16 h-64 w-64 rounded-full bg-cyan-300/30 blur-3xl"/>
-    <div class="pointer-events-none absolute -right-16 top-32 h-72 w-72 rounded-full bg-blue-300/25 blur-3xl"/>
+  <div class="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-default bg-slate-50/70">
 
     <div class="page-scroll relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
       <div class="mx-auto flex min-h-full max-w-7xl flex-col gap-7 px-4 py-8 lg:px-10">
@@ -191,8 +189,8 @@ function getAvailabilityColor(book: HomeBookCard) {
             <p class="mt-4 text-sm text-muted">{{ resultText }}</p>
           </UCard>
 
-          <UCard class="ai-panel rounded-2xl border border-default shadow-sm" :ui="{ body: 'p-5' }">
-            <div class="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-medium text-cyan-700">
+          <UCard class="ai-panel rounded-2xl border border-cyan-100/80 bg-cyan-50/50 shadow-sm" :ui="{ body: 'p-5' }">
+            <div class="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/85 px-3 py-1 text-xs font-medium text-cyan-700">
               <UIcon name="i-lucide-bot" class="h-4 w-4"/>
               智慧咨询
             </div>
@@ -206,13 +204,13 @@ function getAvailabilityColor(book: HomeBookCard) {
               <div
                   v-for="item in aiHighlights"
                   :key="item.text"
-                  class="flex items-center gap-2 rounded-lg border border-cyan-100 bg-white/70 px-3 py-2 text-sm text-gray-700"
+                  class="flex items-center gap-2 rounded-lg border border-cyan-100/80 bg-white/80 px-3 py-2 text-sm text-gray-700"
               >
                 <UIcon :name="item.icon" class="h-4 w-4 text-cyan-600"/>
                 <span>{{ item.text }}</span>
               </div>
             </div>
-            <UButton class="mt-5" icon="i-lucide-sparkles" color="neutral" variant="soft" @click="openAiAssistant">
+            <UButton class="mt-5" icon="i-lucide-sparkles" color="primary" variant="soft" @click="openAiAssistant">
               打开智慧咨询
             </UButton>
           </UCard>
@@ -241,7 +239,7 @@ function getAvailabilityColor(book: HomeBookCard) {
             <UCard
                 v-for="(book, index) in books"
                 :key="book.isbn"
-                class="book-card h-full border-cyan-100/80 transition duration-300 hover:-translate-y-1 hover:shadow-lg"
+                class="book-card h-full border-default transition duration-300 hover:-translate-y-1 hover:shadow-md"
                 :style="{ '--book-delay': `${index * 40}ms` }"
             >
               <div class="flex gap-4">
@@ -295,6 +293,8 @@ function getAvailabilityColor(book: HomeBookCard) {
         class="ai-floating absolute bottom-6 right-6 z-10"
         icon="i-lucide-bot"
         label="智慧咨询"
+        color="primary"
+        variant="soft"
         @click="openAiAssistant"
     />
     <AISidebar v-if="aiSidebarLoaded" v-model:open="openAISidebar"/>
@@ -308,7 +308,7 @@ function getAvailabilityColor(book: HomeBookCard) {
 }
 
 .ai-panel {
-  background: linear-gradient(145deg, rgb(240 249 255 / 90%) 0%, rgb(255 255 255 / 96%) 100%);
+  box-shadow: 0 14px 28px rgb(34 211 238 / 10%);
 }
 
 .book-title {
@@ -322,12 +322,12 @@ function getAvailabilityColor(book: HomeBookCard) {
   opacity: 0;
   animation: fade-up 380ms ease-out forwards;
   animation-delay: var(--book-delay);
+  background: rgb(255 255 255 / 0.96);
 }
 
 .ai-floating {
-  border: 1px solid rgb(125 211 252 / 55%);
-  background: linear-gradient(120deg, rgb(236 254 255 / 92%) 0%, rgb(224 242 254 / 92%) 100%);
-  box-shadow: 0 14px 28px rgb(56 189 248 / 26%);
+  border: 1px solid rgb(103 232 249 / 75%);
+  box-shadow: 0 14px 28px rgb(8 145 178 / 18%);
 }
 
 @keyframes fade-up {
