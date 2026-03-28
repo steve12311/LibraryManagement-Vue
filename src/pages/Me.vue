@@ -10,6 +10,8 @@ import UserAPI, {
   type UserProfile,
   type UserProfileForm
 } from "@/api/system/user-api.ts";
+import PasswordEditModal from "@/components/me/PasswordEditModal.vue";
+import ProfileEditModal from "@/components/me/ProfileEditModal.vue";
 import {useUserStore} from "@/store";
 import {UserGenderTypeEnum} from "@/enums/system/status-enum.ts";
 import {useMyBorrowOrders} from "@/composables/system/user/useMyBorrowOrders";
@@ -26,6 +28,8 @@ const UBadge = resolveComponent("UBadge")
 const loadingProfile = ref(false)
 const submittingProfile = ref(false)
 const submittingPassword = ref(false)
+const openProfileEditModal = ref(false)
+const openPasswordEditModal = ref(false)
 const profileRequestSerial = ref(0)
 const avatarModel = ref<File>()
 const profileInfo = ref<UserProfile>(createProfile())
@@ -206,23 +210,37 @@ function resetProfileForm() {
   applyProfileToForm(profileInfo.value)
 }
 
-type AvatarFileItem = File | { file?: File; raw?: File }
-type AvatarFileModel = AvatarFileItem | AvatarFileItem[]
+function handleProfileEditModalChange(open: boolean) {
+  openProfileEditModal.value = open
+  if (open) {
+    applyProfileToForm(profileInfo.value)
+    return
+  }
+  resetProfileForm()
+}
 
-function getAvatarFileFromModel(model?: AvatarFileModel): File | undefined {
+function openProfileEditor() {
+  if (loadingProfile.value || submittingProfile.value) return
+  applyProfileToForm(profileInfo.value)
+  openProfileEditModal.value = true
+}
+
+function handlePasswordEditModalChange(open: boolean) {
+  openPasswordEditModal.value = open
+  if (!open) {
+    resetPasswordState()
+  }
+}
+
+function openPasswordEditor() {
+  if (submittingPassword.value) return
+  resetPasswordState()
+  openPasswordEditModal.value = true
+}
+
+function getAvatarFileFromModel(model?: File): File | undefined {
   if (!model) return void 0
   if (model instanceof File) return model
-  if (Array.isArray(model)) {
-    if (model.length === 0) return void 0
-    const first = model[0]
-    if (!first) return void 0
-    if (first instanceof File) return first
-    if (first.file instanceof File) return first.file
-    if (first.raw instanceof File) return first.raw
-    return void 0
-  }
-  if (model.file instanceof File) return model.file
-  if (model.raw instanceof File) return model.raw
   return void 0
 }
 
@@ -310,6 +328,7 @@ async function submitProfile() {
     await UserAPI.updateProfile(payload)
     toast.add({title: "成功", description: "个人信息已更新", color: "success"})
     await fetchProfile()
+    openProfileEditModal.value = false
   } catch (error) {
     console.error(error)
   } finally {
@@ -351,6 +370,7 @@ async function submitPassword() {
       confirmPassword,
     })
     toast.add({title: "成功", description: "密码修改成功", color: "success"})
+    openPasswordEditModal.value = false
     resetPasswordState()
   } catch (error) {
     console.error(error)
@@ -375,9 +395,41 @@ function formatDateTime(value?: Date | string) {
   }
   return date.toLocaleString("zh-CN")
 }
+
+function getGenderLabel(gender?: UserGender) {
+  if (gender === UserGenderTypeEnum.UNKNOWN) return "保密"
+  if (gender === UserGenderTypeEnum.MAN) return "男"
+  if (gender === UserGenderTypeEnum.WOMAN) return "女"
+  return "-"
+}
 </script>
 
 <template>
+  <ProfileEditModal
+      :open="openProfileEditModal"
+      :state="profileForm"
+      :schema="profileSchema"
+      :gender-options="genderOptions"
+      :loading="loadingProfile"
+      :submitting="submittingProfile"
+      :avatar-model="avatarModel"
+      @update:open="handleProfileEditModalChange"
+      @update:state="Object.assign(profileForm, $event)"
+      @update:avatar-model="avatarModel = $event"
+      @reset="resetProfileForm"
+      @submit="submitProfile"
+  />
+  <PasswordEditModal
+      :open="openPasswordEditModal"
+      :state="passwordState"
+      :schema="passwordSchema"
+      :submitting="submittingPassword"
+      :has-password-value="hasPasswordValue"
+      @update:open="handlePasswordEditModalChange"
+      @update:state="Object.assign(passwordState, $event)"
+      @reset="resetPasswordState"
+      @submit="submitPassword"
+  />
   <div class="mx-auto max-w-6xl space-y-4">
     <div class="profile-banner flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-default bg-default px-5 py-4">
       <div>
@@ -401,14 +453,45 @@ function formatDateTime(value?: Date | string) {
       </div>
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-5">
-      <UCard class="profile-card lg:col-span-3">
+    <UCard class="profile-card">
         <template #header>
-          <div class="flex items-center gap-4">
-            <UAvatar :src="profileInfo.avatar" size="xl" icon="i-lucide-user"/>
-            <div>
-              <p class="text-xl font-semibold text-highlighted">{{ profileInfo.nickname || "未设置昵称" }}</p>
-              <p class="text-sm text-muted">@{{ profileInfo.username || "未知账号" }}</p>
+          <div class="profile-header">
+            <div class="flex min-w-0 items-center gap-4">
+              <UAvatar :src="profileInfo.avatar" size="xl" icon="i-lucide-user"/>
+              <div class="min-w-0">
+                <p class="truncate text-xl font-semibold text-highlighted">{{ profileInfo.nickname || "未设置昵称" }}</p>
+                <p class="mt-1 text-sm text-muted">@{{ profileInfo.username || "未知账号" }}</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <UBadge
+                      v-for="role in roleItems"
+                      :key="role"
+                      color="info"
+                      variant="subtle"
+                  >
+                    {{ role }}
+                  </UBadge>
+                  <span v-if="roleItems.length === 0" class="role-empty text-sm text-muted">暂无角色</span>
+                </div>
+              </div>
+            </div>
+            <div class="profile-actions">
+              <UButton
+                  icon="i-lucide-pencil-line"
+                  variant="soft"
+                  :disabled="loadingProfile || submittingProfile"
+                  @click="openProfileEditor"
+              >
+                编辑资料
+              </UButton>
+              <UButton
+                  icon="i-lucide-key-round"
+                  color="neutral"
+                  variant="ghost"
+                  :disabled="submittingPassword"
+                  @click="openPasswordEditor"
+              >
+                修改密码
+              </UButton>
             </div>
           </div>
         </template>
@@ -421,7 +504,7 @@ function formatDateTime(value?: Date | string) {
           />
         </div>
         <div v-else class="space-y-5">
-          <div class="grid gap-3 sm:grid-cols-2">
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <div class="info-item">
               <span class="label">用户ID</span>
               <span class="value">{{ profileInfo.id || "-" }}</span>
@@ -429,6 +512,18 @@ function formatDateTime(value?: Date | string) {
             <div class="info-item">
               <span class="label">登录账号</span>
               <span class="value">{{ profileInfo.username || "-" }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">性别</span>
+              <span class="value">{{ getGenderLabel(profileInfo.gender) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">手机号</span>
+              <span class="value">{{ profileInfo.mobile || "-" }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">电子邮箱</span>
+              <span class="value">{{ profileInfo.email || "-" }}</span>
             </div>
             <div class="info-item">
               <span class="label">创建时间</span>
@@ -439,124 +534,14 @@ function formatDateTime(value?: Date | string) {
               <span class="value">{{ roleItems.length }}</span>
             </div>
           </div>
-
-          <UForm :schema="profileSchema" :state="profileForm" class="space-y-4" @submit.prevent="submitProfile">
-            <UFieldGroup class="w-full gap-2">
-              <UFormField class="w-full" label="昵称" name="nickname" required>
-                <UInput v-model="profileForm.nickname" class="w-full" placeholder="请输入昵称"/>
-              </UFormField>
-              <UFormField class="w-full" label="性别">
-                <USelect
-                    v-model="profileForm.gender"
-                    valueKey="value"
-                    :items="genderOptions"
-                    class="w-full"
-                />
-              </UFormField>
-            </UFieldGroup>
-            <UFieldGroup class="w-full gap-2">
-              <UFormField class="w-full" label="手机号">
-                <UInput v-model="profileForm.mobile" class="w-full" placeholder="请输入手机号"/>
-              </UFormField>
-              <UFormField class="w-full" label="电子邮箱">
-                <UInput v-model="profileForm.email" type="email" class="w-full" placeholder="请输入电子邮箱"/>
-              </UFormField>
-            </UFieldGroup>
-            <UFormField class="w-full" label="头像">
-              <UFieldGroup class="w-full items-center gap-3">
-                <UAvatar size="lg" :src="profileForm.avatar" icon="i-lucide-user"/>
-                <UFileUpload
-                    v-model="avatarModel"
-                    accept="image/*"
-                    label="上传头像拖到此处"
-                    description="图片会转为 Base64 存储"
-                    class="w-full min-h-24"
-                />
-              </UFieldGroup>
-            </UFormField>
-            <div class="flex justify-end gap-2">
-              <UButton type="button" variant="ghost" color="neutral" :disabled="loadingProfile || submittingProfile"
-                       @click="resetProfileForm">
-                重置
-              </UButton>
-              <UButton type="submit" :loading="submittingProfile" :disabled="loadingProfile || submittingProfile"
-                       icon="i-lucide-save">
-                保存资料
-              </UButton>
-            </div>
-          </UForm>
-
-          <div>
-            <p class="mb-2 text-sm font-medium text-highlighted">角色</p>
-            <div class="flex flex-wrap gap-2">
-              <UBadge
-                  v-for="role in roleItems"
-                  :key="role"
-                  color="info"
-                  variant="subtle"
-              >
-                {{ role }}
-              </UBadge>
-              <span v-if="roleItems.length === 0" class="role-empty text-sm text-muted">暂无角色</span>
-            </div>
-          </div>
         </div>
       </UCard>
-
-      <UCard class="password-card lg:col-span-2">
-        <template #header>
-          <div>
-            <p class="text-lg font-semibold text-highlighted">修改密码</p>
-            <p class="mt-1 text-sm text-muted">修改后请使用新密码登录</p>
-          </div>
-        </template>
-
-        <UForm :schema="passwordSchema" :state="passwordState" class="space-y-4" @submit.prevent="submitPassword">
-          <UFormField label="当前密码" name="oldPassword" required>
-            <UInput
-                v-model="passwordState.oldPassword"
-                type="password"
-                class="w-full"
-                placeholder="请输入当前密码"
-            />
-          </UFormField>
-          <UFormField label="新密码" name="newPassword" required>
-            <UInput
-                v-model="passwordState.newPassword"
-                type="password"
-                class="w-full"
-                placeholder="请输入新密码"
-            />
-          </UFormField>
-          <UFormField label="确认新密码" name="confirmPassword" required>
-            <UInput
-                v-model="passwordState.confirmPassword"
-                type="password"
-                class="w-full"
-                placeholder="请再次输入新密码"
-            />
-          </UFormField>
-          <p class="text-xs text-muted">密码长度至少 6 位，建议包含字母和数字。</p>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <UButton type="button" variant="ghost" color="neutral" :disabled="submittingPassword || !hasPasswordValue"
-                     @click="resetPasswordState">
-              清空
-            </UButton>
-            <UButton type="submit" :loading="submittingPassword" :disabled="submittingPassword" icon="i-lucide-key-round">
-              更新密码
-            </UButton>
-          </div>
-        </UForm>
-      </UCard>
-    </div>
 
     <UCard class="borrow-card">
       <template #header>
         <div class="borrow-header">
           <div>
             <p class="text-lg font-semibold text-highlighted">我的借阅订单</p>
-            <p class="mt-1 text-sm text-muted">仅展示当前登录账号的借阅记录，并按应还时间升序排列。</p>
           </div>
           <div class="borrow-actions">
             <USelect
@@ -626,11 +611,24 @@ function formatDateTime(value?: Date | string) {
 }
 
 .profile-card,
-.password-card,
 .borrow-card {
   background: linear-gradient(145deg, rgb(255 255 255 / 96%) 0%, rgb(248 250 252 / 92%) 100%);
   border: 1px solid rgb(226 232 240 / 70%);
   box-shadow: 0 8px 24px rgb(15 23 42 / 6%);
+}
+
+.profile-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .info-item {
@@ -652,6 +650,7 @@ function formatDateTime(value?: Date | string) {
   font-size: 14px;
   font-weight: 600;
   color: rgb(15 23 42);
+  word-break: break-all;
 }
 
 .role-empty {
