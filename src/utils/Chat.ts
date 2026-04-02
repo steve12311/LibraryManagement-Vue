@@ -1,6 +1,5 @@
 import type {UIMessage} from "ai";
-import type {AxiosProgressEvent} from "axios";
-import request from "./request.ts";
+import { ChatStreamError, streamChat } from "./chat-stream.ts";
 import {ref} from "vue";
 
 type ChatStatus = "error" | "submitted" | "streaming" | "ready";
@@ -33,14 +32,7 @@ interface ChatResponseChunk {
     };
 }
 
-interface StreamParserState {
-    consumedLength: number;
-    pendingLine: string;
-    hasParsedChunk: boolean;
-}
-
 export class AIChat {
-    static readonly AI_BASE_URL = "/chat";
     static readonly MAX_MESSAGE_LENGTH = 1000;
 
     constructor({messages}: { messages?: UIMessage[] }) {
@@ -49,6 +41,7 @@ export class AIChat {
 
     messages = ref<UIMessage[]>([])
     status = ref<ChatStatus>("ready")
+    errorMessage = ref("")
     private controller = new AbortController()
     private tempInput = ""
 
@@ -67,6 +60,7 @@ export class AIChat {
         }
 
         this.tempInput = normalizedText;
+        this.errorMessage.value = "";
         const userMessage = this.createTextMessage("user", normalizedText);
         const assistantMessage = this.createTextMessage("assistant", "");
         this.messages.value.push(userMessage, assistantMessage);
@@ -74,32 +68,22 @@ export class AIChat {
 
         this.status.value = "submitted";
         this.status.value = "streaming";
+        let hasParsedChunk = false;
 
-        const parserState: StreamParserState = {
-            consumedLength: 0,
-            pendingLine: "",
-            hasParsedChunk: false,
-        };
-
-        return request({
-            url: AIChat.AI_BASE_URL,
-            method: "get",
-            params: {
-                message: normalizedText,
-            },
+        return streamChat({
+            message: normalizedText,
             signal: this.controller.signal,
-            responseType: "stream",
-            onDownloadProgress: (progressEvent: AxiosProgressEvent) => {
-                this.consumeStream(progressEvent, parserState, assistantIndex);
+            onChunk: (payload) => {
+                hasParsedChunk = true;
+                const deltaText = this.extractTextFromPayload(payload);
+                this.appendAssistantText(assistantIndex, deltaText);
             }
         })
-            .then((response) => {
-                this.flushPendingLine(parserState, assistantIndex);
-
-                // Fallback for non-SSE payloads where only final JSON body is available.
-                if (!parserState.hasParsedChunk) {
-                    const fallbackText = this.extractTextFromUnknownResponse(response);
-                    this.appendAssistantText(assistantIndex, fallbackText);
+            .then(() => {
+                if (!hasParsedChunk) {
+                    this.errorMessage.value = "AI 服务暂未返回有效内容，请稍后重试";
+                    this.status.value = "error";
+                    return;
                 }
                 this.status.value = "ready";
             })
@@ -110,6 +94,7 @@ export class AIChat {
                 }
 
                 this.status.value = "error";
+                this.errorMessage.value = this.resolveErrorMessage(error);
                 console.error("Chat request failed:", error);
             })
             .finally(() => {
@@ -125,6 +110,10 @@ export class AIChat {
 
     reload() {
         return this.sendMessage(this.tempInput);
+    }
+
+    clearError() {
+        this.errorMessage.value = "";
     }
 
     private createTextMessage(role: "user" | "assistant", text: string): UIMessage {
@@ -147,70 +136,13 @@ export class AIChat {
         return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     }
 
-    private consumeStream(
-        progressEvent: AxiosProgressEvent,
-        parserState: StreamParserState,
-        assistantIndex: number
-    ) {
-        const xhr = progressEvent.event?.target as { responseText?: string } | undefined;
-        const responseText = xhr?.responseText;
-        if (!responseText || responseText.length <= parserState.consumedLength) {
-            return;
-        }
-
-        const newChunk = responseText.slice(parserState.consumedLength);
-        parserState.consumedLength = responseText.length;
-        parserState.pendingLine += newChunk;
-
-        const lines = parserState.pendingLine.split(/\r?\n/);
-        parserState.pendingLine = lines.pop() ?? "";
-
-        lines.forEach((line) => {
-            this.consumeLine(line, parserState, assistantIndex);
-        });
-    }
-
-    private flushPendingLine(parserState: StreamParserState, assistantIndex: number) {
-        const line = parserState.pendingLine.trim();
-        if (line) {
-            this.consumeLine(line, parserState, assistantIndex);
-        }
-        parserState.pendingLine = "";
-    }
-
-    private consumeLine(line: string, parserState: StreamParserState, assistantIndex: number) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) {
-            return;
-        }
-
-        const jsonText = trimmed.slice(5).trim();
-        if (!jsonText || jsonText === "[DONE]") {
-            return;
-        }
-
-        try {
-            const payload = JSON.parse(jsonText) as unknown;
-            parserState.hasParsedChunk = true;
-            const deltaText = this.extractTextFromPayload(payload);
-            this.appendAssistantText(assistantIndex, deltaText);
-        } catch (error) {
-            console.error("Failed to parse chat stream chunk:", error);
-        }
-    }
-
-    private extractTextFromUnknownResponse(response: unknown): string {
-        if (!response || typeof response !== "object") {
-            return "";
-        }
-
-        const responseData = (response as { data?: unknown }).data;
-        return this.extractTextFromPayload(responseData);
-    }
-
     private extractTextFromPayload(payload: unknown): string {
         if (!payload) {
             return "";
+        }
+
+        if (typeof payload === "string") {
+            return payload;
         }
 
         if (Array.isArray(payload)) {
@@ -223,7 +155,6 @@ export class AIChat {
 
         const chunk = payload as ChatResponseChunk & { data?: unknown };
 
-        // OpenAPI contract: generations[].assistantMessage.textContent
         const generatedText = chunk.generations
             ?.map((generation) => generation.assistantMessage?.textContent ?? "")
             .join("") ?? "";
@@ -231,18 +162,27 @@ export class AIChat {
             return generatedText;
         }
 
-        // Backward compatibility: result.output.text (legacy format)
         const legacyText = chunk.result?.output?.text ?? "";
         if (legacyText) {
             return legacyText;
         }
 
-        // Some gateways wrap payload inside data.
         if (chunk.data !== undefined) {
             return this.extractTextFromPayload(chunk.data);
         }
 
         return "";
+    }
+
+    private resolveErrorMessage(error: unknown) {
+        if (error instanceof ChatStreamError) {
+            if (error.code === "AUTH_EXPIRED") {
+                return "";
+            }
+            return error.message;
+        }
+
+        return "AI 请求失败，请稍后重试";
     }
 
     private appendAssistantText(assistantIndex: number, deltaText: string) {

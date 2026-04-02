@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, defineAsyncComponent, ref} from 'vue'
+import {computed, defineAsyncComponent, ref, watch} from 'vue'
 import {type UIMessage} from 'ai'
 import {getTextFromMessage} from '@nuxt/ui/utils/ai'
 import {AIChat} from '@/utils/Chat.ts'
@@ -20,6 +20,14 @@ const quickPrompts = [
 ]
 const hasMessages = computed(() => chat.messages.value.length > 0)
 
+watch(() => chat.errorMessage.value, (message) => {
+  if (!message) {
+    return
+  }
+  toast.add({title: '错误', description: message, color: 'error'})
+  chat.clearError()
+})
+
 function sendMessage(e: Event) {
   e.preventDefault()
   submitMessage(inputMessage.value)
@@ -32,16 +40,16 @@ function submitMessage(message: string) {
   }
   if (normalized.length > MAX_INPUT_LENGTH) {
     toast.add({
-      title: "错误",
+      title: '错误',
       description: `输入内容不能超过 ${MAX_INPUT_LENGTH} 个字符`,
-      color: "error"
+      color: 'error'
     })
     return
   }
   if (chat.status.value === 'submitted' || chat.status.value === 'streaming') {
     return
   }
-  chat.sendMessage(normalized)
+  void chat.sendMessage(normalized)
   inputMessage.value = ''
 }
 
@@ -56,7 +64,7 @@ function hasAssistantText(message: UIMessage) {
 async function copy(_: MouseEvent, message: UIMessage) {
   try {
     if (!navigator?.clipboard?.writeText) {
-      toast.add({title: "错误", description: "当前浏览器不支持复制功能", color: "error"})
+      toast.add({title: '错误', description: '当前浏览器不支持复制功能', color: 'error'})
       return
     }
     await navigator.clipboard.writeText(getTextFromMessage(message))
@@ -65,7 +73,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
       copied.value = false
     }, 2000)
   } catch {
-    toast.add({title: "错误", description: "复制失败，请稍后重试", color: "error"})
+    toast.add({title: '错误', description: '复制失败，请稍后重试', color: 'error'})
   }
 }
 </script>
