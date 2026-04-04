@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import {computed, h, onMounted, reactive, ref, resolveComponent} from "vue";
-import type {TableColumn} from "@nuxt/ui";
+import {computed, onMounted, reactive, ref} from "vue";
 import * as v from "valibot";
 import {useRouter} from "vue-router";
 import UserAPI, {
-  type MyBorrowPageVO,
   type PasswordUpdateForm,
   type UserGender,
   type UserProfile,
   type UserProfileForm
 } from "@/api/system/user-api.ts";
+import MeBorrowCard from "@/components/me/MeBorrowCard.vue";
+import MeOverviewCard from "@/components/me/MeOverviewCard.vue";
 import PasswordEditModal from "@/components/me/PasswordEditModal.vue";
 import ProfileEditModal from "@/components/me/ProfileEditModal.vue";
 import {useUserStore} from "@/store";
@@ -23,7 +23,6 @@ const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
 const router = useRouter();
 const toast = useToast();
 const userStore = useUserStore();
-const UBadge = resolveComponent("UBadge");
 
 const loadingProfile = ref(false);
 const submittingProfile = ref(false);
@@ -62,6 +61,14 @@ const profileStats = computed(() => [
   {label: "角色数量", value: `${roleItems.value.length}`},
   {label: "已绑定信息", value: `${boundContactCount.value}/2`}
 ]);
+const overviewDetails = computed(() => [
+  {label: "用户 ID", value: String(profileInfo.value.id || "-")},
+  {label: "登录账号", value: profileInfo.value.username || "-"},
+  {label: "性别", value: getGenderLabel(profileInfo.value.gender)},
+  {label: "手机号", value: profileInfo.value.mobile || "-"},
+  {label: "电子邮箱", value: profileInfo.value.email || "-"},
+  {label: "创建时间", value: createTimeText.value},
+]);
 const hasPasswordValue = computed(() => {
   return Boolean(passwordState.oldPassword || passwordState.newPassword || passwordState.confirmPassword);
 });
@@ -79,50 +86,6 @@ const {
   getBorrowStatusColor,
   formatBorrowReturnTime,
 } = useMyBorrowOrders();
-const borrowColumns = ref<TableColumn<MyBorrowPageVO>[]>([
-  {
-    id: "book",
-    header: "图书信息",
-    cell: ({row}) => {
-      const cover = row.original.cover;
-      return h("div", {class: "flex min-w-0 items-center gap-3"}, [
-        cover
-          ? h("img", {
-            src: cover,
-            alt: row.original.bookName,
-            class: "h-14 w-10 rounded-xl border border-default bg-elevated object-cover"
-          })
-          : h("div", {
-            class: "flex h-14 w-10 items-center justify-center rounded-xl border border-default bg-elevated text-[10px] text-muted"
-          }, "暂无封面"),
-        h("div", {class: "min-w-0 space-y-1"}, [
-          h("p", {class: "truncate font-medium text-highlighted"}, row.original.bookName || "-"),
-          h("p", {class: "text-xs text-muted"}, `ISBN ${row.original.isbn || "-"}`)
-        ])
-      ]);
-    }
-  },
-  {
-    accessorKey: "borrowId",
-    header: "借阅单号",
-  },
-  {
-    accessorKey: "returnTime",
-    header: "应还时间",
-    cell: ({row}) => formatBorrowReturnTime(row.original.returnTime),
-  },
-  {
-    accessorKey: "status",
-    header: "状态",
-    cell: ({row}) => {
-      return h(UBadge, {
-        color: getBorrowStatusColor(row.original.status),
-        variant: "subtle",
-        class: "capitalize",
-      }, () => getBorrowStatusLabel(row.original.status));
-    }
-  }
-]);
 
 onMounted(() => {
   void refreshPage();
@@ -432,12 +395,12 @@ function getGenderLabel(gender?: UserGender) {
   />
 
   <div class="me-shell">
-    <div class="page-head">
+    <div class="me-page-head">
       <div>
-        <p class="page-kicker">PERSONAL SERVICE CENTER</p>
-        <h1 class="page-title">个人中心</h1>
+        <p class="me-page-kicker">PERSONAL SERVICE CENTER</p>
+        <h1 class="me-page-title">个人中心</h1>
       </div>
-      <div class="page-actions">
+      <div class="me-page-actions">
         <UButton
             icon="i-lucide-refresh-cw"
             variant="soft"
@@ -459,404 +422,41 @@ function getGenderLabel(gender?: UserGender) {
       </div>
     </div>
 
-    <UCard class="overview-card" :ui="{ body: 'p-0' }">
-      <div class="overview-hero">
-        <div class="identity-block">
-          <UAvatar :src="profileInfo.avatar" size="xl" icon="i-lucide-user" />
-          <div class="identity-copy">
-            <p class="identity-name">{{ displayName }}</p>
-            <p class="identity-account">@{{ profileInfo.username || "未知账号" }}</p>
-            <div class="identity-role-list">
-              <UBadge
-                  v-for="role in roleItems"
-                  :key="role"
-                  color="info"
-                  variant="soft"
-              >
-                {{ role }}
-              </UBadge>
-              <span v-if="roleItems.length === 0" class="role-empty">暂无角色</span>
-            </div>
-          </div>
-        </div>
+    <MeOverviewCard
+        :loading="loadingProfile"
+        :avatar="profileInfo.avatar"
+        :display-name="displayName"
+        :username="profileInfo.username"
+        :role-items="roleItems"
+        :stats="profileStats"
+        :details="overviewDetails"
+        :disable-profile-action="loadingProfile || submittingProfile"
+        :disable-password-action="submittingPassword"
+        @edit-profile="openProfileEditor"
+        @edit-password="openPasswordEditor"
+    />
 
-        <div class="hero-actions">
-          <UButton
-              icon="i-lucide-pencil-line"
-              variant="soft"
-              :disabled="loadingProfile || submittingProfile"
-              @click="openProfileEditor"
-          >
-            编辑资料
-          </UButton>
-          <UButton
-              icon="i-lucide-key-round"
-              color="neutral"
-              variant="ghost"
-              :disabled="submittingPassword"
-              @click="openPasswordEditor"
-          >
-            修改密码
-          </UButton>
-        </div>
-      </div>
-
-      <div v-if="loadingProfile" class="overview-loading">
-        <div v-for="item in 6" :key="item" class="loading-block" />
-      </div>
-
-      <div v-else class="overview-body">
-        <div class="stats-grid">
-          <div v-for="item in profileStats" :key="item.label" class="stat-item">
-            <p class="stat-label">{{ item.label }}</p>
-            <p class="stat-value">{{ item.value }}</p>
-          </div>
-        </div>
-
-        <div class="detail-grid">
-          <div class="detail-item">
-            <span class="detail-label">用户 ID</span>
-            <span class="detail-value">{{ profileInfo.id || "-" }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">登录账号</span>
-            <span class="detail-value">{{ profileInfo.username || "-" }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">性别</span>
-            <span class="detail-value">{{ getGenderLabel(profileInfo.gender) }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">手机号</span>
-            <span class="detail-value">{{ profileInfo.mobile || "-" }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">电子邮箱</span>
-            <span class="detail-value">{{ profileInfo.email || "-" }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">创建时间</span>
-            <span class="detail-value">{{ createTimeText }}</span>
-          </div>
-        </div>
-      </div>
-    </UCard>
-
-    <UCard class="borrow-card">
-      <template #header>
-        <div class="borrow-header">
-          <div>
-            <p class="borrow-title">我的借阅订单</p>
-            <p class="borrow-subtitle">当前登录账号的借阅记录与状态</p>
-          </div>
-          <div class="borrow-actions">
-            <USelect
-                v-model="myBorrowStatusFilter"
-                :items="myBorrowStatusItems"
-                class="w-32"
-            />
-            <UButton icon="i-lucide-filter" variant="soft" :loading="loadingMyBorrowOrders" @click="handleBorrowQuery">
-              筛选
-            </UButton>
-            <UButton variant="ghost" color="neutral" :disabled="loadingMyBorrowOrders" @click="resetBorrowQuery">
-              重置
-            </UButton>
-            <UButton
-                icon="i-lucide-refresh-cw"
-                variant="ghost"
-                color="neutral"
-                :loading="loadingMyBorrowOrders"
-                @click="fetchMyBorrowOrders"
-            >
-              刷新列表
-            </UButton>
-          </div>
-        </div>
-      </template>
-
-      <div v-if="loadingMyBorrowOrders" class="borrow-loading">
-        <div v-for="item in 4" :key="item" class="loading-block h-16" />
-      </div>
-      <div v-else-if="myBorrowOrders.length === 0" class="borrow-empty">
-        <p class="text-base font-medium text-highlighted">暂无借阅订单</p>
-        <p class="mt-1 text-sm text-muted">当前筛选条件下没有查到借阅记录。</p>
-      </div>
-      <UTable
-          v-else
-          class="h-full"
-          :data="myBorrowOrders"
-          :columns="borrowColumns"
-          :loading="loadingMyBorrowOrders"
-          loading-color="primary"
-          loading-animation="carousel"
-      />
-
-      <template #footer>
-        <div class="borrow-footer">
-          <p class="text-xs text-muted">共 {{ totalMyBorrowOrders }} 条借阅记录</p>
-          <UPagination
-              v-if="totalMyBorrowOrders > myBorrowQueryParams.pageSize"
-              v-model:page="myBorrowQueryParams.pageNum"
-              :total="totalMyBorrowOrders"
-              :items-per-page="myBorrowQueryParams.pageSize"
-              @update:page="fetchMyBorrowOrders"
-          />
-        </div>
-      </template>
-    </UCard>
+    <MeBorrowCard
+        :loading="loadingMyBorrowOrders"
+        :orders="myBorrowOrders"
+        :total="totalMyBorrowOrders"
+        :page="myBorrowQueryParams.pageNum"
+        :page-size="myBorrowQueryParams.pageSize"
+        :status-filter="myBorrowStatusFilter"
+        :status-items="myBorrowStatusItems"
+        :get-borrow-status-label="getBorrowStatusLabel"
+        :get-borrow-status-color="getBorrowStatusColor"
+        :format-borrow-return-time="formatBorrowReturnTime"
+        @update:status-filter="myBorrowStatusFilter = $event"
+        @query="handleBorrowQuery"
+        @reset="resetBorrowQuery"
+        @refresh="fetchMyBorrowOrders"
+        @page-change="
+          (page) => {
+            myBorrowQueryParams.pageNum = page;
+            fetchMyBorrowOrders();
+          }
+        "
+    />
   </div>
 </template>
-
-<style scoped>
-.me-shell {
-  display: flex;
-  max-width: 1160px;
-  flex-direction: column;
-  gap: 20px;
-  margin: 0 auto;
-}
-
-.page-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.page-kicker {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.24em;
-  color: var(--library-accent);
-}
-
-.page-title {
-  margin-top: 6px;
-  font-size: 30px;
-  font-weight: 800;
-}
-
-.page-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.overview-card,
-.borrow-card {
-  border: 0;
-  border-radius: 28px;
-  background: rgb(255 255 255 / 96%);
-  box-shadow: var(--library-shadow-soft);
-}
-
-.overview-hero {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 26px 28px;
-  background:
-      linear-gradient(145deg, rgb(245 249 252 / 96%) 0%, rgb(255 255 255 / 100%) 100%);
-}
-
-.identity-block {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 16px;
-}
-
-.identity-copy {
-  min-width: 0;
-}
-
-.identity-name {
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1.1;
-  color: var(--library-text);
-}
-
-.identity-account {
-  margin-top: 4px;
-  font-size: 14px;
-  color: var(--library-text-muted);
-}
-
-.identity-role-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.role-empty {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border: 1px dashed var(--library-border-strong);
-  border-radius: 9999px;
-  font-size: 12px;
-  color: var(--library-text-muted);
-}
-
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.overview-loading,
-.borrow-loading {
-  display: grid;
-  gap: 12px;
-  padding: 24px 28px 28px;
-}
-
-.loading-block {
-  height: 78px;
-  border-radius: 18px;
-  background: linear-gradient(90deg, rgb(240 244 248 / 90%) 0%, rgb(248 250 252 / 96%) 100%);
-  animation: pulse 1.4s ease-in-out infinite;
-}
-
-.overview-body {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 0 28px 28px;
-}
-
-.stats-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.stat-item {
-  border-radius: 20px;
-  padding: 18px 20px;
-  background: var(--library-card-muted);
-}
-
-.stat-label {
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  color: var(--library-text-muted);
-  text-transform: uppercase;
-}
-
-.stat-value {
-  margin-top: 10px;
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--library-text);
-}
-
-.detail-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border-radius: 18px;
-  padding: 16px 18px;
-  background: rgb(248 250 252 / 82%);
-}
-
-.detail-label {
-  font-size: 12px;
-  color: var(--library-text-muted);
-}
-
-.detail-value {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--library-text);
-  word-break: break-all;
-}
-
-.borrow-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.borrow-title {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--library-text);
-}
-
-.borrow-subtitle {
-  margin-top: 6px;
-  font-size: 14px;
-  color: var(--library-text-muted);
-}
-
-.borrow-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.borrow-empty {
-  border: 1px dashed rgb(203 213 225 / 90%);
-  border-radius: 20px;
-  padding: 2.5rem 1rem;
-  text-align: center;
-  background: rgb(248 250 252 / 75%);
-}
-
-.borrow-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
-@media (max-width: 1024px) {
-  .stats-grid,
-  .detail-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .overview-hero,
-  .overview-loading,
-  .overview-body {
-    padding-inline: 20px;
-  }
-
-  .stats-grid,
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .identity-name {
-    font-size: 24px;
-  }
-}
-</style>

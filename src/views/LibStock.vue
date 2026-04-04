@@ -13,6 +13,8 @@ import {useStockQuery} from "@/composables/library/stock/useStockQuery";
 import {useStockOptions} from "@/composables/library/stock/useStockOptions";
 import {useStockOut} from "@/composables/library/stock/useStockOut";
 import {useStockEdit} from "@/composables/library/stock/useStockEdit";
+import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
+import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
 
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
@@ -218,62 +220,53 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
   <StockDetailDialog v-model:open="open" v-model:stock="currentSelectedStock"/>
   <UCard
       class="system-page-card flex h-full min-h-0 flex-col"
-      :ui="{ header: 'p-6 pb-0', body: 'flex-1 min-h-0 p-6 pt-0', footer: 'px-6 pb-6 pt-4' }"
+      :ui="{ header: 'p-5 pb-0', body: 'flex-1 min-h-0 p-5 pt-0', footer: 'px-5 pb-5 pt-3' }"
   >
     <template #header>
-      <div class="page-header">
-        <div class="page-copy">
-          <p class="page-kicker">BOOK INVENTORY</p>
-          <h1 class="page-title">图书库存</h1>
-          <p class="page-description">查看馆藏库存、维护图书信息，并在当前页完成入库与出库操作。</p>
-        </div>
-        <div class="page-stats">
-          <div class="stat-item">
-            <span class="stat-label">库存记录</span>
-            <strong class="stat-value">{{ total }}</strong>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">当前页</span>
-            <strong class="stat-value">{{ queryParams.pageNum }}</strong>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">每页条数</span>
-            <strong class="stat-value">{{ queryParams.pageSize }}</strong>
-          </div>
-        </div>
-      </div>
+      <SystemPageHeader
+          kicker="BOOK INVENTORY"
+          title="图书库存"
+          description="查看馆藏库存、维护图书信息，并在当前页完成入库与出库操作。"
+          :stats="[
+            { label: '库存记录', value: total },
+            { label: '当前页', value: queryParams.pageNum },
+            { label: '每页条数', value: queryParams.pageSize }
+          ]"
+      />
 
-      <div class="query-card">
-        <ActionGroup @flush="fetchData" :table="table">
-          <UForm @submit.prevent="handleQuery" class="w-full">
-            <div class="query-row">
-              <USelect v-model="queryParams.field" defaultValue="name" :items="fieldItems" class="w-28"/>
-              <UInput
-                  v-model="queryParams.keyword"
-                  icon="i-lucide-search"
-                  size="md"
-                  variant="outline"
-                  class="w-full sm:w-72"
-                  placeholder="请输入搜索内容..."
-              />
-              <UButton type="submit" icon="i-lucide-search" :loading="loadingPageData" label="搜索"/>
-              <UButton
-                  type="button"
-                  variant="ghost"
-                  icon="i-lucide-rotate-ccw"
-                  :disabled="loadingPageData"
-                  label="重置"
-                  @click="resetQuery"
-              />
-            </div>
-          </UForm>
-          <template #behind>
-            <UButton @click="openEntryModal" icon="i-lucide-plus" :loading="loadingOptions" variant="subtle" label="入库"/>
-          </template>
-        </ActionGroup>
-      </div>
+      <SystemQueryCard>
+        <template #actions>
+          <ActionGroup @flush="fetchData" :table="table">
+            <template #behind>
+              <UButton @click="openEntryModal" icon="i-lucide-plus" :loading="loadingOptions" variant="subtle" label="入库"/>
+            </template>
+          </ActionGroup>
+        </template>
+        <UForm @submit.prevent="handleQuery" class="w-full">
+          <div class="system-query-row">
+            <USelect v-model="queryParams.field" defaultValue="name" :items="fieldItems" class="w-28"/>
+            <UInput
+                v-model="queryParams.keyword"
+                icon="i-lucide-search"
+                size="md"
+                variant="outline"
+                class="w-full sm:w-72"
+                placeholder="请输入搜索内容..."
+            />
+            <UButton type="submit" icon="i-lucide-search" :loading="loadingPageData" label="搜索"/>
+            <UButton
+                type="button"
+                variant="ghost"
+                icon="i-lucide-rotate-ccw"
+                :disabled="loadingPageData"
+                label="重置"
+                @click="resetQuery"
+            />
+          </div>
+        </UForm>
+      </SystemQueryCard>
     </template>
-    <div class="table-card">
+    <div class="system-table-card">
       <UTable
           class="h-full"
           ref="table"
@@ -286,8 +279,8 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
       />
     </div>
     <template #footer>
-      <div class="page-footer">
-        <p class="footer-summary">当前共 {{ total }} 条库存记录</p>
+      <div class="system-page-footer">
+        <p class="system-page-summary">当前共 {{ total }} 条库存记录</p>
         <UPagination v-model:page="queryParams.pageNum" :total="total"
                      :items-per-page="queryParams.pageSize" @update:page="fetchData"
         />
@@ -295,125 +288,3 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
     </template>
   </UCard>
 </template>
-
-<style scoped>
-.system-page-card {
-  border: 0;
-  border-radius: 28px;
-  background: rgb(255 255 255 / 96%);
-  box-shadow: var(--library-shadow-soft);
-}
-
-.page-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.page-kicker,
-.stat-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--library-accent);
-}
-
-.page-title {
-  margin-top: 6px;
-  font-size: 30px;
-  font-weight: 800;
-  color: var(--library-text);
-}
-
-.page-description,
-.footer-summary {
-  color: var(--library-text-muted);
-}
-
-.page-description {
-  margin-top: 8px;
-  font-size: 14px;
-}
-
-.page-stats {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  min-width: min(100%, 320px);
-}
-
-.stat-item {
-  border-radius: 18px;
-  padding: 14px 16px;
-  background: var(--library-card-muted);
-}
-
-.stat-value {
-  display: block;
-  margin-top: 6px;
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--library-text);
-}
-
-.query-card {
-  border-radius: 24px;
-  padding: 18px;
-  background: rgb(245 249 252 / 88%);
-}
-
-.query-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-.table-card {
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 24px;
-  background: rgb(255 255 255 / 88%);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 72%);
-}
-
-.page-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-:deep(thead tr) {
-  background: rgb(243 247 250 / 92%);
-}
-
-:deep(th) {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--library-text-muted);
-}
-
-:deep(tbody tr) {
-  transition: background-color 180ms ease;
-}
-
-:deep(tbody tr:hover) {
-  background: rgb(245 249 252 / 82%);
-}
-
-@media (max-width: 960px) {
-  .page-stats {
-    width: 100%;
-    grid-template-columns: 1fr;
-  }
-}
-</style>

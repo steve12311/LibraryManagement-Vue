@@ -7,6 +7,8 @@ import categoryApi, {
   type CategoryStatus,
   type CategoryVO
 } from "@/api/library/category-api.ts";
+import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
+import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
 
 const UButton = resolveComponent('UButton')
 const toast = useToast()
@@ -153,37 +155,26 @@ function getSubRows(row: CategoryVO) {
 <template>
   <UCard
       class="system-page-card flex h-full min-h-0 flex-col"
-      :ui="{ header: 'p-6 pb-0', body: 'flex-1 min-h-0 p-6 pt-0' }"
+      :ui="{ header: 'p-5 pb-0', body: 'flex-1 min-h-0 p-5 pt-0' }"
   >
     <template #header>
-      <div class="page-header">
-        <div class="page-copy">
-          <p class="page-kicker">CATEGORY MANAGEMENT</p>
-          <h1 class="page-title">图书分类</h1>
-          <p class="page-description">维护分类树结构、分类代码和启停状态，保持馆藏目录整洁一致。</p>
-        </div>
-        <div class="page-stats">
-          <div class="stat-item">
-            <span class="stat-label">分类节点</span>
-            <strong class="stat-value">{{ categoryList.length }}</strong>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">状态筛选</span>
-            <strong class="stat-value">{{ searchForm.status === -1 ? "全部" : searchForm.status === 1 ? "启用" : "停用" }}</strong>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">搜索词</span>
-            <strong class="stat-value">{{ searchForm.categoryName.trim() || "未设置" }}</strong>
-          </div>
-        </div>
-      </div>
+      <SystemPageHeader
+          kicker="CATEGORY MANAGEMENT"
+          title="图书分类"
+          description="维护分类树结构、分类代码和启停状态，保持馆藏目录整洁一致。"
+          :stats="[
+            { label: '分类节点', value: categoryList.length },
+            { label: '状态筛选', value: searchForm.status === -1 ? '全部' : searchForm.status === 1 ? '启用' : '停用' },
+            { label: '搜索词', value: searchForm.categoryName.trim() || '未设置' }
+          ]"
+      />
 
-      <div class="query-card">
-        <div class="action-row">
+      <SystemQueryCard>
+        <template #actions>
           <ActionGroup :table="table" @flush="fetchData"/>
-        </div>
+        </template>
         <UForm @submit.prevent="handleQuery" class="w-full">
-          <div class="query-row">
+          <div class="system-query-row">
             <UInput v-model="searchForm.categoryName" icon="i-lucide-search" size="md" variant="outline"
                     class="w-full sm:w-72"
                     placeholder="请输入分类名称/分类代码"/>
@@ -193,9 +184,9 @@ function getSubRows(row: CategoryVO) {
                      :disabled="loadingCategoryList" label="重置" @click="resetQuery"/>
           </div>
         </UForm>
-      </div>
+      </SystemQueryCard>
     </template>
-    <div class="table-card">
+    <div class="system-table-card">
       <UTable ref="table" :column-visibility="columnVisibility" :data="categoryList" :columns="columns"
               :loading="loadingCategoryList"
               loading-color="primary"
@@ -207,121 +198,7 @@ function getSubRows(row: CategoryVO) {
         tbody: '[&>tr]:last:[&>td]:border-b-0',
         tr: 'group',
         td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
-      }"/>
+              }"/>
     </div>
   </UCard>
 </template>
-
-<style scoped>
-.system-page-card {
-  border: 0;
-  border-radius: 28px;
-  background: rgb(255 255 255 / 96%);
-  box-shadow: var(--library-shadow-soft);
-}
-
-.page-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.page-kicker,
-.stat-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--library-accent);
-}
-
-.page-title {
-  margin-top: 6px;
-  font-size: 30px;
-  font-weight: 800;
-  color: var(--library-text);
-}
-
-.page-description {
-  margin-top: 8px;
-  font-size: 14px;
-  color: var(--library-text-muted);
-}
-
-.page-stats {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  min-width: min(100%, 320px);
-}
-
-.stat-item {
-  border-radius: 18px;
-  padding: 14px 16px;
-  background: var(--library-card-muted);
-}
-
-.stat-value {
-  display: block;
-  margin-top: 6px;
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--library-text);
-}
-
-.query-card {
-  border-radius: 24px;
-  padding: 18px;
-  background: rgb(245 249 252 / 88%);
-}
-
-.action-row {
-  margin-bottom: 14px;
-}
-
-.query-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-.table-card {
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 24px;
-  background: rgb(255 255 255 / 88%);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 72%);
-}
-
-:deep(thead tr) {
-  background: rgb(243 247 250 / 92%);
-}
-
-:deep(th) {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--library-text-muted);
-}
-
-:deep(tbody tr) {
-  transition: background-color 180ms ease;
-}
-
-:deep(tbody tr:hover) {
-  background: rgb(245 249 252 / 82%);
-}
-
-@media (max-width: 960px) {
-  .page-stats {
-    width: 100%;
-    grid-template-columns: 1fr;
-  }
-}
-</style>

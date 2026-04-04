@@ -10,6 +10,8 @@ import publishApi, {
   type PublishQuery
 } from "@/api/library/publish-api.ts";
 import * as v from "valibot";
+import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
+import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
 
 const UCheckbox = resolveComponent("UCheckbox")
 
@@ -339,9 +341,9 @@ async function deletePublishBySelection() {
       :ui="{ content: 'sm:max-w-3xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
   >
     <template #body>
-      <div class="modal-copy">
-        <p class="modal-title">出版社资料</p>
-        <p class="modal-description">维护出版社名称、联系方式与地址信息。</p>
+      <div class="system-modal-copy">
+        <p class="system-modal-title">出版社资料</p>
+        <p class="system-modal-description">维护出版社名称、联系方式与地址信息。</p>
       </div>
       <UForm ref="form" :schema="schema" :state="state" @submit.prevent="submitForm" class="mt-5 space-y-4">
         <div class="publish-modal-grid">
@@ -382,33 +384,22 @@ async function deletePublishBySelection() {
 
   <UCard
       class="system-page-card flex h-full min-h-0 flex-col"
-      :ui="{ header: 'p-6 pb-0', body: 'flex-1 min-h-0 p-6 pt-0', footer: 'px-6 pb-6 pt-4' }"
+      :ui="{ header: 'p-5 pb-0', body: 'flex-1 min-h-0 p-5 pt-0', footer: 'px-5 pb-5 pt-3' }"
   >
     <template #header>
-      <div class="page-header">
-        <div class="page-copy">
-          <p class="page-kicker">PUBLISHER DIRECTORY</p>
-          <h1 class="page-title">出版社管理</h1>
-          <p class="page-description">统一维护出版社名录、联系方式与通讯地址。</p>
-        </div>
-        <div class="page-stats">
-          <div class="stat-item">
-            <span class="stat-label">记录总数</span>
-            <strong class="stat-value">{{ total }}</strong>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">当前页</span>
-            <strong class="stat-value">{{ queryParams.pageNum }}</strong>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">每页条数</span>
-            <strong class="stat-value">{{ queryParams.pageSize }}</strong>
-          </div>
-        </div>
-      </div>
+      <SystemPageHeader
+          kicker="PUBLISHER DIRECTORY"
+          title="出版社管理"
+          description="统一维护出版社名录、联系方式与通讯地址。"
+          :stats="[
+            { label: '记录总数', value: total },
+            { label: '当前页', value: queryParams.pageNum },
+            { label: '每页条数', value: queryParams.pageSize }
+          ]"
+      />
 
-      <div class="query-card">
-        <div class="action-row">
+      <SystemQueryCard>
+        <template #actions>
           <ActionGroup
               :table="table"
               @flush="fetchData"
@@ -416,9 +407,9 @@ async function deletePublishBySelection() {
               @modify-row="openEditPublishBySelection"
               @delete-row="deletePublishBySelection"
           />
-        </div>
+        </template>
         <UForm @submit.prevent="handleQuery" class="w-full">
-          <div class="query-row">
+          <div class="system-query-row">
             <USelect v-model="searchForm.field" defaultValue="publishName" :items="fieldItems" class="w-28"/>
             <UInput
                 v-model="searchForm.keyword"
@@ -439,9 +430,9 @@ async function deletePublishBySelection() {
             />
           </div>
         </UForm>
-      </div>
+      </SystemQueryCard>
     </template>
-    <div class="table-card">
+    <div class="system-table-card">
       <UTable
           class="h-full"
           ref="table"
@@ -455,8 +446,8 @@ async function deletePublishBySelection() {
       />
     </div>
     <template #footer>
-      <div class="page-footer">
-        <p class="footer-summary">当前共 {{ total }} 条出版社记录</p>
+      <div class="system-page-footer">
+        <p class="system-page-summary">当前共 {{ total }} 条出版社记录</p>
         <UPagination
             v-model:page="queryParams.pageNum"
             :total="total"
@@ -469,115 +460,6 @@ async function deletePublishBySelection() {
 </template>
 
 <style scoped>
-.system-page-card {
-  border: 0;
-  border-radius: 28px;
-  background: rgb(255 255 255 / 96%);
-  box-shadow: var(--library-shadow-soft);
-}
-
-.page-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.page-kicker,
-.stat-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--library-accent);
-}
-
-.page-title {
-  margin-top: 6px;
-  font-size: 30px;
-  font-weight: 800;
-  color: var(--library-text);
-}
-
-.page-description,
-.modal-description,
-.footer-summary {
-  color: var(--library-text-muted);
-}
-
-.page-description,
-.modal-description {
-  margin-top: 6px;
-  font-size: 14px;
-}
-
-.page-stats {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  min-width: min(100%, 320px);
-}
-
-.stat-item {
-  border-radius: 18px;
-  padding: 14px 16px;
-  background: var(--library-card-muted);
-}
-
-.stat-value {
-  display: block;
-  margin-top: 6px;
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--library-text);
-}
-
-.query-card {
-  border-radius: 24px;
-  padding: 18px;
-  background: rgb(245 249 252 / 88%);
-}
-
-.action-row {
-  margin-bottom: 14px;
-}
-
-.query-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.table-card {
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 24px;
-  background: rgb(255 255 255 / 88%);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 72%);
-}
-
-.page-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.modal-copy {
-  padding-bottom: 6px;
-}
-
-.modal-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--library-text);
-}
-
 .publish-modal-grid {
   display: grid;
   gap: 0.75rem;
@@ -604,33 +486,6 @@ async function deletePublishBySelection() {
 @media (min-width: 1024px) {
   .publish-address-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-}
-
-:deep(thead tr) {
-  background: rgb(243 247 250 / 92%);
-}
-
-:deep(th) {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--library-text-muted);
-}
-
-:deep(tbody tr) {
-  transition: background-color 180ms ease;
-}
-
-:deep(tbody tr:hover) {
-  background: rgb(245 249 252 / 82%);
-}
-
-@media (max-width: 960px) {
-  .page-stats {
-    width: 100%;
-    grid-template-columns: 1fr;
   }
 }
 </style>
