@@ -406,11 +406,8 @@ function getGenderLabel(gender?: number) {
       </div>
     </template>
   </UModal>
-  <UCard
-      class="system-page-card flex h-full min-h-0 flex-col"
-      :ui="{ header: 'p-5 pb-0', body: 'flex-1 min-h-0 p-5 pt-0', footer: 'px-5 pb-5 pt-3' }"
-  >
-    <template #header>
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
       <SystemPageHeader
           kicker="USER MANAGEMENT"
           title="用户管理"
@@ -454,8 +451,9 @@ function getGenderLabel(gender?: number) {
           </div>
         </UForm>
       </SystemQueryCard>
-    </template>
-    <div class="system-table-card">
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
       <UTable
           class="h-full"
           ref="table"
@@ -467,13 +465,14 @@ function getGenderLabel(gender?: number) {
           loading-color="primary"
           loading-animation="carousel"
       />
+      </div>
     </div>
-    <template #footer>
+    <div class="system-page-shell__footer">
       <div class="system-page-footer">
         <p class="system-page-summary">当前共 {{ total }} 条用户记录</p>
         <UPagination v-model:page="queryParams.pageNum" :total="total"
                      :items-per-page="queryParams.pageSize" @update:page="fetchData"/>
       </div>
-    </template>
-  </UCard>
+    </div>
+  </div>
 </template>

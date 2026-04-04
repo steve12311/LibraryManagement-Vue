@@ -1,64 +1,61 @@
 <script setup lang="ts">
 defineProps<{
-  loading: boolean
-  avatar?: string
-  displayName: string
-  username: string
-  roleItems: string[]
-  stats: Array<{ label: string; value: string }>
-  details: Array<{ label: string; value: string }>
-  disableProfileAction?: boolean
-  disablePasswordAction?: boolean
-}>()
+  loading: boolean;
+  avatar?: string;
+  displayName: string;
+  username: string;
+  roleItems: string[];
+  stats: Array<{ label: string; value: string }>;
+  details: Array<{ label: string; value: string }>;
+  disableProfileAction?: boolean;
+  disablePasswordAction?: boolean;
+}>();
 
 const emit = defineEmits<{
-  editProfile: []
-  editPassword: []
-}>()
+  editProfile: [];
+  editPassword: [];
+}>();
 </script>
 
 <template>
-  <UCard class="overview-card" :ui="{ body: 'p-0' }">
-    <div class="overview-hero">
-      <div class="identity-block">
-        <UAvatar :src="avatar" size="xl" icon="i-lucide-user" />
-        <div class="identity-copy">
-          <p class="identity-name">{{ displayName }}</p>
-          <p class="identity-account">@{{ username || "未知账号" }}</p>
-          <div class="identity-role-list">
-            <UBadge
-                v-for="role in roleItems"
-                :key="role"
-                color="info"
-                variant="soft"
-            >
-              {{ role }}
-            </UBadge>
-            <span v-if="roleItems.length === 0" class="role-empty">暂无角色</span>
+  <UCard class="overview-card">
+    <template #header>
+      <div class="overview-hero">
+        <div class="identity-block">
+          <UAvatar :src="avatar" size="xl" icon="i-lucide-user" />
+          <div class="identity-copy">
+            <p class="identity-name">{{ displayName }}</p>
+            <p class="identity-account">@{{ username || "未知账号" }}</p>
+            <div class="identity-role-list">
+              <UBadge v-for="role in roleItems" :key="role" color="info" variant="soft">
+                {{ role }}
+              </UBadge>
+              <span v-if="roleItems.length === 0" class="role-empty">暂无角色</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="hero-actions">
-        <UButton
+        <div class="hero-actions">
+          <UButton
             icon="i-lucide-pencil-line"
             variant="soft"
             :disabled="disableProfileAction"
             @click="emit('editProfile')"
-        >
-          编辑资料
-        </UButton>
-        <UButton
+          >
+            编辑资料
+          </UButton>
+          <UButton
             icon="i-lucide-key-round"
             color="neutral"
             variant="ghost"
             :disabled="disablePasswordAction"
             @click="emit('editPassword')"
-        >
-          修改密码
-        </UButton>
+          >
+            修改密码
+          </UButton>
+        </div>
       </div>
-    </div>
+    </template>
 
     <div v-if="loading" class="overview-loading">
       <div v-for="item in 6" :key="item" class="loading-block" />
@@ -97,7 +94,6 @@ const emit = defineEmits<{
   justify-content: space-between;
   gap: 16px;
   padding: 26px 28px;
-  border-bottom: 1px solid var(--library-border);
   background: color-mix(in srgb, var(--library-card) 82%, var(--library-surface-muted));
 }
 
@@ -157,7 +153,11 @@ const emit = defineEmits<{
 .loading-block {
   height: 78px;
   border-radius: 18px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--library-card-muted) 86%, transparent) 0%, var(--library-card) 100%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--library-card-muted) 86%, transparent) 0%,
+    var(--library-card) 100%
+  );
   animation: pulse 1.4s ease-in-out infinite;
 }
 

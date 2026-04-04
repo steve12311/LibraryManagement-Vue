@@ -218,11 +218,8 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
       @success="fetchData"
   />
   <StockDetailDialog v-model:open="open" v-model:stock="currentSelectedStock"/>
-  <UCard
-      class="system-page-card flex h-full min-h-0 flex-col"
-      :ui="{ header: 'p-5 pb-0', body: 'flex-1 min-h-0 p-5 pt-0', footer: 'px-5 pb-5 pt-3' }"
-  >
-    <template #header>
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
       <SystemPageHeader
           kicker="BOOK INVENTORY"
           title="图书库存"
@@ -265,8 +262,9 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
           </div>
         </UForm>
       </SystemQueryCard>
-    </template>
-    <div class="system-table-card">
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
       <UTable
           class="h-full"
           ref="table"
@@ -277,14 +275,15 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
           loading-animation="carousel"
           @select="showBookDetailInfo"
       />
+      </div>
     </div>
-    <template #footer>
+    <div class="system-page-shell__footer">
       <div class="system-page-footer">
         <p class="system-page-summary">当前共 {{ total }} 条库存记录</p>
         <UPagination v-model:page="queryParams.pageNum" :total="total"
                      :items-per-page="queryParams.pageSize" @update:page="fetchData"
         />
       </div>
-    </template>
-  </UCard>
+    </div>
+  </div>
 </template>

@@ -382,11 +382,8 @@ async function deletePublishBySelection() {
     </template>
   </UModal>
 
-  <UCard
-      class="system-page-card flex h-full min-h-0 flex-col"
-      :ui="{ header: 'p-5 pb-0', body: 'flex-1 min-h-0 p-5 pt-0', footer: 'px-5 pb-5 pt-3' }"
-  >
-    <template #header>
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
       <SystemPageHeader
           kicker="PUBLISHER DIRECTORY"
           title="出版社管理"
@@ -431,8 +428,9 @@ async function deletePublishBySelection() {
           </div>
         </UForm>
       </SystemQueryCard>
-    </template>
-    <div class="system-table-card">
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
       <UTable
           class="h-full"
           ref="table"
@@ -444,8 +442,9 @@ async function deletePublishBySelection() {
           loading-color="primary"
           loading-animation="carousel"
       />
+      </div>
     </div>
-    <template #footer>
+    <div class="system-page-shell__footer">
       <div class="system-page-footer">
         <p class="system-page-summary">当前共 {{ total }} 条出版社记录</p>
         <UPagination
@@ -455,8 +454,8 @@ async function deletePublishBySelection() {
             @update:page="fetchData"
         />
       </div>
-    </template>
-  </UCard>
+    </div>
+  </div>
 </template>
 
 <style scoped>

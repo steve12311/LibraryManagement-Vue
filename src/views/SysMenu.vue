@@ -476,11 +476,8 @@ watch(tabActiveIndex, (value) => {
       </template>
     </template>
   </ElDialog>
-  <UCard
-      class="system-page-card flex h-full min-h-0 flex-col"
-      :ui="{ header: 'p-5 pb-0', body: 'flex-1 min-h-0 p-5 pt-0', footer: 'px-5 pb-5 pt-3' }"
-  >
-    <template #header>
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
       <SystemPageHeader
           kicker="MENU GOVERNANCE"
           title="菜单管理"
@@ -513,8 +510,9 @@ watch(tabActiveIndex, (value) => {
           </div>
         </UForm>
       </SystemQueryCard>
-    </template>
-    <div class="system-table-card">
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
       <UTable ref="table" :data="menuTableData" :get-sub-rows="(row)=>row.children"
               :column-visibility="columnVisibility" :columns="columns"
               class="h-full"
@@ -530,13 +528,14 @@ watch(tabActiveIndex, (value) => {
         td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
       }"
       />
+      </div>
     </div>
-    <template #footer>
+    <div class="system-page-shell__footer">
       <div class="system-page-footer">
         <p class="system-page-summary">当前展示 {{ menuTableData.length }} 个顶层菜单节点</p>
       </div>
-    </template>
-  </UCard>
+    </div>
+  </div>
 </template>
 
 <style scoped>

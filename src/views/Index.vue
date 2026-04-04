@@ -165,8 +165,6 @@ function getAvailabilityColor(book: HomeBookCard) {
 </script>
 
 <template>
-  <div class="index-page">
-    <div class="page-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
       <div class="index-shell">
         <section class="portal-hero">
           <div class="hero-copy">
@@ -422,16 +420,14 @@ function getAvailabilityColor(book: HomeBookCard) {
           />
         </section>
       </div>
-    </div>
 
     <UButton
         class="ai-floating"
         icon="i-lucide-bot"
         label="智慧咨询"
         color="primary"
-        variant="soft"
+        variant="ghost"
         @click="openAiAssistant"
     />
     <AISidebar v-if="aiSidebarLoaded" v-model:open="openAISidebar" />
-  </div>
 </template>

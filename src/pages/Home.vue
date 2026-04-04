@@ -93,10 +93,9 @@ watchEffect(() => {
 
       <div class="main-stage">
         <UDashboardNavbar
-            :toggle="false"
             :ui="{
-              root: 'border-b border-default bg-default/80 px-5 py-4 backdrop-blur-xl',
-              left: 'gap-4 min-w-0',
+              root: 'sticky top-0 z-10 border-b border-default/70 bg-default/75 px-4 py-3 shadow-sm supports-[backdrop-filter]:bg-default/60 supports-[backdrop-filter]:backdrop-blur-xl',
+              left: 'gap-3 min-w-0',
               right: 'gap-3'
             }"
         >
@@ -106,7 +105,7 @@ watchEffect(() => {
                 <span class="mx-2 text-(--library-text-muted)">/</span>
               </template>
             </UBreadcrumb>
-            <UDashboardSidebarCollapse class="rounded-xl border border-default bg-default shadow-sm" />
+            <UDashboardSidebarCollapse class="rounded-full border border-default/70 bg-default/70 shadow-sm supports-[backdrop-filter]:bg-default/55 supports-[backdrop-filter]:backdrop-blur" />
           </template>
 
           <template #right>
@@ -130,9 +129,7 @@ watchEffect(() => {
         </UDashboardNavbar>
 
         <div class="content-stage">
-          <div class="content-scroll">
-            <RouterView />
-          </div>
+          <RouterView />
         </div>
       </div>
     </UDashboardGroup>
@@ -178,35 +175,22 @@ watchEffect(() => {
 .user-menu-trigger {
   border-radius: 9999px;
   padding-inline: 10px;
-  border: 1px solid transparent;
+  border: 1px solid color-mix(in srgb, var(--library-border) 82%, transparent);
+  background: color-mix(in srgb, var(--library-card) 68%, transparent);
+  backdrop-filter: blur(14px);
 }
 
 .content-stage {
   min-height: 0;
   flex: 1;
-  padding: 18px;
-}
-
-.content-scroll {
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 32px;
-  padding: 18px;
-  background: var(--library-card);
-  box-shadow:
-      inset 0 0 0 1px var(--library-border),
-      0 18px 40px rgb(18 35 52 / 5%);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 18px 22px;
 }
 
 @media (max-width: 1024px) {
   .content-stage {
-    padding: 14px;
-  }
-
-  .content-scroll {
-    border-radius: 24px;
-    padding: 14px;
+    padding: 14px 14px 18px;
   }
 }
 
@@ -220,12 +204,7 @@ watchEffect(() => {
   }
 
   .content-stage {
-    padding: 10px;
-  }
-
-  .content-scroll {
-    border-radius: 20px;
-    padding: 10px;
+    padding: 10px 10px 14px;
   }
 }
 </style>

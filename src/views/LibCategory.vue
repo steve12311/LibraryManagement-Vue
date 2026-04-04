@@ -153,11 +153,8 @@ function getSubRows(row: CategoryVO) {
 </script>
 
 <template>
-  <UCard
-      class="system-page-card flex h-full min-h-0 flex-col"
-      :ui="{ header: 'p-5 pb-0', body: 'flex-1 min-h-0 p-5 pt-0' }"
-  >
-    <template #header>
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
       <SystemPageHeader
           kicker="CATEGORY MANAGEMENT"
           title="图书分类"
@@ -185,8 +182,9 @@ function getSubRows(row: CategoryVO) {
           </div>
         </UForm>
       </SystemQueryCard>
-    </template>
-    <div class="system-table-card">
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
       <UTable ref="table" :column-visibility="columnVisibility" :data="categoryList" :columns="columns"
               :loading="loadingCategoryList"
               loading-color="primary"
@@ -199,6 +197,7 @@ function getSubRows(row: CategoryVO) {
         tr: 'group',
         td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
               }"/>
+      </div>
     </div>
-  </UCard>
+  </div>
 </template>
