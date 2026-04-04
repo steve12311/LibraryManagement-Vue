@@ -221,12 +221,12 @@ function getAvailabilityColor(book: HomeBookCard) {
             <h2 class="section-title">正在加载书目</h2>
           </div>
           <div class="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
-            <UCard class="h-[360px] animate-pulse border-0 bg-white/75" />
+            <UCard class="h-[360px] animate-pulse border border-default bg-elevated" />
             <div class="space-y-4">
               <UCard
                   v-for="item in 3"
                   :key="item"
-                  class="h-[108px] animate-pulse border-0 bg-white/75"
+                  class="h-[108px] animate-pulse border border-default bg-elevated"
               />
             </div>
           </div>

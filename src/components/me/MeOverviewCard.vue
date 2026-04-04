@@ -84,9 +84,9 @@ const emit = defineEmits<{
 
 <style scoped>
 .overview-card {
-  border: 0;
+  border: 1px solid var(--library-border);
   border-radius: 28px;
-  background: rgb(255 255 255 / 96%);
+  background: var(--library-card);
   box-shadow: var(--library-shadow-soft);
 }
 
@@ -97,8 +97,8 @@ const emit = defineEmits<{
   justify-content: space-between;
   gap: 16px;
   padding: 26px 28px;
-  background:
-      linear-gradient(145deg, rgb(245 249 252 / 96%) 0%, rgb(255 255 255 / 100%) 100%);
+  border-bottom: 1px solid var(--library-border);
+  background: color-mix(in srgb, var(--library-card) 82%, var(--library-surface-muted));
 }
 
 .identity-block {
@@ -157,7 +157,7 @@ const emit = defineEmits<{
 .loading-block {
   height: 78px;
   border-radius: 18px;
-  background: linear-gradient(90deg, rgb(240 244 248 / 90%) 0%, rgb(248 250 252 / 96%) 100%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--library-card-muted) 86%, transparent) 0%, var(--library-card) 100%);
   animation: pulse 1.4s ease-in-out infinite;
 }
 
@@ -206,7 +206,8 @@ const emit = defineEmits<{
   gap: 6px;
   border-radius: 18px;
   padding: 16px 18px;
-  background: rgb(248 250 252 / 82%);
+  border: 1px solid var(--library-border);
+  background: color-mix(in srgb, var(--library-card) 82%, var(--library-card-muted));
 }
 
 .detail-label {

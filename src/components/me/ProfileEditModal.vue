@@ -62,7 +62,7 @@ const emailModel = computed({
   <UModal
       v-model:open="openModel"
       title="编辑资料"
-      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
   >
     <template #body>
       <div class="modal-copy">

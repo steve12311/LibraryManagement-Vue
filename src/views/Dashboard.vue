@@ -171,19 +171,19 @@ const securityMetrics = computed(() => [
           </div>
           <div class="summary-grid">
             <div class="summary-item summary-item--rose">
-              <p class="text-sm font-medium text-rose-700">登录失败</p>
-              <p class="mt-2 text-2xl font-bold text-rose-900">{{ overview.todayLoginFailureCount }}</p>
-              <p class="mt-1 text-xs text-rose-700/80">今日失败次数</p>
+              <p class="text-sm font-medium text-error">登录失败</p>
+              <p class="mt-2 text-2xl font-bold text-highlighted">{{ overview.todayLoginFailureCount }}</p>
+              <p class="mt-1 text-xs text-muted">今日失败次数</p>
             </div>
             <div class="summary-item summary-item--amber">
-              <p class="text-sm font-medium text-amber-700">逾期记录</p>
-              <p class="mt-2 text-2xl font-bold text-amber-900">{{ overview.overdueTotal }}</p>
-              <p class="mt-1 text-xs text-amber-700/80">当前待催还数量</p>
+              <p class="text-sm font-medium text-warning">逾期记录</p>
+              <p class="mt-2 text-2xl font-bold text-highlighted">{{ overview.overdueTotal }}</p>
+              <p class="mt-1 text-xs text-muted">当前待催还数量</p>
             </div>
             <div class="summary-item summary-item--sky">
-              <p class="text-sm font-medium text-sky-700">后台写操作</p>
-              <p class="mt-2 text-2xl font-bold text-sky-900">{{ overview.todayOperSuccessCount + overview.todayOperFailureCount }}</p>
-              <p class="mt-1 text-xs text-sky-700/80">今日总操作次数</p>
+              <p class="text-sm font-medium text-info">后台写操作</p>
+              <p class="mt-2 text-2xl font-bold text-highlighted">{{ overview.todayOperSuccessCount + overview.todayOperFailureCount }}</p>
+              <p class="mt-1 text-xs text-muted">今日总操作次数</p>
             </div>
           </div>
         </UCard>
@@ -402,9 +402,9 @@ const securityMetrics = computed(() => [
 
 .system-page-card,
 .summary-card {
-  border: 0;
+  border: 1px solid var(--library-border);
   border-radius: 28px;
-  background: rgb(255 255 255 / 96%);
+  background: var(--library-card);
   box-shadow: var(--library-shadow-soft);
 }
 
@@ -498,18 +498,18 @@ const securityMetrics = computed(() => [
 }
 
 .summary-item--rose {
-  border: 1px solid rgb(255 228 230);
-  background: rgb(255 241 242 / 72%);
+  border: 1px solid color-mix(in srgb, var(--ui-error) 26%, var(--library-border));
+  background: color-mix(in srgb, var(--ui-error) 12%, var(--library-card));
 }
 
 .summary-item--amber {
-  border: 1px solid rgb(254 243 199);
-  background: rgb(255 251 235 / 72%);
+  border: 1px solid color-mix(in srgb, var(--ui-warning) 26%, var(--library-border));
+  background: color-mix(in srgb, var(--ui-warning) 12%, var(--library-card));
 }
 
 .summary-item--sky {
-  border: 1px solid rgb(224 242 254);
-  background: rgb(240 249 255 / 72%);
+  border: 1px solid color-mix(in srgb, var(--ui-info) 26%, var(--library-border));
+  background: color-mix(in srgb, var(--ui-info) 12%, var(--library-card));
 }
 
 .group-label {

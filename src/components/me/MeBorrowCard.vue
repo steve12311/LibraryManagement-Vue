@@ -143,9 +143,9 @@ const borrowColumns = [
 
 <style scoped>
 .borrow-card {
-  border: 0;
+  border: 1px solid var(--library-border);
   border-radius: 28px;
-  background: rgb(255 255 255 / 96%);
+  background: var(--library-card);
   box-shadow: var(--library-shadow-soft);
 }
 
@@ -178,16 +178,16 @@ const borrowColumns = [
 
 .loading-block {
   border-radius: 18px;
-  background: linear-gradient(90deg, rgb(240 244 248 / 90%) 0%, rgb(248 250 252 / 96%) 100%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--library-card-muted) 86%, transparent) 0%, var(--library-card) 100%);
   animation: pulse 1.4s ease-in-out infinite;
 }
 
 .borrow-empty {
-  border: 1px dashed rgb(203 213 225 / 90%);
+  border: 1px dashed var(--library-border-strong);
   border-radius: 20px;
   padding: 2.5rem 1rem;
   text-align: center;
-  background: rgb(248 250 252 / 75%);
+  background: color-mix(in srgb, var(--library-card) 82%, var(--library-card-muted));
 }
 
 .borrow-footer {

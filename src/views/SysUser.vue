@@ -319,7 +319,7 @@ function getGenderLabel(gender?: number) {
   <UModal
       v-model:open="openAssignRoleModal"
       :title="`分配角色${assignRoleUsername ? ` - ${assignRoleUsername}` : ''}`"
-      :ui="{ content: 'sm:max-w-xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+      :ui="{ content: 'sm:max-w-xl rounded-[28px] border border-default bg-default shadow-lg' }"
   >
     <template #body>
       <div class="system-modal-copy">
@@ -350,7 +350,7 @@ function getGenderLabel(gender?: number) {
   <UModal
       v-model:open="openEditModal"
       :title="editModalTitle"
-      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
   >
     <template #body>
       <div class="system-modal-copy">

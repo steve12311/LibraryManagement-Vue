@@ -25,7 +25,7 @@ function updateUserIds(value: Array<string | number> | undefined) {
   <UModal
       :open="open"
       :title="`分配用户${roleName ? ` - ${roleName}` : ''}`"
-      :ui="{ content: 'sm:max-w-xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+      :ui="{ content: 'sm:max-w-xl rounded-[28px] border border-default bg-default shadow-lg' }"
       @update:open="emit('update:open', $event)"
   >
     <template #body>

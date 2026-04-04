@@ -65,7 +65,7 @@ watchEffect(() => {
           :min-size="12"
           :max-size="22"
           :ui="{
-            root: 'border-r border-[var(--library-border)] bg-white/84 backdrop-blur-xl',
+            root: 'border-r border-default bg-default/80 backdrop-blur-xl',
             header: 'px-4 pt-5 pb-4',
             body: 'px-3 py-2',
             footer: 'px-3 pb-4 pt-4 border-t-0'
@@ -95,7 +95,7 @@ watchEffect(() => {
         <UDashboardNavbar
             :toggle="false"
             :ui="{
-              root: 'border-b border-[var(--library-border)] bg-white/84 px-5 py-4 backdrop-blur-xl',
+              root: 'border-b border-default bg-default/80 px-5 py-4 backdrop-blur-xl',
               left: 'gap-4 min-w-0',
               right: 'gap-3'
             }"
@@ -106,7 +106,7 @@ watchEffect(() => {
                 <span class="mx-2 text-(--library-text-muted)">/</span>
               </template>
             </UBreadcrumb>
-            <UDashboardSidebarCollapse class="rounded-xl border border-(--library-border) bg-white shadow-none" />
+            <UDashboardSidebarCollapse class="rounded-xl border border-default bg-default shadow-sm" />
           </template>
 
           <template #right>
@@ -143,8 +143,8 @@ watchEffect(() => {
 .home-shell {
   height: 100vh;
   background:
-      radial-gradient(circle at top right, rgb(0 99 152 / 7%), transparent 24%),
-      linear-gradient(180deg, var(--library-surface) 0%, #edf2f6 100%);
+      radial-gradient(circle at top right, color-mix(in srgb, var(--library-accent) 10%, transparent), transparent 24%),
+      linear-gradient(180deg, var(--library-surface) 0%, var(--library-surface-muted) 100%);
 }
 
 .admin-layout {
@@ -193,10 +193,9 @@ watchEffect(() => {
   overflow: hidden;
   border-radius: 32px;
   padding: 18px;
-  background:
-      linear-gradient(180deg, rgb(255 255 255 / 68%) 0%, rgb(247 249 251 / 96%) 100%);
+  background: var(--library-card);
   box-shadow:
-      inset 0 0 0 1px rgb(255 255 255 / 72%),
+      inset 0 0 0 1px var(--library-border),
       0 18px 40px rgb(18 35 52 / 5%);
 }
 

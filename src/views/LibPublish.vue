@@ -338,7 +338,7 @@ async function deletePublishBySelection() {
   <UModal
       v-model:open="open"
       :title="editModalTitle"
-      :ui="{ content: 'sm:max-w-3xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+      :ui="{ content: 'sm:max-w-3xl rounded-[28px] border border-default bg-default shadow-lg' }"
   >
     <template #body>
       <div class="system-modal-copy">

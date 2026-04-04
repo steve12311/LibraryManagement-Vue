@@ -379,7 +379,7 @@ async function confirmReturnBorrow(borrowId: string) {
   <UModal
       v-model:open="openConfirm"
       title="延期还书"
-      :ui="{ content: 'sm:max-w-lg rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+      :ui="{ content: 'sm:max-w-lg rounded-[28px] border border-default bg-default shadow-lg' }"
   >
     <template #body>
       <div class="system-modal-copy">
@@ -405,7 +405,7 @@ async function confirmReturnBorrow(borrowId: string) {
   <UModal
       v-model:open="open"
       title="新增借阅"
-      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
   >
     <template #body>
       <div class="system-modal-copy">

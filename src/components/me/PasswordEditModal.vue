@@ -49,7 +49,7 @@ const confirmPasswordModel = computed({
   <UModal
       v-model:open="openModel"
       title="修改密码"
-      :ui="{ content: 'sm:max-w-xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+      :ui="{ content: 'sm:max-w-xl rounded-[28px] border border-default bg-default shadow-lg' }"
   >
     <template #body>
       <div class="modal-copy">

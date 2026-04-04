@@ -85,25 +85,25 @@ async function copy(_: MouseEvent, message: UIMessage) {
       description="结合首页检索继续提问，获得阅读建议与借阅辅助"
       :ui="{
       overlay: 'bg-black/35 backdrop-blur-[2px]',
-      content: 'sm:max-w-xl border-l border-cyan-200/70 bg-linear-to-b from-cyan-50/90 via-white to-blue-50/95',
-      header: 'border-b border-cyan-100 bg-white/70 backdrop-blur px-5 py-4',
+      content: 'sm:max-w-xl border-l border-default bg-default',
+      header: 'border-b border-default bg-default/90 backdrop-blur px-5 py-4',
       body: 'p-0',
-      title: 'text-base font-semibold tracking-wide text-cyan-900',
-      description: 'text-xs text-cyan-700/85',
-      close: 'text-cyan-700 hover:bg-cyan-100/70'
+      title: 'text-base font-semibold tracking-wide text-highlighted',
+      description: 'text-xs text-muted',
+      close: 'text-muted hover:bg-elevated'
     }"
   >
     <template #body>
       <div
           v-if="!hasMessages"
-          class="ai-welcome rounded-2xl border border-cyan-100/80 bg-white/88 p-5 shadow-sm"
+          class="ai-welcome rounded-2xl border border-default bg-elevated p-5 shadow-sm"
       >
-        <p class="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">
+        <p class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
           <UIcon name="i-lucide-sparkles" class="h-4 w-4"/>
           AI 阅读助手
         </p>
-        <h3 class="mt-4 text-lg font-semibold text-cyan-950">欢迎使用智慧咨询</h3>
-        <p class="mt-2 text-sm leading-6 text-cyan-800/85">
+        <h3 class="mt-4 text-lg font-semibold text-highlighted">欢迎使用智慧咨询</h3>
+        <p class="mt-2 text-sm leading-6 text-toned">
           你可以直接提问图书推荐、学习路线或阅读计划，助手会结合图书馆场景给出可执行建议。
         </p>
         <div class="mt-4 flex flex-wrap gap-2">
@@ -123,7 +123,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
       <UChatMessages
           v-else
           :ui="{
-            indicator: 'text-cyan-700',
+            indicator: 'text-primary',
             viewport:'top-[68%]'
           }"
           :should-auto-scroll="true"
@@ -180,7 +180,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
               size="xs"
               color="neutral"
               variant="ghost"
-              class="shrink-0 border border-cyan-100 bg-white/75 text-cyan-700 hover:bg-cyan-50"
+              class="shrink-0 border border-default bg-elevated text-default hover:bg-muted"
               @click="usePrompt(item)"
           >
             {{ item }}
@@ -192,7 +192,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
             placeholder="输入你的问题，例如：推荐三本数据结构入门书"
             :disabled="chat.status.value === 'streaming'"
             :ui="{
-                root: 'rounded-2xl border border-cyan-200/80 bg-white/92 px-3 py-2 shadow-sm backdrop-blur',
+                root: 'rounded-2xl border border-default bg-default px-3 py-2 shadow-sm backdrop-blur',
                 body: 'bg-transparent',
                 footer: 'mt-2'
               }"
@@ -200,7 +200,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
             @submit="sendMessage"
         >
           <template #footer>
-            <span class="text-xs text-cyan-700/85">Enter 发送，Shift + Enter 换行</span>
+            <span class="text-xs text-muted">Enter 发送，Shift + Enter 换行</span>
             <UChatPromptSubmit
                 @reload="chat.reload()"
                 @stop="chat.stop()"
@@ -225,13 +225,13 @@ async function copy(_: MouseEvent, message: UIMessage) {
 }
 
 .ai-prompt-pill {
-  border: 1px solid rgb(186 230 253);
-  background: rgb(248 250 252 / 92%);
+  border: 1px solid var(--library-border);
+  background: var(--library-card);
 }
 
 .ai-input {
   border-radius: 1rem;
-  background: linear-gradient(180deg, rgb(255 255 255 / 0%) 0%, rgb(239 246 255 / 76%) 45%, rgb(239 246 255 / 96%) 100%);
+  background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--library-card) 78%, transparent) 45%, var(--library-card) 100%);
   padding-top: 0.75rem;
 }
 

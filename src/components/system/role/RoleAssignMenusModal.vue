@@ -57,7 +57,7 @@ function getMenuOptionTag(node: RoleMenuOption) {
   <UModal
       :open="open"
       :title="`分配菜单${roleName ? ` - ${roleName}` : ''}`"
-      :ui="{ content: 'sm:max-w-3xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+      :ui="{ content: 'sm:max-w-3xl rounded-[28px] border border-default bg-default shadow-lg' }"
       @update:open="emit('update:open', $event)"
   >
     <template #body>

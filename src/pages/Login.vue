@@ -168,7 +168,7 @@ async function refreshCaptcha() {
         <UCard
             class="auth-card"
             :ui="{
-              root: 'rounded-[28px] border-0',
+              root: 'rounded-[28px] border border-default bg-default',
               body: 'p-7 sm:p-8',
               header: 'px-7 pt-7 sm:px-8 sm:pt-8',
               footer: 'px-7 pb-7 sm:px-8 sm:pb-8'
@@ -254,8 +254,8 @@ async function refreshCaptcha() {
   overflow: hidden;
   padding: 32px 20px;
   background:
-      radial-gradient(circle at top left, rgb(0 99 152 / 10%), transparent 34%),
-      linear-gradient(180deg, #f7f9fb 0%, #f1f5f8 100%);
+      radial-gradient(circle at top left, color-mix(in srgb, var(--library-accent) 12%, transparent), transparent 34%),
+      linear-gradient(180deg, var(--library-surface) 0%, var(--library-surface-muted) 100%);
 }
 
 .login-glow {
@@ -302,11 +302,10 @@ async function refreshCaptcha() {
   height: 100%;
   flex-direction: column;
   justify-content: space-between;
-  border: 1px solid rgb(255 255 255 / 65%);
+  border: 1px solid var(--library-border);
   border-radius: 32px;
   padding: 40px;
-  background:
-      linear-gradient(160deg, rgb(255 255 255 / 88%) 0%, rgb(241 247 251 / 94%) 100%);
+  background: color-mix(in srgb, var(--library-card) 92%, var(--library-surface-muted));
   box-shadow: var(--library-shadow);
   backdrop-filter: blur(10px);
 }
@@ -363,8 +362,8 @@ async function refreshCaptcha() {
 .brand-step {
   border-radius: 22px;
   padding: 18px 20px;
-  background: rgb(255 255 255 / 74%);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 60%);
+  background: color-mix(in srgb, var(--library-card) 82%, var(--library-surface-muted));
+  box-shadow: inset 0 0 0 1px var(--library-border);
 }
 
 .brand-step-label {
@@ -382,8 +381,7 @@ async function refreshCaptcha() {
 
 .auth-card {
   height: 100%;
-  background:
-      linear-gradient(180deg, rgb(0 99 152 / 4%) 0%, rgb(255 255 255 / 96%) 14%, #fff 100%);
+  background: color-mix(in srgb, var(--library-card) 94%, var(--library-surface-muted));
   box-shadow: var(--library-shadow);
 }
 
@@ -420,7 +418,7 @@ async function refreshCaptcha() {
   border: 1px solid var(--library-border);
   border-radius: 16px;
   object-fit: contain;
-  background: #fff;
+  background: var(--library-card);
 }
 
 .auth-footer {
