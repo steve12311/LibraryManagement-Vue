@@ -227,7 +227,7 @@ watch(tabActiveIndex, (value) => {
 </script>
 
 <template>
-  <ElDrawer v-model="slider.visible" :title="slider.title">
+  <ElDrawer v-model="slider.visible" :title="slider.title" class="menu-detail-drawer">
     <UForm class="gap-4 flex flex-col h-full" disabled>
       <UFormField label="父级菜单">
         <ElTreeSelect disabled :check-strictly="true" placeholder="选择上级菜单"
@@ -273,7 +273,7 @@ watch(tabActiveIndex, (value) => {
       </template>
     </UForm>
   </ElDrawer>
-  <ElDialog :closeOnClickModal="false" v-model="dialog.visible" :title="dialog.title">
+  <ElDialog :closeOnClickModal="false" v-model="dialog.visible" :title="dialog.title" class="menu-edit-dialog">
     <UTabs v-if="mode==='add'" v-model="tabActiveIndex" :items="tabs">
       <template #menu>
         <UForm class="gap-4 flex flex-col h-full">
@@ -474,14 +474,41 @@ watch(tabActiveIndex, (value) => {
       </template>
     </template>
   </ElDialog>
-  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
+  <UCard
+      class="system-page-card flex h-full min-h-0 flex-col"
+      :ui="{ header: 'p-6 pb-0', body: 'flex-1 min-h-0 p-6 pt-0', footer: 'px-6 pb-6 pt-4' }"
+  >
     <template #header>
-      <div class="space-y-3">
-        <ActionGroup :table="table" @flush="handleQuery"
-                     @add-row="openAddMenu(0)" @modify-row="editSelectedMenu" @delete-row="deleteMenu()"
-        />
+      <div class="page-header">
+        <div class="page-copy">
+          <p class="page-kicker">MENU GOVERNANCE</p>
+          <h1 class="page-title">菜单管理</h1>
+          <p class="page-description">统一维护目录、菜单、按钮权限及其路由配置。</p>
+        </div>
+        <div class="page-stats">
+          <div class="stat-item">
+            <span class="stat-label">顶层节点</span>
+            <strong class="stat-value">{{ menuTableData.length }}</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">表格列数</span>
+            <strong class="stat-value">{{ columns.length }}</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">搜索状态</span>
+            <strong class="stat-value">{{ searchForm.keywords?.trim() ? "已筛选" : "全部" }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="action-row">
+          <ActionGroup :table="table" @flush="handleQuery"
+                       @add-row="openAddMenu(0)" @modify-row="editSelectedMenu" @delete-row="deleteMenu()"
+          />
+        </div>
         <UForm @submit.prevent="handleQuery" class="w-full">
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="query-row">
             <UInput
                 v-model="searchForm.keywords"
                 icon="i-lucide-search"
@@ -496,24 +523,163 @@ watch(tabActiveIndex, (value) => {
         </UForm>
       </div>
     </template>
-    <UTable ref="table" :data="menuTableData" :get-sub-rows="(row)=>row.children"
-            :column-visibility="columnVisibility" :columns="columns"
-            class="h-full"
-            :loading="loadingMenuList"
-            loading-color="primary"
-            loading-animation="carousel"
-            virtualize
-            @select="showMenuInfo"
-            :ui="{
-      base: 'border-separate border-spacing-0',
-      tbody: '[&>tr]:last:[&>td]:border-b-0',
-      tr: 'group',
-      td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
-    }"
-    />
+    <div class="table-card">
+      <UTable ref="table" :data="menuTableData" :get-sub-rows="(row)=>row.children"
+              :column-visibility="columnVisibility" :columns="columns"
+              class="h-full"
+              :loading="loadingMenuList"
+              loading-color="primary"
+              loading-animation="carousel"
+              virtualize
+              @select="showMenuInfo"
+              :ui="{
+        base: 'border-separate border-spacing-0',
+        tbody: '[&>tr]:last:[&>td]:border-b-0',
+        tr: 'group',
+        td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
+      }"
+      />
+    </div>
+    <template #footer>
+      <div class="page-footer">
+        <p class="footer-summary">当前展示 {{ menuTableData.length }} 个顶层菜单节点</p>
+      </div>
+    </template>
   </UCard>
 </template>
 
 <style scoped>
+.system-page-card {
+  border: 0;
+  border-radius: 28px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: var(--library-shadow-soft);
+}
 
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.page-kicker,
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--library-accent);
+}
+
+.page-title {
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.page-description,
+.footer-summary {
+  color: var(--library-text-muted);
+}
+
+.page-description {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.page-stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: min(100%, 320px);
+}
+
+.stat-item {
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: var(--library-card-muted);
+}
+
+.stat-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.query-card {
+  border-radius: 24px;
+  padding: 18px;
+  background: rgb(245 249 252 / 88%);
+}
+
+.action-row {
+  margin-bottom: 14px;
+}
+
+.query-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.table-card {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgb(255 255 255 / 88%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 72%);
+}
+
+.page-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+:deep(.menu-edit-dialog) {
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+:deep(.menu-detail-drawer) {
+  border-top-left-radius: 28px;
+  border-bottom-left-radius: 28px;
+}
+
+:deep(thead tr) {
+  background: rgb(243 247 250 / 92%);
+}
+
+:deep(th) {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--library-text-muted);
+}
+
+:deep(tbody tr) {
+  transition: background-color 180ms ease;
+}
+
+:deep(tbody tr:hover) {
+  background: rgb(245 249 252 / 82%);
+}
+
+@media (max-width: 960px) {
+  .page-stats {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+}
 </style>

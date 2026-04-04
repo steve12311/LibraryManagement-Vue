@@ -333,9 +333,17 @@ async function deletePublishBySelection() {
 </script>
 
 <template>
-  <UModal v-model:open="open" :title="editModalTitle">
+  <UModal
+      v-model:open="open"
+      :title="editModalTitle"
+      :ui="{ content: 'sm:max-w-3xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+  >
     <template #body>
-      <UForm ref="form" :schema="schema" :state="state" @submit.prevent="submitForm" class="space-y-4">
+      <div class="modal-copy">
+        <p class="modal-title">出版社资料</p>
+        <p class="modal-description">维护出版社名称、联系方式与地址信息。</p>
+      </div>
+      <UForm ref="form" :schema="schema" :state="state" @submit.prevent="submitForm" class="mt-5 space-y-4">
         <div class="publish-modal-grid">
           <UFormField class="w-full" label="名称" name="name" required>
             <UInput class="w-full" v-model="state.name" placeholder="请输入出版社名称"/>
@@ -372,18 +380,45 @@ async function deletePublishBySelection() {
     </template>
   </UModal>
 
-  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
+  <UCard
+      class="system-page-card flex h-full min-h-0 flex-col"
+      :ui="{ header: 'p-6 pb-0', body: 'flex-1 min-h-0 p-6 pt-0', footer: 'px-6 pb-6 pt-4' }"
+  >
     <template #header>
-      <div class="publish-header">
-        <ActionGroup
-            :table="table"
-            @flush="fetchData"
-            @add-row="openAddPublishModal"
-            @modify-row="openEditPublishBySelection"
-            @delete-row="deletePublishBySelection"
-        />
+      <div class="page-header">
+        <div class="page-copy">
+          <p class="page-kicker">PUBLISHER DIRECTORY</p>
+          <h1 class="page-title">出版社管理</h1>
+          <p class="page-description">统一维护出版社名录、联系方式与通讯地址。</p>
+        </div>
+        <div class="page-stats">
+          <div class="stat-item">
+            <span class="stat-label">记录总数</span>
+            <strong class="stat-value">{{ total }}</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">当前页</span>
+            <strong class="stat-value">{{ queryParams.pageNum }}</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">每页条数</span>
+            <strong class="stat-value">{{ queryParams.pageSize }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="action-row">
+          <ActionGroup
+              :table="table"
+              @flush="fetchData"
+              @add-row="openAddPublishModal"
+              @modify-row="openEditPublishBySelection"
+              @delete-row="deletePublishBySelection"
+          />
+        </div>
         <UForm @submit.prevent="handleQuery" class="w-full">
-          <div class="publish-search-row">
+          <div class="query-row">
             <USelect v-model="searchForm.field" defaultValue="publishName" :items="fieldItems" class="w-28"/>
             <UInput
                 v-model="searchForm.keyword"
@@ -406,19 +441,22 @@ async function deletePublishBySelection() {
         </UForm>
       </div>
     </template>
-    <UTable
-        class="h-full"
-        ref="table"
-        v-model:column-visibility="columnVisibility"
-        sticky
-        :data="pageData"
-        :columns="columns"
-        :loading="loadingPageData"
-        loading-color="primary"
-        loading-animation="carousel"
-    />
+    <div class="table-card">
+      <UTable
+          class="h-full"
+          ref="table"
+          v-model:column-visibility="columnVisibility"
+          sticky
+          :data="pageData"
+          :columns="columns"
+          :loading="loadingPageData"
+          loading-color="primary"
+          loading-animation="carousel"
+      />
+    </div>
     <template #footer>
-      <div class="flex justify-center border-default pt-4">
+      <div class="page-footer">
+        <p class="footer-summary">当前共 {{ total }} 条出版社记录</p>
         <UPagination
             v-model:page="queryParams.pageNum"
             :total="total"
@@ -431,17 +469,113 @@ async function deletePublishBySelection() {
 </template>
 
 <style scoped>
-.publish-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.system-page-card {
+  border: 0;
+  border-radius: 28px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: var(--library-shadow-soft);
 }
 
-.publish-search-row {
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.page-kicker,
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--library-accent);
+}
+
+.page-title {
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.page-description,
+.modal-description,
+.footer-summary {
+  color: var(--library-text-muted);
+}
+
+.page-description,
+.modal-description {
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.page-stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: min(100%, 320px);
+}
+
+.stat-item {
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: var(--library-card-muted);
+}
+
+.stat-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.query-card {
+  border-radius: 24px;
+  padding: 18px;
+  background: rgb(245 249 252 / 88%);
+}
+
+.action-row {
+  margin-bottom: 14px;
+}
+
+.query-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+}
+
+.table-card {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgb(255 255 255 / 88%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 72%);
+}
+
+.page-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-copy {
+  padding-bottom: 6px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--library-text);
 }
 
 .publish-modal-grid {
@@ -470,6 +604,33 @@ async function deletePublishBySelection() {
 @media (min-width: 1024px) {
   .publish-address-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+:deep(thead tr) {
+  background: rgb(243 247 250 / 92%);
+}
+
+:deep(th) {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--library-text-muted);
+}
+
+:deep(tbody tr) {
+  transition: background-color 180ms ease;
+}
+
+:deep(tbody tr:hover) {
+  background: rgb(245 249 252 / 82%);
+}
+
+@media (max-width: 960px) {
+  .page-stats {
+    width: 100%;
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -541,12 +541,17 @@ async function submitAssignMenusForm() {
 </script>
 
 <template>
-  <UModal v-model:open="openAssignMenuModal" :title="`分配菜单${assignMenuRoleName ? ` - ${assignMenuRoleName}` : ''}`">
+  <UModal
+      v-model:open="openAssignMenuModal"
+      :title="`分配菜单${assignMenuRoleName ? ` - ${assignMenuRoleName}` : ''}`"
+      :ui="{ content: 'sm:max-w-4xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+  >
     <template #body>
-      <div class="space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <p class="text-sm text-muted">勾选后保存，即可更新当前角色的菜单与按钮权限。</p>
-        </div>
+      <div class="modal-copy">
+        <p class="modal-title">菜单权限分配</p>
+        <p class="modal-description">统一调整角色的菜单与按钮权限，保存后即时生效。</p>
+      </div>
+      <div class="mt-5 space-y-4">
         <div class="max-h-[420px] overflow-auto rounded-lg border border-default p-3">
           <ElTree
               ref="assignMenuTree"
@@ -578,9 +583,17 @@ async function submitAssignMenusForm() {
       </div>
     </template>
   </UModal>
-  <UModal v-model:open="openAssignUsersModal" :title="`分配用户${assignUsersRoleName ? ` - ${assignUsersRoleName}` : ''}`">
+  <UModal
+      v-model:open="openAssignUsersModal"
+      :title="`分配用户${assignUsersRoleName ? ` - ${assignUsersRoleName}` : ''}`"
+      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+  >
     <template #body>
-      <UForm ref="assignUsersForm" @submit="submitAssignUsers" class="space-y-4">
+      <div class="modal-copy">
+        <p class="modal-title">用户分配</p>
+        <p class="modal-description">为当前角色维护绑定用户，保存后立即更新授权范围。</p>
+      </div>
+      <UForm ref="assignUsersForm" @submit="submitAssignUsers" class="mt-5 space-y-4">
         <UFormField class="w-full" label="用户" required>
           <USelectMenu
               multiple
@@ -602,9 +615,17 @@ async function submitAssignMenusForm() {
       </div>
     </template>
   </UModal>
-  <UModal v-model:open="openEditModal" :title="editModalTitle">
+  <UModal
+      v-model:open="openEditModal"
+      :title="editModalTitle"
+      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border-0 bg-white shadow-[var(--library-shadow)]' }"
+  >
     <template #body>
-      <UForm ref="roleForm" :state="roleState" @submit="submitEditRole" class="space-y-4">
+      <div class="modal-copy">
+        <p class="modal-title">角色资料</p>
+        <p class="modal-description">维护角色名称、权限字符、状态和数据范围。</p>
+      </div>
+      <UForm ref="roleForm" :state="roleState" @submit="submitEditRole" class="mt-5 space-y-4">
         <UFieldGroup class="w-full gap-2">
           <UFormField class="w-full" label="角色名称" required>
             <UInput v-model="roleState.name" class="w-full" placeholder="请输入角色名称"/>
@@ -633,13 +654,40 @@ async function submitAssignMenusForm() {
       </div>
     </template>
   </UModal>
-  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
+  <UCard
+      class="system-page-card flex h-full min-h-0 flex-col"
+      :ui="{ header: 'p-6 pb-0', body: 'flex-1 min-h-0 p-6 pt-0', footer: 'px-6 pb-6 pt-4' }"
+  >
     <template #header>
-      <div class="space-y-3">
-        <ActionGroup :table="table" @flush="handleQuery" @add-row="openAddRoleModal"
-                     @modify-row="openEditRoleBySelection" @delete-row="deleteRoleBySelection"/>
+      <div class="page-header">
+        <div class="page-copy">
+          <p class="page-kicker">ROLE CONTROL</p>
+          <h1 class="page-title">角色管理</h1>
+          <p class="page-description">统一维护角色资料、菜单授权与用户分配关系。</p>
+        </div>
+        <div class="page-stats">
+          <div class="stat-item">
+            <span class="stat-label">角色总数</span>
+            <strong class="stat-value">{{ total }}</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">当前页</span>
+            <strong class="stat-value">{{ queryParams.pageNum }}</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">每页条数</span>
+            <strong class="stat-value">{{ queryParams.pageSize }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="action-row">
+          <ActionGroup :table="table" @flush="handleQuery" @add-row="openAddRoleModal"
+                       @modify-row="openEditRoleBySelection" @delete-row="deleteRoleBySelection"/>
+        </div>
         <UForm @submit="handleQuery" class="w-full">
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="query-row">
             <UInput
                 v-model="searchForm.keywords"
                 icon="i-lucide-search"
@@ -654,19 +702,22 @@ async function submitAssignMenusForm() {
         </UForm>
       </div>
     </template>
-    <UTable
-        class="h-full"
-        ref="table"
-        v-model:column-visibility="columnVisibility"
-        sticky
-        :data="roleList"
-        :columns="columns"
-        :loading="loadingPageData"
-        loading-color="primary"
-        loading-animation="carousel"
-    />
+    <div class="table-card">
+      <UTable
+          class="h-full"
+          ref="table"
+          v-model:column-visibility="columnVisibility"
+          sticky
+          :data="roleList"
+          :columns="columns"
+          :loading="loadingPageData"
+          loading-color="primary"
+          loading-animation="carousel"
+      />
+    </div>
     <template #footer>
-      <div class="flex justify-center border-default pt-4">
+      <div class="page-footer">
+        <p class="footer-summary">当前共 {{ total }} 条角色记录</p>
         <UPagination v-model:page="queryParams.pageNum" :total="total"
                      :items-per-page="queryParams.pageSize" @update:page="fetchData"/>
       </div>
@@ -675,5 +726,146 @@ async function submitAssignMenusForm() {
 </template>
 
 <style scoped>
+.system-page-card {
+  border: 0;
+  border-radius: 28px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: var(--library-shadow-soft);
+}
 
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.page-kicker,
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--library-accent);
+}
+
+.page-title {
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.page-description,
+.modal-description,
+.footer-summary {
+  color: var(--library-text-muted);
+}
+
+.page-description,
+.modal-description {
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.page-stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: min(100%, 320px);
+}
+
+.stat-item {
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: var(--library-card-muted);
+}
+
+.stat-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.query-card {
+  border-radius: 24px;
+  padding: 18px;
+  background: rgb(245 249 252 / 88%);
+}
+
+.action-row {
+  margin-bottom: 14px;
+}
+
+.query-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.table-card {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgb(255 255 255 / 88%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 72%);
+}
+
+.page-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-copy {
+  padding-bottom: 6px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.modal-footer {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+:deep(thead tr) {
+  background: rgb(243 247 250 / 92%);
+}
+
+:deep(th) {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--library-text-muted);
+}
+
+:deep(tbody tr) {
+  transition: background-color 180ms ease;
+}
+
+:deep(tbody tr:hover) {
+  background: rgb(245 249 252 / 82%);
+}
+
+@media (max-width: 960px) {
+  .page-stats {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+}
 </style>

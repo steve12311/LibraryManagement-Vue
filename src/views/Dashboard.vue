@@ -125,42 +125,33 @@ const securityMetrics = computed(() => [
 </script>
 
 <template>
-  <div class="page-scroll h-full overflow-y-auto overflow-x-hidden rounded-2xl border border-default bg-slate-50/70">
-    <div class="mx-auto flex max-w-[1600px] flex-col gap-6 px-4 py-6 lg:px-6">
+  <div class="page-scroll h-full overflow-y-auto overflow-x-hidden">
+    <div class="mx-auto flex max-w-[1600px] flex-col gap-5 px-1 py-1">
       <section class="space-y-4">
-        <UCard class="rounded-3xl border border-default shadow-sm" :ui="{ body: 'p-6 lg:p-7' }">
-          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div class="space-y-2">
-              <div class="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.24em] text-muted">
-                <UIcon name="i-lucide-chart-column-big" class="h-4 w-4"/>
-                系统管理
-              </div>
-              <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-highlighted">数据分析</h1>
-                <p class="mt-2 max-w-3xl text-sm leading-6 text-muted">
-                  集中查看馆藏、借阅、操作审计与认证风险的关键指标，用于日常巡检与趋势判断。
-                </p>
-              </div>
+        <UCard class="system-page-card" :ui="{ body: 'p-6 lg:p-7' }">
+          <div class="page-header">
+            <div class="page-copy">
+              <p class="page-kicker">OPERATIONS INSIGHT</p>
+              <h1 class="page-title">数据分析</h1>
+              <p class="page-description">集中查看馆藏、借阅、操作审计与认证风险的关键指标，用于日常巡检与趋势判断。</p>
             </div>
 
-            <div class="rounded-2xl border border-default bg-elevated/60 p-4 text-sm text-slate-600">
-              <div class="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <p class="text-xs uppercase tracking-[0.2em] text-muted">当前窗口</p>
-                  <p class="mt-1 font-medium text-highlighted">
-                    {{ trendWindowItems.find((item) => item.value === activeTrendWindow)?.label || "-" }}
-                  </p>
-                </div>
-                <div>
-                  <p class="text-xs uppercase tracking-[0.2em] text-muted">最后刷新</p>
-                  <p class="mt-1 font-medium text-highlighted">{{ lastUpdatedAt || "-" }}</p>
-                </div>
+            <div class="page-stats page-stats-compact">
+              <div class="stat-item">
+                <span class="stat-label">当前窗口</span>
+                <strong class="stat-value stat-value--sm">
+                  {{ trendWindowItems.find((item) => item.value === activeTrendWindow)?.label || "-" }}
+                </strong>
               </div>
-              <div class="mt-4 flex justify-end">
+              <div class="stat-item">
+                <span class="stat-label">最后刷新</span>
+                <strong class="stat-value stat-value--sm">{{ lastUpdatedAt || "-" }}</strong>
+              </div>
+              <div class="stat-actions">
                 <UButton
-                  icon="i-lucide-refresh-cw"
-                  :loading="refreshingAll"
-                  @click="refreshAll()"
+                    icon="i-lucide-refresh-cw"
+                    :loading="refreshingAll"
+                    @click="refreshAll()"
                 >
                   手动刷新
                 </UButton>
@@ -169,27 +160,27 @@ const securityMetrics = computed(() => [
           </div>
         </UCard>
 
-        <UCard class="rounded-3xl border border-default shadow-sm" :ui="{ body: 'p-6' }">
-          <div class="flex items-start justify-between gap-4">
+        <UCard class="summary-card" :ui="{ body: 'p-6' }">
+          <div class="section-header">
             <div>
-              <p class="text-xs font-semibold tracking-[0.24em] text-muted">异常摘要</p>
-              <h2 class="mt-2 text-lg font-semibold text-highlighted">今日需重点关注</h2>
-              <p class="mt-1 text-sm text-muted">快速扫描认证风险、逾期压力与后台写操作负载。</p>
+              <p class="section-kicker">异常摘要</p>
+              <h2 class="section-title">今日需重点关注</h2>
+              <p class="section-description">快速扫描认证风险、逾期压力与后台写操作负载。</p>
             </div>
             <UIcon name="i-lucide-scan-eye" class="h-5 w-5 text-muted"/>
           </div>
-          <div class="mt-5 grid gap-3 md:grid-cols-3">
-            <div class="rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
+          <div class="summary-grid">
+            <div class="summary-item summary-item--rose">
               <p class="text-sm font-medium text-rose-700">登录失败</p>
               <p class="mt-2 text-2xl font-bold text-rose-900">{{ overview.todayLoginFailureCount }}</p>
               <p class="mt-1 text-xs text-rose-700/80">今日失败次数</p>
             </div>
-            <div class="rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
+            <div class="summary-item summary-item--amber">
               <p class="text-sm font-medium text-amber-700">逾期记录</p>
               <p class="mt-2 text-2xl font-bold text-amber-900">{{ overview.overdueTotal }}</p>
               <p class="mt-1 text-xs text-amber-700/80">当前待催还数量</p>
             </div>
-            <div class="rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
+            <div class="summary-item summary-item--sky">
               <p class="text-sm font-medium text-sky-700">后台写操作</p>
               <p class="mt-2 text-2xl font-bold text-sky-900">{{ overview.todayOperSuccessCount + overview.todayOperFailureCount }}</p>
               <p class="mt-1 text-xs text-sky-700/80">今日总操作次数</p>
@@ -199,17 +190,18 @@ const securityMetrics = computed(() => [
       </section>
 
       <section class="space-y-4">
-        <div class="flex items-center justify-between">
+        <div class="section-header">
           <div>
-            <h2 class="text-lg font-semibold text-highlighted">关键指标总览</h2>
-            <p class="text-sm text-muted">按馆藏、流通和安全三组查看当前运行状态。</p>
+            <p class="section-kicker">关键指标</p>
+            <h2 class="section-title">关键指标总览</h2>
+            <p class="section-description">按馆藏、流通和安全三组查看当前运行状态。</p>
           </div>
           <p v-if="blockErrors.overview" class="text-sm text-error">{{ blockErrors.overview }}</p>
         </div>
 
         <div class="space-y-5">
           <div>
-            <p class="mb-3 text-xs font-semibold tracking-[0.24em] text-muted">馆藏基础</p>
+            <p class="group-label">馆藏基础</p>
             <div v-if="loadingOverview" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               <div
                 v-for="item in 3"
@@ -227,7 +219,7 @@ const securityMetrics = computed(() => [
           </div>
 
           <div>
-            <p class="mb-3 text-xs font-semibold tracking-[0.24em] text-muted">借阅流通</p>
+            <p class="group-label">借阅流通</p>
             <div v-if="loadingOverview" class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div
                 v-for="item in 4"
@@ -245,7 +237,7 @@ const securityMetrics = computed(() => [
           </div>
 
           <div>
-            <p class="mb-3 text-xs font-semibold tracking-[0.24em] text-muted">账号与安全</p>
+            <p class="group-label">账号与安全</p>
             <div v-if="loadingOverview" class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div
                 v-for="item in 4"
@@ -266,10 +258,11 @@ const securityMetrics = computed(() => [
 
       <section class="grid gap-4 2xl:grid-cols-[1.35fr_0.65fr]">
         <div class="space-y-4">
-          <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="section-header">
             <div>
-              <h2 class="text-lg font-semibold text-highlighted">趋势分析</h2>
-              <p class="text-sm text-muted">按固定时间窗口查看业务与安全走势。</p>
+              <p class="section-kicker">趋势分析</p>
+              <h2 class="section-title">趋势分析</h2>
+              <p class="section-description">按固定时间窗口查看业务与安全走势。</p>
             </div>
             <div class="flex flex-wrap gap-2">
               <UButton
@@ -307,10 +300,11 @@ const securityMetrics = computed(() => [
         </div>
 
         <div class="space-y-4">
-          <div class="flex items-center justify-between">
+          <div class="section-header">
             <div>
-              <h2 class="text-lg font-semibold text-highlighted">排行观察</h2>
-              <p class="text-sm text-muted">按固定统计口径查看重点排行结果。</p>
+              <p class="section-kicker">排行观察</p>
+              <h2 class="section-title">排行观察</h2>
+              <p class="section-description">按固定统计口径查看重点排行结果。</p>
             </div>
           </div>
           <p v-if="blockErrors.ranking" class="text-sm text-error">{{ blockErrors.ranking }}</p>
@@ -349,10 +343,11 @@ const securityMetrics = computed(() => [
       </section>
 
       <section class="space-y-4">
-        <div class="flex items-center justify-between">
+        <div class="section-header">
           <div>
-            <h2 class="text-lg font-semibold text-highlighted">最近记录</h2>
-            <p class="text-sm text-muted">三类记录同时可见，翻页互不影响。</p>
+            <p class="section-kicker">最近记录</p>
+            <h2 class="section-title">最近记录</h2>
+            <p class="section-description">三类记录同时可见，翻页互不影响。</p>
           </div>
           <p v-if="blockErrors.recentEvents" class="text-sm text-error">{{ blockErrors.recentEvents }}</p>
         </div>
@@ -399,3 +394,136 @@ const securityMetrics = computed(() => [
     </div>
   </div>
 </template>
+
+<style scoped>
+.page-scroll {
+  border-radius: 28px;
+}
+
+.system-page-card,
+.summary-card {
+  border: 0;
+  border-radius: 28px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: var(--library-shadow-soft);
+}
+
+.page-header,
+.section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-kicker,
+.section-kicker,
+.group-label,
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--library-accent);
+}
+
+.page-title {
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.section-title {
+  margin-top: 6px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.page-description,
+.section-description {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--library-text-muted);
+}
+
+.page-stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: min(100%, 360px);
+}
+
+.page-stats-compact {
+  align-items: stretch;
+}
+
+.stat-item {
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: var(--library-card-muted);
+}
+
+.stat-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.stat-value--sm {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.stat-actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.summary-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.summary-item {
+  border-radius: 20px;
+  padding: 16px;
+}
+
+.summary-item--rose {
+  border: 1px solid rgb(255 228 230);
+  background: rgb(255 241 242 / 72%);
+}
+
+.summary-item--amber {
+  border: 1px solid rgb(254 243 199);
+  background: rgb(255 251 235 / 72%);
+}
+
+.summary-item--sky {
+  border: 1px solid rgb(224 242 254);
+  background: rgb(240 249 255 / 72%);
+}
+
+.group-label {
+  margin-bottom: 12px;
+}
+
+@media (max-width: 1280px) {
+  .summary-grid,
+  .page-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-actions {
+    justify-content: flex-start;
+  }
+}
+</style>

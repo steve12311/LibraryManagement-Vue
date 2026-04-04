@@ -151,51 +151,177 @@ function getSubRows(row: CategoryVO) {
 </script>
 
 <template>
-  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
+  <UCard
+      class="system-page-card flex h-full min-h-0 flex-col"
+      :ui="{ header: 'p-6 pb-0', body: 'flex-1 min-h-0 p-6 pt-0' }"
+  >
     <template #header>
-      <div class="category-header">
-        <ActionGroup :table="table" @flush="fetchData">
-          <UForm @submit.prevent="handleQuery" class="w-full">
-            <div class="category-search-row">
-              <UInput v-model="searchForm.categoryName" icon="i-lucide-search" size="md" variant="outline"
-                      class="w-full sm:w-72"
-                      placeholder="请输入分类名称/分类代码"/>
-              <USelect v-model="searchForm.status" :items="statusItems" class="w-28"/>
-              <UButton type="submit" icon="i-lucide-search" :loading="loadingCategoryList" label="搜索"/>
-              <UButton type="button" variant="ghost" icon="i-lucide-rotate-ccw"
-                       :disabled="loadingCategoryList" label="重置" @click="resetQuery"/>
-            </div>
-          </UForm>
-        </ActionGroup>
+      <div class="page-header">
+        <div class="page-copy">
+          <p class="page-kicker">CATEGORY MANAGEMENT</p>
+          <h1 class="page-title">图书分类</h1>
+          <p class="page-description">维护分类树结构、分类代码和启停状态，保持馆藏目录整洁一致。</p>
+        </div>
+        <div class="page-stats">
+          <div class="stat-item">
+            <span class="stat-label">分类节点</span>
+            <strong class="stat-value">{{ categoryList.length }}</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">状态筛选</span>
+            <strong class="stat-value">{{ searchForm.status === -1 ? "全部" : searchForm.status === 1 ? "启用" : "停用" }}</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">搜索词</span>
+            <strong class="stat-value">{{ searchForm.categoryName.trim() || "未设置" }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="query-card">
+        <div class="action-row">
+          <ActionGroup :table="table" @flush="fetchData"/>
+        </div>
+        <UForm @submit.prevent="handleQuery" class="w-full">
+          <div class="query-row">
+            <UInput v-model="searchForm.categoryName" icon="i-lucide-search" size="md" variant="outline"
+                    class="w-full sm:w-72"
+                    placeholder="请输入分类名称/分类代码"/>
+            <USelect v-model="searchForm.status" :items="statusItems" class="w-28"/>
+            <UButton type="submit" icon="i-lucide-search" :loading="loadingCategoryList" label="搜索"/>
+            <UButton type="button" variant="ghost" icon="i-lucide-rotate-ccw"
+                     :disabled="loadingCategoryList" label="重置" @click="resetQuery"/>
+          </div>
+        </UForm>
       </div>
     </template>
-    <UTable ref="table" :column-visibility="columnVisibility" :data="categoryList" :columns="columns"
-            :loading="loadingCategoryList"
-            loading-color="primary"
-            loading-animation="carousel"
-            virtualize
-            :get-sub-rows="getSubRows"
-            class="h-full"
-            :ui="{
-      base: 'border-separate border-spacing-0',
-      tbody: '[&>tr]:last:[&>td]:border-b-0',
-      tr: 'group',
-      td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
-    }"/>
+    <div class="table-card">
+      <UTable ref="table" :column-visibility="columnVisibility" :data="categoryList" :columns="columns"
+              :loading="loadingCategoryList"
+              loading-color="primary"
+              loading-animation="carousel"
+              :get-sub-rows="getSubRows"
+              class="h-full"
+              :ui="{
+        base: 'border-separate border-spacing-0',
+        tbody: '[&>tr]:last:[&>td]:border-b-0',
+        tr: 'group',
+        td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
+      }"/>
+    </div>
   </UCard>
 </template>
 
 <style scoped>
-.category-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.system-page-card {
+  border: 0;
+  border-radius: 28px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: var(--library-shadow-soft);
 }
 
-.category-search-row {
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.page-kicker,
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--library-accent);
+}
+
+.page-title {
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.page-description {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--library-text-muted);
+}
+
+.page-stats {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: min(100%, 320px);
+}
+
+.stat-item {
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: var(--library-card-muted);
+}
+
+.stat-value {
+  display: block;
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.query-card {
+  border-radius: 24px;
+  padding: 18px;
+  background: rgb(245 249 252 / 88%);
+}
+
+.action-row {
+  margin-bottom: 14px;
+}
+
+.query-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 10px;
+}
+
+.table-card {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgb(255 255 255 / 88%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 72%);
+}
+
+:deep(thead tr) {
+  background: rgb(243 247 250 / 92%);
+}
+
+:deep(th) {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--library-text-muted);
+}
+
+:deep(tbody tr) {
+  transition: background-color 180ms ease;
+}
+
+:deep(tbody tr:hover) {
+  background: rgb(245 249 252 / 82%);
+}
+
+@media (max-width: 960px) {
+  .page-stats {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
 }
 </style>
