@@ -2,7 +2,6 @@
 import {ref, watchEffect} from "vue";
 import type {BreadcrumbItem, DropdownMenuItem} from "@nuxt/ui";
 import {useRouter} from "vue-router";
-import ColorModeSelect from "@nuxt/ui/runtime/components/color-mode/ColorModeSelect.vue";
 import {useUserStore} from "@/store";
 import MenuAPI from "@/api/system/menu-api.ts";
 import {ElMessageBox} from "element-plus";
@@ -104,14 +103,14 @@ watchEffect(() => {
           <template #left>
             <UBreadcrumb :items="items" class="navbar-breadcrumb">
               <template #separator>
-                <span class="mx-2 text-[var(--library-text-muted)]">/</span>
+                <span class="mx-2 text-(--library-text-muted)">/</span>
               </template>
             </UBreadcrumb>
-            <UDashboardSidebarCollapse class="rounded-xl border border-[var(--library-border)] bg-white shadow-none" />
+            <UDashboardSidebarCollapse class="rounded-xl border border-(--library-border) bg-white shadow-none" />
           </template>
 
           <template #right>
-            <ColorModeSelect
+            <UColorModeSelect
                 class="color-mode-select w-28"
                 color="neutral"
                 variant="ghost"
