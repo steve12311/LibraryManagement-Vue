@@ -414,10 +414,12 @@ async function refreshCaptcha() {
 .captcha-image {
   width: 116px;
   height: 44px;
+  padding: 4px 6px;
+  box-sizing: border-box;
   cursor: pointer;
   border: 1px solid var(--library-border);
   border-radius: 16px;
-  object-fit: cover;
+  object-fit: contain;
   background: #fff;
 }
 
