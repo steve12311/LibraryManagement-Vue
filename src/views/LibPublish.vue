@@ -10,6 +10,8 @@ import publishApi, {
   type PublishQuery
 } from "@/api/library/publish-api.ts";
 import * as v from "valibot";
+import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
+import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
 
 const UCheckbox = resolveComponent("UCheckbox")
 
@@ -333,9 +335,17 @@ async function deletePublishBySelection() {
 </script>
 
 <template>
-  <UModal v-model:open="open" :title="editModalTitle">
+  <UModal
+      v-model:open="open"
+      :title="editModalTitle"
+      :ui="{ content: 'sm:max-w-3xl rounded-[28px] border border-default bg-default shadow-lg' }"
+  >
     <template #body>
-      <UForm ref="form" :schema="schema" :state="state" @submit.prevent="submitForm" class="space-y-4">
+      <div class="system-modal-copy">
+        <p class="system-modal-title">出版社资料</p>
+        <p class="system-modal-description">维护出版社名称、联系方式与地址信息。</p>
+      </div>
+      <UForm ref="form" :schema="schema" :state="state" @submit.prevent="submitForm" class="mt-5 space-y-4">
         <div class="publish-modal-grid">
           <UFormField class="w-full" label="名称" name="name" required>
             <UInput class="w-full" v-model="state.name" placeholder="请输入出版社名称"/>
@@ -372,18 +382,31 @@ async function deletePublishBySelection() {
     </template>
   </UModal>
 
-  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
-    <template #header>
-      <div class="publish-header">
-        <ActionGroup
-            :table="table"
-            @flush="fetchData"
-            @add-row="openAddPublishModal"
-            @modify-row="openEditPublishBySelection"
-            @delete-row="deletePublishBySelection"
-        />
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
+      <SystemPageHeader
+          kicker="PUBLISHER DIRECTORY"
+          title="出版社管理"
+          description="统一维护出版社名录、联系方式与通讯地址。"
+          :stats="[
+            { label: '记录总数', value: total },
+            { label: '当前页', value: queryParams.pageNum },
+            { label: '每页条数', value: queryParams.pageSize }
+          ]"
+      />
+
+      <SystemQueryCard>
+        <template #actions>
+          <ActionGroup
+              :table="table"
+              @flush="fetchData"
+              @add-row="openAddPublishModal"
+              @modify-row="openEditPublishBySelection"
+              @delete-row="deletePublishBySelection"
+          />
+        </template>
         <UForm @submit.prevent="handleQuery" class="w-full">
-          <div class="publish-search-row">
+          <div class="system-query-row">
             <USelect v-model="searchForm.field" defaultValue="publishName" :items="fieldItems" class="w-28"/>
             <UInput
                 v-model="searchForm.keyword"
@@ -404,21 +427,26 @@ async function deletePublishBySelection() {
             />
           </div>
         </UForm>
+      </SystemQueryCard>
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
+      <UTable
+          class="h-full"
+          ref="table"
+          v-model:column-visibility="columnVisibility"
+          sticky
+          :data="pageData"
+          :columns="columns"
+          :loading="loadingPageData"
+          loading-color="primary"
+          loading-animation="carousel"
+      />
       </div>
-    </template>
-    <UTable
-        class="h-full"
-        ref="table"
-        v-model:column-visibility="columnVisibility"
-        sticky
-        :data="pageData"
-        :columns="columns"
-        :loading="loadingPageData"
-        loading-color="primary"
-        loading-animation="carousel"
-    />
-    <template #footer>
-      <div class="flex justify-center border-default pt-4">
+    </div>
+    <div class="system-page-shell__footer">
+      <div class="system-page-footer">
+        <p class="system-page-summary">当前共 {{ total }} 条出版社记录</p>
         <UPagination
             v-model:page="queryParams.pageNum"
             :total="total"
@@ -426,24 +454,11 @@ async function deletePublishBySelection() {
             @update:page="fetchData"
         />
       </div>
-    </template>
-  </UCard>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.publish-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.publish-search-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 .publish-modal-grid {
   display: grid;
   gap: 0.75rem;

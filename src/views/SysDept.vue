@@ -2,6 +2,8 @@
 import {h, onMounted, ref, resolveComponent, useTemplateRef} from "vue";
 import type {TableColumn} from "@nuxt/ui";
 import moment from "moment";
+import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
+import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
 
 const UButton = resolveComponent('UButton')
 const UBadge = resolveComponent('UBadge')
@@ -100,20 +102,35 @@ async function getDepList() {
 </script>
 
 <template>
-  <UCard>
-    <template #header>
-      <ActionGroup @flush="getDepList" :table="table"/>
-    </template>
-    <UTable ref="table" :column-visibility="columnVisibility" :get-sub-rows="(row) => row.children" :columns="columns"
-            :data="dataList" :ui="{
-      base: 'border-separate border-spacing-0',
-      tbody: '[&>tr]:last:[&>td]:border-b-0',
-      tr: 'group',
-      td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
-    }"/>
-  </UCard>
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
+      <SystemPageHeader
+          kicker="DEPARTMENT TREE"
+          title="部门管理"
+          description="查看部门层级、负责人和联系方式，统一维护组织结构。"
+          :stats="[
+            { label: '顶层部门', value: dataList.length },
+            { label: '列数', value: columns.length },
+            { label: '展示模式', value: '树表' }
+          ]"
+      />
+
+      <SystemQueryCard>
+        <template #actions>
+          <ActionGroup @flush="getDepList" :table="table"/>
+        </template>
+      </SystemQueryCard>
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
+      <UTable ref="table" :column-visibility="columnVisibility" :get-sub-rows="(row) => row.children" :columns="columns"
+              :data="dataList" class="h-full" :ui="{
+        base: 'border-separate border-spacing-0',
+        tbody: '[&>tr]:last:[&>td]:border-b-0',
+        tr: 'group',
+        td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
+      }"/>
+      </div>
+    </div>
+  </div>
 </template>
-
-<style scoped>
-
-</style>

@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import {h, nextTick, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
+import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef, watch} from "vue";
 import type {SelectMenuItem, TableColumn} from "@nuxt/ui";
 import moment from "moment";
-import {ElMessageBox, ElTree} from "element-plus";
-import type {TreeInstance} from "element-plus";
+import {ElMessageBox} from "element-plus";
 import UserAPI from "@/api/system/user-api.ts";
 import RoleAPI, {
   type RoleForm,
@@ -13,11 +12,12 @@ import RoleAPI, {
   type RoleStatus
 } from "@/api/system/role-api.ts";
 import {DataScopeTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
-import {
-  collectReplayCheckedMenuIds,
-  type RoleMenuOption,
-  useRoleMenuAssign
-} from "@/composables/system/role/useRoleMenuAssign";
+import {useRoleMenuAssign} from "@/composables/system/role/useRoleMenuAssign";
+import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
+import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
+import RoleEditModal from "@/components/system/role/RoleEditModal.vue";
+import RoleAssignUsersModal from "@/components/system/role/RoleAssignUsersModal.vue";
+import RoleAssignMenusModal from "@/components/system/role/RoleAssignMenusModal.vue";
 
 onMounted(() => {
   handleQuery()
@@ -31,9 +31,6 @@ const UTooltip = resolveComponent('UTooltip')
 
 const toast = useToast()
 const table = useTemplateRef("table")
-const roleForm = useTemplateRef("roleForm")
-const assignUsersForm = useTemplateRef("assignUsersForm")
-const assignMenuTree = useTemplateRef<TreeInstance>("assignMenuTree")
 const columnVisibility = ref({
   id: false,
 })
@@ -67,10 +64,6 @@ const assignUsersRoleId = ref("")
 const assignUsersRoleName = ref("")
 const userOptions = ref<SelectMenuItem[]>([])
 const assignUserIds = ref<Array<string | number>>([])
-const menuTreeProps = {
-  label: "label",
-  children: "children"
-} as const
 const statusOptions = ref<OptionType[]>([
   {
     label: "启用",
@@ -232,7 +225,6 @@ const columns = ref<TableColumn<RolePageVO>[]>([
     }
   }
 ])
-
 watch(openEditModal, (isOpen) => {
   if (!isOpen) {
     resetEditRoleForm()
@@ -243,15 +235,10 @@ watch(openAssignUsersModal, (isOpen) => {
     resetAssignUsersForm()
   }
 })
-watch(openAssignMenuModal, async (isOpen) => {
+watch(openAssignMenuModal, (isOpen) => {
   if (!isOpen) {
     resetAssignMenuForm()
-    return
   }
-  await nextTick()
-  assignMenuTree.value?.setCheckedKeys(
-      collectReplayCheckedMenuIds(menuTreeOptions.value, assignedMenuIds.value)
-  )
 })
 
 function normalizeUserOptions(items: SelectMenuItem[]) {
@@ -490,8 +477,6 @@ async function updateRoleStatus(roleId: RoleId | undefined, value: boolean) {
     roleStatusUpdatingId.value = ""
   }
 }
-
-// 获取数据
 async function fetchData() {
   try {
     loadingPageData.value = true
@@ -504,8 +489,6 @@ async function fetchData() {
     loadingPageData.value = false
   }
 }
-
-// 查询（重置页码后获取数据）
 function handleQuery() {
   queryParams.pageNum = 1;
   applySearchParams()
@@ -517,129 +500,63 @@ function resetQuery() {
   handleQuery()
 }
 
-function getSelectedMenuIds() {
-  const checkedKeys = assignMenuTree.value?.getCheckedKeys(false) ?? []
-  const halfCheckedKeys = assignMenuTree.value?.getHalfCheckedKeys() ?? []
-  return Array.from(new Set(
-      [...checkedKeys, ...halfCheckedKeys]
-          .map((item) => Number(item))
-          .filter((item) => Number.isInteger(item) && item > 0)
-  ))
-}
-
-function getMenuOptionLabel(node: RoleMenuOption) {
-  return node.label || "-"
-}
-
-function getMenuOptionTag(node: RoleMenuOption) {
-  return node.tag?.trim() || ""
-}
-
-async function submitAssignMenusForm() {
-  await submitAssignMenus(getSelectedMenuIds())
+async function submitAssignMenusForm(menuIds: number[]) {
+  await submitAssignMenus(menuIds)
 }
 </script>
 
 <template>
-  <UModal v-model:open="openAssignMenuModal" :title="`分配菜单${assignMenuRoleName ? ` - ${assignMenuRoleName}` : ''}`">
-    <template #body>
-      <div class="space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <p class="text-sm text-muted">勾选后保存，即可更新当前角色的菜单与按钮权限。</p>
-        </div>
-        <div class="max-h-[420px] overflow-auto rounded-lg border border-default p-3">
-          <ElTree
-              ref="assignMenuTree"
-              node-key="value"
-              show-checkbox
-              default-expand-all
-              :data="menuTreeOptions"
-              :props="menuTreeProps"
-              empty-text="暂无可分配菜单"
-          >
-            <template #default="{ data }">
-              <div class="flex min-w-0 flex-1 items-center justify-between gap-3 py-1 pr-2">
-                <span class="truncate text-sm text-highlighted">{{ getMenuOptionLabel(data) }}</span>
-                <div class="flex min-w-0 items-center gap-2 text-xs text-muted">
-                  <span v-if="getMenuOptionTag(data)" class="truncate">
-                    {{ getMenuOptionTag(data) }}
-                  </span>
-                </div>
-              </div>
-            </template>
-          </ElTree>
-        </div>
-      </div>
-    </template>
-    <template #footer>
-      <div class="flex justify-end w-full gap-2">
-        <UButton label="取消" variant="ghost" @click="openAssignMenuModal=false"/>
-        <UButton label="保存" :loading="submittingAssignMenus" @click="submitAssignMenusForm"/>
-      </div>
-    </template>
-  </UModal>
-  <UModal v-model:open="openAssignUsersModal" :title="`分配用户${assignUsersRoleName ? ` - ${assignUsersRoleName}` : ''}`">
-    <template #body>
-      <UForm ref="assignUsersForm" @submit="submitAssignUsers" class="space-y-4">
-        <UFormField class="w-full" label="用户" required>
-          <USelectMenu
-              multiple
-              valueKey="value"
-              v-model="assignUserIds"
-              :items="userOptions"
-              :loading="loadingAssignUsers"
-              class="w-full"
-              icon="i-lucide-user"
-              :ui="{ content: 'min-w-fit' }"
-          />
-        </UFormField>
-      </UForm>
-    </template>
-    <template #footer>
-      <div class="flex justify-end w-full gap-2">
-        <UButton label="取消" variant="ghost" @click="openAssignUsersModal=false"/>
-        <UButton label="保存" :loading="submittingAssignUsers" @click="assignUsersForm?.submit()"/>
-      </div>
-    </template>
-  </UModal>
-  <UModal v-model:open="openEditModal" :title="editModalTitle">
-    <template #body>
-      <UForm ref="roleForm" :state="roleState" @submit="submitEditRole" class="space-y-4">
-        <UFieldGroup class="w-full gap-2">
-          <UFormField class="w-full" label="角色名称" required>
-            <UInput v-model="roleState.name" class="w-full" placeholder="请输入角色名称"/>
-          </UFormField>
-          <UFormField class="w-full" label="权限字符" required>
-            <UInput v-model="roleState.code" class="w-full" placeholder="请输入权限字符"/>
-          </UFormField>
-        </UFieldGroup>
-        <UFieldGroup class="w-full gap-2">
-          <UFormField class="w-full" label="排序">
-            <UInputNumber v-model="roleState.sort" :min="0" class="w-full"/>
-          </UFormField>
-          <UFormField class="w-full" label="状态">
-            <USelect v-model="roleState.status" valueKey="value" :items="statusOptions" class="w-full"/>
-          </UFormField>
-        </UFieldGroup>
-        <UFormField class="w-full" label="数据范围">
-          <USelect v-model="roleState.dataScope" valueKey="value" :items="dataScopeOptions" class="w-full"/>
-        </UFormField>
-      </UForm>
-    </template>
-    <template #footer>
-      <div class="flex justify-end w-full gap-2">
-        <UButton label="取消" variant="ghost" @click="openEditModal=false"/>
-        <UButton label="保存" :loading="submittingEditRole" @click="roleForm?.submit()"/>
-      </div>
-    </template>
-  </UModal>
-  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
-    <template #header>
-      <div class="space-y-3">
-        <ActionGroup :table="table" @flush="handleQuery" @add-row="openAddRoleModal"
-                     @modify-row="openEditRoleBySelection" @delete-row="deleteRoleBySelection"/>
+  <RoleAssignMenusModal
+      :open="openAssignMenuModal"
+      :role-name="assignMenuRoleName"
+      :menu-tree-options="menuTreeOptions"
+      :assigned-menu-ids="assignedMenuIds"
+      :submitting="submittingAssignMenus"
+      @update:open="openAssignMenuModal = $event"
+      @submit="submitAssignMenusForm"
+  />
+  <RoleAssignUsersModal
+      :open="openAssignUsersModal"
+      :role-name="assignUsersRoleName"
+      :user-options="userOptions"
+      :user-ids="assignUserIds"
+      :loading="loadingAssignUsers"
+      :submitting="submittingAssignUsers"
+      @update:open="openAssignUsersModal = $event"
+      @update:user-ids="assignUserIds = $event"
+      @submit="submitAssignUsers"
+  />
+  <RoleEditModal
+      :open="openEditModal"
+      :title="editModalTitle"
+      :state="roleState"
+      :status-options="statusOptions"
+      :data-scope-options="dataScopeOptions"
+      :submitting="submittingEditRole"
+      @update:open="openEditModal = $event"
+      @update:state="roleState = $event"
+      @submit="submitEditRole"
+  />
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
+      <SystemPageHeader
+          kicker="ROLE CONTROL"
+          title="角色管理"
+          description="统一维护角色资料、菜单授权与用户分配关系。"
+          :stats="[
+            { label: '角色总数', value: total },
+            { label: '当前页', value: queryParams.pageNum },
+            { label: '每页条数', value: queryParams.pageSize }
+          ]"
+      />
+
+      <SystemQueryCard>
+        <template #actions>
+          <ActionGroup :table="table" @flush="handleQuery" @add-row="openAddRoleModal"
+                       @modify-row="openEditRoleBySelection" @delete-row="deleteRoleBySelection"/>
+        </template>
         <UForm @submit="handleQuery" class="w-full">
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="system-query-row">
             <UInput
                 v-model="searchForm.keywords"
                 icon="i-lucide-search"
@@ -652,28 +569,29 @@ async function submitAssignMenusForm() {
             <UButton type="button" variant="ghost" icon="i-lucide-rotate-ccw" label="重置" @click="resetQuery"/>
           </div>
         </UForm>
+      </SystemQueryCard>
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
+      <UTable
+          class="h-full"
+          ref="table"
+          v-model:column-visibility="columnVisibility"
+          sticky
+          :data="roleList"
+          :columns="columns"
+          :loading="loadingPageData"
+          loading-color="primary"
+          loading-animation="carousel"
+      />
       </div>
-    </template>
-    <UTable
-        class="h-full"
-        ref="table"
-        v-model:column-visibility="columnVisibility"
-        sticky
-        :data="roleList"
-        :columns="columns"
-        :loading="loadingPageData"
-        loading-color="primary"
-        loading-animation="carousel"
-    />
-    <template #footer>
-      <div class="flex justify-center border-default pt-4">
+    </div>
+    <div class="system-page-shell__footer">
+      <div class="system-page-footer">
+        <p class="system-page-summary">当前共 {{ total }} 条角色记录</p>
         <UPagination v-model:page="queryParams.pageNum" :total="total"
                      :items-per-page="queryParams.pageSize" @update:page="fetchData"/>
       </div>
-    </template>
-  </UCard>
+    </div>
+  </div>
 </template>
-
-<style scoped>
-
-</style>

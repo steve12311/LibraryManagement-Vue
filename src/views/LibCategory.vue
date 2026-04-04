@@ -7,6 +7,8 @@ import categoryApi, {
   type CategoryStatus,
   type CategoryVO
 } from "@/api/library/category-api.ts";
+import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
+import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
 
 const UButton = resolveComponent('UButton')
 const toast = useToast()
@@ -151,51 +153,51 @@ function getSubRows(row: CategoryVO) {
 </script>
 
 <template>
-  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
-    <template #header>
-      <div class="category-header">
-        <ActionGroup :table="table" @flush="fetchData">
-          <UForm @submit.prevent="handleQuery" class="w-full">
-            <div class="category-search-row">
-              <UInput v-model="searchForm.categoryName" icon="i-lucide-search" size="md" variant="outline"
-                      class="w-full sm:w-72"
-                      placeholder="请输入分类名称/分类代码"/>
-              <USelect v-model="searchForm.status" :items="statusItems" class="w-28"/>
-              <UButton type="submit" icon="i-lucide-search" :loading="loadingCategoryList" label="搜索"/>
-              <UButton type="button" variant="ghost" icon="i-lucide-rotate-ccw"
-                       :disabled="loadingCategoryList" label="重置" @click="resetQuery"/>
-            </div>
-          </UForm>
-        </ActionGroup>
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
+      <SystemPageHeader
+          kicker="CATEGORY MANAGEMENT"
+          title="图书分类"
+          description="维护分类树结构、分类代码和启停状态，保持馆藏目录整洁一致。"
+          :stats="[
+            { label: '分类节点', value: categoryList.length },
+            { label: '状态筛选', value: searchForm.status === -1 ? '全部' : searchForm.status === 1 ? '启用' : '停用' },
+            { label: '搜索词', value: searchForm.categoryName.trim() || '未设置' }
+          ]"
+      />
+
+      <SystemQueryCard>
+        <template #actions>
+          <ActionGroup :table="table" @flush="fetchData"/>
+        </template>
+        <UForm @submit.prevent="handleQuery" class="w-full">
+          <div class="system-query-row">
+            <UInput v-model="searchForm.categoryName" icon="i-lucide-search" size="md" variant="outline"
+                    class="w-full sm:w-72"
+                    placeholder="请输入分类名称/分类代码"/>
+            <USelect v-model="searchForm.status" :items="statusItems" class="w-28"/>
+            <UButton type="submit" icon="i-lucide-search" :loading="loadingCategoryList" label="搜索"/>
+            <UButton type="button" variant="ghost" icon="i-lucide-rotate-ccw"
+                     :disabled="loadingCategoryList" label="重置" @click="resetQuery"/>
+          </div>
+        </UForm>
+      </SystemQueryCard>
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
+      <UTable ref="table" :column-visibility="columnVisibility" :data="categoryList" :columns="columns"
+              :loading="loadingCategoryList"
+              loading-color="primary"
+              loading-animation="carousel"
+              :get-sub-rows="getSubRows"
+              class="h-full"
+              :ui="{
+        base: 'border-separate border-spacing-0',
+        tbody: '[&>tr]:last:[&>td]:border-b-0',
+        tr: 'group',
+        td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
+              }"/>
       </div>
-    </template>
-    <UTable ref="table" :column-visibility="columnVisibility" :data="categoryList" :columns="columns"
-            :loading="loadingCategoryList"
-            loading-color="primary"
-            loading-animation="carousel"
-            virtualize
-            :get-sub-rows="getSubRows"
-            class="h-full"
-            :ui="{
-      base: 'border-separate border-spacing-0',
-      tbody: '[&>tr]:last:[&>td]:border-b-0',
-      tr: 'group',
-      td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
-    }"/>
-  </UCard>
+    </div>
+  </div>
 </template>
-
-<style scoped>
-.category-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.category-search-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-</style>

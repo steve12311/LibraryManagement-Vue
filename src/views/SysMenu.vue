@@ -15,6 +15,8 @@ import {
   getIconInputValue,
   useMenuForm,
 } from "@/composables/system/menu/useMenuForm";
+import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
+import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
 
 onMounted(() => {
   handleQuery()
@@ -227,7 +229,7 @@ watch(tabActiveIndex, (value) => {
 </script>
 
 <template>
-  <ElDrawer v-model="slider.visible" :title="slider.title">
+  <ElDrawer v-model="slider.visible" :title="slider.title" class="menu-detail-drawer">
     <UForm class="gap-4 flex flex-col h-full" disabled>
       <UFormField label="父级菜单">
         <ElTreeSelect disabled :check-strictly="true" placeholder="选择上级菜单"
@@ -273,7 +275,7 @@ watch(tabActiveIndex, (value) => {
       </template>
     </UForm>
   </ElDrawer>
-  <ElDialog :closeOnClickModal="false" v-model="dialog.visible" :title="dialog.title">
+  <ElDialog :closeOnClickModal="false" v-model="dialog.visible" :title="dialog.title" class="menu-edit-dialog">
     <UTabs v-if="mode==='add'" v-model="tabActiveIndex" :items="tabs">
       <template #menu>
         <UForm class="gap-4 flex flex-col h-full">
@@ -474,14 +476,27 @@ watch(tabActiveIndex, (value) => {
       </template>
     </template>
   </ElDialog>
-  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
-    <template #header>
-      <div class="space-y-3">
-        <ActionGroup :table="table" @flush="handleQuery"
-                     @add-row="openAddMenu(0)" @modify-row="editSelectedMenu" @delete-row="deleteMenu()"
-        />
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
+      <SystemPageHeader
+          kicker="MENU GOVERNANCE"
+          title="菜单管理"
+          description="统一维护目录、菜单、按钮权限及其路由配置。"
+          :stats="[
+            { label: '顶层节点', value: menuTableData.length },
+            { label: '表格列数', value: columns.length },
+            { label: '搜索状态', value: searchForm.keywords?.trim() ? '已筛选' : '全部' }
+          ]"
+      />
+
+      <SystemQueryCard>
+        <template #actions>
+          <ActionGroup :table="table" @flush="handleQuery"
+                       @add-row="openAddMenu(0)" @modify-row="editSelectedMenu" @delete-row="deleteMenu()"
+          />
+        </template>
         <UForm @submit.prevent="handleQuery" class="w-full">
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="system-query-row">
             <UInput
                 v-model="searchForm.keywords"
                 icon="i-lucide-search"
@@ -494,26 +509,43 @@ watch(tabActiveIndex, (value) => {
             <UButton type="button" variant="ghost" icon="i-lucide-rotate-ccw" :disabled="loadingMenuList" label="重置" @click="resetQuery"/>
           </div>
         </UForm>
+      </SystemQueryCard>
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
+      <UTable ref="table" :data="menuTableData" :get-sub-rows="(row)=>row.children"
+              :column-visibility="columnVisibility" :columns="columns"
+              class="h-full"
+              :loading="loadingMenuList"
+              loading-color="primary"
+              loading-animation="carousel"
+              virtualize
+              @select="showMenuInfo"
+              :ui="{
+        base: 'border-separate border-spacing-0',
+        tbody: '[&>tr]:last:[&>td]:border-b-0',
+        tr: 'group',
+        td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
+      }"
+      />
       </div>
-    </template>
-    <UTable ref="table" :data="menuTableData" :get-sub-rows="(row)=>row.children"
-            :column-visibility="columnVisibility" :columns="columns"
-            class="h-full"
-            :loading="loadingMenuList"
-            loading-color="primary"
-            loading-animation="carousel"
-            virtualize
-            @select="showMenuInfo"
-            :ui="{
-      base: 'border-separate border-spacing-0',
-      tbody: '[&>tr]:last:[&>td]:border-b-0',
-      tr: 'group',
-      td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default'
-    }"
-    />
-  </UCard>
+    </div>
+    <div class="system-page-shell__footer">
+      <div class="system-page-footer">
+        <p class="system-page-summary">当前展示 {{ menuTableData.length }} 个顶层菜单节点</p>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
+:deep(.menu-edit-dialog) {
+  border-radius: 28px;
+  overflow: hidden;
+}
 
+:deep(.menu-detail-drawer) {
+  border-top-left-radius: 28px;
+  border-bottom-left-radius: 28px;
+}
 </style>

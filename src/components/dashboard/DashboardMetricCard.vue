@@ -8,17 +8,17 @@ defineProps<{
 }>()
 
 const toneClassMap = {
-  sky: "from-cyan-50 via-sky-50 to-white text-cyan-700 ring-cyan-100",
-  emerald: "from-emerald-50 via-teal-50 to-white text-emerald-700 ring-emerald-100",
-  amber: "from-amber-50 via-orange-50 to-white text-amber-700 ring-amber-100",
-  rose: "from-rose-50 via-pink-50 to-white text-rose-700 ring-rose-100",
-  violet: "from-violet-50 via-indigo-50 to-white text-violet-700 ring-violet-100",
+  sky: "bg-primary/10 text-primary ring-primary/15",
+  emerald: "bg-success/10 text-success ring-success/15",
+  amber: "bg-warning/10 text-warning ring-warning/15",
+  rose: "bg-error/10 text-error ring-error/15",
+  violet: "bg-secondary/10 text-secondary ring-secondary/15",
 } as const
 </script>
 
 <template>
   <UCard
-    class="h-full rounded-2xl border border-default bg-gradient-to-br shadow-sm"
+    class="h-full rounded-2xl border border-default bg-default shadow-sm"
     :class="toneClassMap[tone ?? 'sky']"
     :ui="{ body: 'p-5' }"
   >
@@ -28,7 +28,7 @@ const toneClassMap = {
         <p class="text-3xl font-bold text-highlighted">{{ value.toLocaleString('zh-CN') }}</p>
         <p class="text-sm text-muted">{{ description }}</p>
       </div>
-      <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/80 shadow-sm ring-1 ring-inset ring-white/90">
+      <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-default shadow-sm ring-1 ring-inset ring-default">
         <UIcon :name="icon" class="h-5 w-5"/>
       </div>
     </div>

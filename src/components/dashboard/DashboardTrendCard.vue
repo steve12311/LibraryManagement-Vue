@@ -25,10 +25,16 @@ const props = defineProps<{
 
 const chartElement = ref<HTMLDivElement>()
 let chartInstance: ECharts | null = null
+let themeObserver: MutationObserver | null = null
 
 const hasData = computed(() => props.categories.length > 0 && props.series.length > 0)
 
 function getChartOption() {
+  const rootStyle = getComputedStyle(document.documentElement)
+  const textMuted = rootStyle.getPropertyValue("--ui-text-muted").trim() || "#64748b"
+  const textDefault = rootStyle.getPropertyValue("--ui-text").trim() || "#475569"
+  const borderColor = rootStyle.getPropertyValue("--ui-border").trim() || "#cbd5e1"
+  const elevatedColor = rootStyle.getPropertyValue("--ui-bg-elevated").trim() || "#e2e8f0"
   return {
     color: props.series.map((item) => item.color),
     tooltip: {
@@ -44,7 +50,7 @@ function getChartOption() {
       itemWidth: 10,
       itemHeight: 10,
       textStyle: {
-        color: "#475569",
+        color: textDefault,
       },
     },
     grid: {
@@ -62,22 +68,22 @@ function getChartOption() {
       },
       axisLine: {
         lineStyle: {
-          color: "#cbd5e1",
+          color: borderColor,
         },
       },
       axisLabel: {
-        color: "#64748b",
+        color: textMuted,
       },
     },
     yAxis: {
       type: "value",
       splitLine: {
         lineStyle: {
-          color: "#e2e8f0",
+          color: elevatedColor,
         },
       },
       axisLabel: {
-        color: "#64748b",
+        color: textMuted,
       },
     },
     series: props.series.map((item) => ({
@@ -128,10 +134,19 @@ watch(
 )
 
 onMounted(() => {
+  themeObserver = new MutationObserver(() => {
+    renderChart()
+  })
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class", "data-theme", "data-color-mode"]
+  })
   renderChart()
 })
 
 onBeforeUnmount(() => {
+  themeObserver?.disconnect()
+  themeObserver = null
   chartInstance?.dispose()
   chartInstance = null
 })
@@ -144,7 +159,7 @@ onBeforeUnmount(() => {
         <h3 class="text-base font-semibold text-highlighted">{{ title }}</h3>
         <p class="mt-1 text-sm text-muted">{{ subtitle }}</p>
       </div>
-      <UIcon name="i-lucide-chart-column-big" class="mt-1 h-5 w-5 text-cyan-600"/>
+      <UIcon name="i-lucide-chart-column-big" class="mt-1 h-5 w-5 text-primary"/>
     </div>
 
     <div

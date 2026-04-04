@@ -60,7 +60,7 @@ const dropdownItems = computed<DropdownMenuItem[][]>(() => [
 </script>
 
 <template>
-  <div class="flex justify-between">
+  <div class="flex w-full justify-between">
     <div class="flex gap-4">
       <slot>
         <UButton icon="i-lucide-plus" @click="emits('addRow')" variant="subtle" label="新增"/>

@@ -13,6 +13,8 @@ import {useStockQuery} from "@/composables/library/stock/useStockQuery";
 import {useStockOptions} from "@/composables/library/stock/useStockOptions";
 import {useStockOut} from "@/composables/library/stock/useStockOut";
 import {useStockEdit} from "@/composables/library/stock/useStockEdit";
+import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
+import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
 
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
@@ -216,11 +218,29 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
       @success="fetchData"
   />
   <StockDetailDialog v-model:open="open" v-model:stock="currentSelectedStock"/>
-  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
-    <template #header>
-      <ActionGroup @flush="fetchData" :table="table">
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
+      <SystemPageHeader
+          kicker="BOOK INVENTORY"
+          title="图书库存"
+          description="查看馆藏库存、维护图书信息，并在当前页完成入库与出库操作。"
+          :stats="[
+            { label: '库存记录', value: total },
+            { label: '当前页', value: queryParams.pageNum },
+            { label: '每页条数', value: queryParams.pageSize }
+          ]"
+      />
+
+      <SystemQueryCard>
+        <template #actions>
+          <ActionGroup @flush="fetchData" :table="table">
+            <template #behind>
+              <UButton @click="openEntryModal" icon="i-lucide-plus" :loading="loadingOptions" variant="subtle" label="入库"/>
+            </template>
+          </ActionGroup>
+        </template>
         <UForm @submit.prevent="handleQuery" class="w-full">
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="system-query-row">
             <USelect v-model="queryParams.field" defaultValue="name" :items="fieldItems" class="w-28"/>
             <UInput
                 v-model="queryParams.keyword"
@@ -241,31 +261,29 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
             />
           </div>
         </UForm>
-        <template #behind>
-          <UButton @click="openEntryModal" icon="i-lucide-plus" :loading="loadingOptions" variant="subtle" label="入库"/>
-        </template>
-      </ActionGroup>
-    </template>
-    <UTable
-        class="h-full"
-        ref="table"
-        :columns="columns"
-        :data="pageDate"
-        :loading="loadingPageData"
-        loading-color="primary"
-        loading-animation="carousel"
-        @select="showBookDetailInfo"
-    />
-    <template #footer>
-      <div class="flex justify-center border-default pt-4">
+      </SystemQueryCard>
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
+      <UTable
+          class="h-full"
+          ref="table"
+          :columns="columns"
+          :data="pageDate"
+          :loading="loadingPageData"
+          loading-color="primary"
+          loading-animation="carousel"
+          @select="showBookDetailInfo"
+      />
+      </div>
+    </div>
+    <div class="system-page-shell__footer">
+      <div class="system-page-footer">
+        <p class="system-page-summary">当前共 {{ total }} 条库存记录</p>
         <UPagination v-model:page="queryParams.pageNum" :total="total"
                      :items-per-page="queryParams.pageSize" @update:page="fetchData"
         />
       </div>
-    </template>
-  </UCard>
+    </div>
+  </div>
 </template>
-
-<style scoped>
-
-</style>

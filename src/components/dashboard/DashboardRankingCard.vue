@@ -30,7 +30,7 @@ function getProgressWidth(items: DashboardNamedCountItem[], currentCount: number
         <h3 class="text-base font-semibold text-highlighted">{{ title }}</h3>
         <p class="mt-1 text-sm text-muted">{{ subtitle }}</p>
       </div>
-      <UIcon name="i-lucide-badge-percent" class="mt-1 h-5 w-5 text-cyan-600"/>
+      <UIcon name="i-lucide-badge-percent" class="mt-1 h-5 w-5 text-primary"/>
     </div>
 
     <div
@@ -52,7 +52,7 @@ function getProgressWidth(items: DashboardNamedCountItem[], currentCount: number
           :key="`${item.isbn}-${index}`"
           class="flex items-center gap-3 rounded-2xl border border-default bg-elevated/50 p-3"
         >
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-default">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-default ring-1 ring-default">
             <img
               v-if="item.cover"
               :src="item.cover"
@@ -89,9 +89,9 @@ function getProgressWidth(items: DashboardNamedCountItem[], currentCount: number
               <span class="text-sm font-semibold text-highlighted">{{ item.count }}</span>
             </div>
           </div>
-          <div class="h-2 overflow-hidden rounded-full bg-slate-100">
+          <div class="h-2 overflow-hidden rounded-full bg-muted">
             <div
-              class="h-full rounded-full bg-gradient-to-r from-cyan-500 to-sky-500"
+              class="h-full rounded-full bg-primary"
               :style="{ width: getProgressWidth(countItems, item.count) }"
             />
           </div>

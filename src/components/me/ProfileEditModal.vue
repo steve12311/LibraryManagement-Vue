@@ -59,9 +59,17 @@ const emailModel = computed({
 </script>
 
 <template>
-  <UModal v-model:open="openModel" title="编辑资料">
+  <UModal
+      v-model:open="openModel"
+      title="编辑资料"
+      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
+  >
     <template #body>
-      <UForm :schema="schema" :state="state" class="space-y-4" @submit.prevent="emit('submit')">
+      <div class="modal-copy">
+        <p class="modal-title">基础资料</p>
+        <p class="modal-description">更新头像、昵称、联系方式和基础身份信息。</p>
+      </div>
+      <UForm :schema="schema" :state="state" class="mt-5 space-y-4" @submit.prevent="emit('submit')">
         <UFieldGroup class="w-full gap-2">
           <UFormField class="w-full" label="昵称" name="nickname" required>
             <UInput v-model="nicknameModel" class="w-full" placeholder="请输入昵称"/>
@@ -98,7 +106,7 @@ const emailModel = computed({
       </UForm>
     </template>
     <template #footer>
-      <div class="flex w-full justify-end gap-2">
+      <div class="modal-footer">
         <UButton
             label="取消"
             variant="ghost"
@@ -124,3 +132,29 @@ const emailModel = computed({
     </template>
   </UModal>
 </template>
+
+<style scoped>
+.modal-copy {
+  padding-bottom: 6px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--library-text);
+}
+
+.modal-description {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--library-text-muted);
+}
+
+.modal-footer {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+</style>

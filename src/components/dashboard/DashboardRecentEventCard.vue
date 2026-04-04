@@ -55,7 +55,7 @@ function handlePageChange(page: number) {
         <h3 class="text-base font-semibold text-highlighted">{{ title }}</h3>
         <p class="mt-1 text-sm text-muted">{{ subtitle }}</p>
       </div>
-      <UIcon name="i-lucide-history" class="mt-1 h-5 w-5 text-cyan-600"/>
+      <UIcon name="i-lucide-history" class="mt-1 h-5 w-5 text-primary"/>
     </div>
 
     <div
@@ -79,7 +79,7 @@ function handlePageChange(page: number) {
             class="rounded-2xl border border-default bg-elevated/50 p-3"
           >
             <div class="flex items-start gap-3">
-              <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-default">
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-default ring-1 ring-default">
                 <img
                   v-if="item.cover"
                   :src="item.cover"

@@ -20,6 +20,8 @@ import {
   isBorrowReturned,
   resolveBorrowStatus
 } from "@/utils/borrow-status";
+import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
+import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
 
 const UAvatar = resolveComponent("UAvatar")
 const UBadge = resolveComponent("UBadge")
@@ -374,9 +376,17 @@ async function confirmReturnBorrow(borrowId: string) {
 </script>
 
 <template>
-  <UModal v-model:open="openConfirm" title="延期还书">
+  <UModal
+      v-model:open="openConfirm"
+      title="延期还书"
+      :ui="{ content: 'sm:max-w-lg rounded-[28px] border border-default bg-default shadow-lg' }"
+  >
     <template #body>
-      <UForm @submit.prevent="submitDelayDay" ref="delayForm" class="space-y-3">
+      <div class="system-modal-copy">
+        <p class="system-modal-title">延期归还</p>
+        <p class="system-modal-description">在当前预计归还日期基础上顺延借阅时间。</p>
+      </div>
+      <UForm @submit.prevent="submitDelayDay" ref="delayForm" class="mt-5 space-y-3">
         <UFormField label="延期天数">
           <UInputNumber v-model="delayDay" :min="1" class="w-full"/>
         </UFormField>
@@ -386,15 +396,23 @@ async function confirmReturnBorrow(borrowId: string) {
       </UForm>
     </template>
     <template #footer>
-      <div class="flex justify-end w-full gap-2">
+      <div class="system-modal-footer">
         <UButton @click="openConfirm = false" variant="ghost" label="取消"/>
         <UButton @click="delayForm?.submit()" :loading="submittingDelay" variant="subtle" color="error" label="确定"/>
       </div>
     </template>
   </UModal>
-  <UModal v-model:open="open" title="新增借阅">
+  <UModal
+      v-model:open="open"
+      title="新增借阅"
+      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
+  >
     <template #body>
-      <UForm @submit.prevent="submitForm" :schema="schema" :state="state" ref="form" class="gap-y-4">
+      <div class="system-modal-copy">
+        <p class="system-modal-title">创建借阅单</p>
+        <p class="system-modal-description">选择图书、借阅用户和预计归还日期，创建新的借阅记录。</p>
+      </div>
+      <UForm @submit.prevent="submitForm" :schema="schema" :state="state" ref="form" class="mt-5 gap-y-4">
         <UFormField name="isbn" class="w-full" label="ISBN" required>
           <UInputMenu valueKey="value" v-model="state.isbn" virtualize icon="i-lucide-book" class="w-full"
                       :items="bookOptions"
@@ -432,17 +450,35 @@ async function confirmReturnBorrow(borrowId: string) {
       </UForm>
     </template>
     <template #footer>
-      <div class="flex justify-end w-full gap-2">
+      <div class="system-modal-footer">
         <UButton @click="open = false" variant="ghost" label="取消"/>
         <UButton @click="form?.submit()" :loading="submittingBorrow" variant="subtle" color="error" label="确定"/>
       </div>
     </template>
   </UModal>
-  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
-    <template #header>
-      <ActionGroup :table="table" @flush="fetchData">
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
+      <SystemPageHeader
+          kicker="BORROWING RECORDS"
+          title="借阅管理"
+          description="统一处理借阅查询、新增借阅、延期归还与还书流转。"
+          :stats="[
+            { label: '借阅记录', value: total },
+            { label: '当前页', value: queryParams.pageNum },
+            { label: '当前模式', value: searchForm.field === 'status' ? '状态' : '关键词' }
+          ]"
+      />
+
+      <SystemQueryCard>
+        <template #actions>
+          <ActionGroup :table="table" @flush="fetchData">
+            <template #behind>
+              <UButton @click="openModal" :loading="loadingBorrowOptions" icon="i-lucide-plus" variant="subtle" label="新增"/>
+            </template>
+          </ActionGroup>
+        </template>
         <UForm @submit.prevent="handleQuery" class="w-full">
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="system-query-row">
             <USelect v-model="searchForm.field" defaultValue="isbn" :items="fieldItems" class="w-28"/>
             <USelect v-if="searchForm.field === 'status'" v-model="searchForm.status" class="w-32" :items="statusItems"/>
             <UInput
@@ -465,27 +501,27 @@ async function confirmReturnBorrow(borrowId: string) {
             />
           </div>
         </UForm>
-        <UButton @click="openModal" :loading="loadingBorrowOptions" icon="i-lucide-plus" variant="subtle" label="新增"/>
-      </ActionGroup>
-    </template>
-    <UTable
-        class="h-full"
-        ref="table"
-        :data="pageData"
-        :columns="columns"
-        :loading="loadingPageData"
-        loading-color="primary"
-        loading-animation="carousel"
-    />
-    <template #footer>
-      <div class="flex justify-center border-default pt-4">
+      </SystemQueryCard>
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
+      <UTable
+          class="h-full"
+          ref="table"
+          :data="pageData"
+          :columns="columns"
+          :loading="loadingPageData"
+          loading-color="primary"
+          loading-animation="carousel"
+      />
+      </div>
+    </div>
+    <div class="system-page-shell__footer">
+      <div class="system-page-footer">
+        <p class="system-page-summary">当前共 {{ total }} 条借阅记录</p>
         <UPagination v-model:page="queryParams.pageNum" :total="total"
                      :items-per-page="queryParams.pageSize" @update:page="fetchData"/>
       </div>
-    </template>
-  </UCard>
+    </div>
+  </div>
 </template>
-
-<style scoped>
-
-</style>

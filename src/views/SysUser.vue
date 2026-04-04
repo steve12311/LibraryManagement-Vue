@@ -9,6 +9,8 @@ import {useUserDialog} from "@/composables/system/user/useUserDialog";
 import {useUserForm} from "@/composables/system/user/useUserForm";
 import {useUserQuery} from "@/composables/system/user/useUserQuery";
 import {useUserSubmit} from "@/composables/system/user/useUserSubmit";
+import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
+import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
 
 onMounted(() => {
   handleQuery()
@@ -314,9 +316,17 @@ function getGenderLabel(gender?: number) {
 </script>
 
 <template>
-  <UModal v-model:open="openAssignRoleModal" :title="`分配角色${assignRoleUsername ? ` - ${assignRoleUsername}` : ''}`">
+  <UModal
+      v-model:open="openAssignRoleModal"
+      :title="`分配角色${assignRoleUsername ? ` - ${assignRoleUsername}` : ''}`"
+      :ui="{ content: 'sm:max-w-xl rounded-[28px] border border-default bg-default shadow-lg' }"
+  >
     <template #body>
-      <UForm :state="assignRoleState" @submit="submitAssignRole" class="space-y-4">
+      <div class="system-modal-copy">
+        <p class="system-modal-title">角色分配</p>
+        <p class="system-modal-description">为当前用户调整角色集合，保存后立即更新权限范围。</p>
+      </div>
+      <UForm :state="assignRoleState" @submit="submitAssignRole" class="mt-5 space-y-4">
         <UFormField class="w-full" label="角色">
           <USelect
               multiple
@@ -331,15 +341,23 @@ function getGenderLabel(gender?: number) {
       </UForm>
     </template>
     <template #footer>
-      <div class="flex justify-end w-full gap-2">
+      <div class="system-modal-footer">
         <UButton label="取消" variant="ghost" @click="openAssignRoleModal=false"/>
         <UButton label="保存" :loading="submittingAssignRole" @click="submitAssignRole"/>
       </div>
     </template>
   </UModal>
-  <UModal v-model:open="openEditModal" :title="editModalTitle">
+  <UModal
+      v-model:open="openEditModal"
+      :title="editModalTitle"
+      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
+  >
     <template #body>
-      <UForm ref="editForm" :state="editUserState" @submit="submitEditUser" class="space-y-4">
+      <div class="system-modal-copy">
+        <p class="system-modal-title">用户资料</p>
+        <p class="system-modal-description">维护基础资料、角色信息和头像。</p>
+      </div>
+      <UForm ref="editForm" :state="editUserState" @submit="submitEditUser" class="mt-5 space-y-4">
         <UFieldGroup class="w-full gap-2">
           <UFormField class="w-full" label="昵称" required>
             <UInput v-model="editUserState.nickname" class="w-full" placeholder="请输入昵称"/>
@@ -382,19 +400,38 @@ function getGenderLabel(gender?: number) {
       </UForm>
     </template>
     <template #footer>
-      <div class="flex justify-end w-full gap-2">
+      <div class="system-modal-footer">
         <UButton label="取消" variant="ghost" @click="openEditModal=false"/>
         <UButton label="保存" :loading="submittingEditUser" @click="editForm?.submit()"/>
       </div>
     </template>
   </UModal>
-  <UCard class="flex h-full min-h-0 flex-col" :ui="{ body: 'flex-1 min-h-0' }">
-    <template #header>
-      <div class="space-y-3">
-        <ActionGroup :table="table" @flush="handleQuery" @add-row="openAddUserModal"
-                     @modify-row="openEditUserModalBySelection" @delete-row="deleteUserBySelection"/>
+  <div class="system-page-shell">
+    <div class="system-page-shell__header">
+      <SystemPageHeader
+          kicker="USER MANAGEMENT"
+          title="用户管理"
+          description="统一维护账号资料、角色分配与启停状态。"
+          :stats="[
+            { label: '总用户', value: total },
+            { label: '当前页', value: queryParams.pageNum },
+            { label: '每页条数', value: queryParams.pageSize }
+          ]"
+      />
+
+      <SystemQueryCard>
+        <template #actions>
+          <ActionGroup
+              :table="table"
+              @flush="handleQuery"
+              @add-row="openAddUserModal"
+              @modify-row="openEditUserModalBySelection"
+              @delete-row="deleteUserBySelection"
+          />
+        </template>
+
         <UForm @submit="handleQuery" class="w-full">
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="system-query-row">
             <UInput
                 v-model="searchForm.keywords"
                 icon="i-lucide-search"
@@ -413,28 +450,29 @@ function getGenderLabel(gender?: number) {
             <UButton type="button" variant="ghost" icon="i-lucide-rotate-ccw" label="重置" @click="resetQuery"/>
           </div>
         </UForm>
+      </SystemQueryCard>
+    </div>
+    <div class="system-page-shell__main">
+      <div class="system-table-card">
+      <UTable
+          class="h-full"
+          ref="table"
+          v-model:column-visibility="columnVisibility"
+          sticky
+          :data="pageData"
+          :columns="columns"
+          :loading="loadingPageData"
+          loading-color="primary"
+          loading-animation="carousel"
+      />
       </div>
-    </template>
-    <UTable
-        class="h-full"
-        ref="table"
-        v-model:column-visibility="columnVisibility"
-        sticky
-        :data="pageData"
-        :columns="columns"
-        :loading="loadingPageData"
-        loading-color="primary"
-        loading-animation="carousel"
-    />
-    <template #footer>
-      <div class="flex justify-center border-default pt-4">
+    </div>
+    <div class="system-page-shell__footer">
+      <div class="system-page-footer">
+        <p class="system-page-summary">当前共 {{ total }} 条用户记录</p>
         <UPagination v-model:page="queryParams.pageNum" :total="total"
                      :items-per-page="queryParams.pageSize" @update:page="fetchData"/>
       </div>
-    </template>
-  </UCard>
+    </div>
+  </div>
 </template>
-
-<style scoped>
-
-</style>
