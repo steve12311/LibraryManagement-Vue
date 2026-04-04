@@ -9,7 +9,7 @@ const pathSrc = resolve(__dirname, "src");
 export default defineConfig(({mode}: ConfigEnv): UserConfig => {
     const env = loadEnv(mode, process.cwd());
     return {
-        plugins: [vue(), ui()],
+        plugins: [vue(), ui({colorMode: true, dts: false})],
         build: {
             rollupOptions: {
                 output: {
