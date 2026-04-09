@@ -472,35 +472,35 @@ async function confirmReturnBorrow(borrowId: string) {
       <SystemQueryCard>
         <template #actions>
           <ActionGroup :table="table" @flush="fetchData">
+            <UForm @submit.prevent="handleQuery" class="w-full">
+              <div class="system-query-row">
+                <USelect v-model="searchForm.field" defaultValue="isbn" :items="fieldItems" class="w-28"/>
+                <USelect v-if="searchForm.field === 'status'" v-model="searchForm.status" class="w-32" :items="statusItems"/>
+                <UInput
+                    v-else
+                    v-model="searchForm.keyword"
+                    icon="i-lucide-search"
+                    size="md"
+                    variant="outline"
+                    class="w-full sm:w-72"
+                    placeholder="请输入搜索内容..."
+                />
+                <UButton type="submit" icon="i-lucide-search" :loading="loadingPageData" label="搜索"/>
+                <UButton
+                    type="button"
+                    variant="ghost"
+                    icon="i-lucide-rotate-ccw"
+                    :disabled="loadingPageData"
+                    label="重置"
+                    @click="resetQuery"
+                />
+              </div>
+            </UForm>
             <template #behind>
               <UButton @click="openModal" :loading="loadingBorrowOptions" icon="i-lucide-plus" variant="subtle" label="新增"/>
             </template>
           </ActionGroup>
         </template>
-        <UForm @submit.prevent="handleQuery" class="w-full">
-          <div class="system-query-row">
-            <USelect v-model="searchForm.field" defaultValue="isbn" :items="fieldItems" class="w-28"/>
-            <USelect v-if="searchForm.field === 'status'" v-model="searchForm.status" class="w-32" :items="statusItems"/>
-            <UInput
-                v-else
-                v-model="searchForm.keyword"
-                icon="i-lucide-search"
-                size="md"
-                variant="outline"
-                class="w-full sm:w-72"
-                placeholder="请输入搜索内容..."
-            />
-            <UButton type="submit" icon="i-lucide-search" :loading="loadingPageData" label="搜索"/>
-            <UButton
-                type="button"
-                variant="ghost"
-                icon="i-lucide-rotate-ccw"
-                :disabled="loadingPageData"
-                label="重置"
-                @click="resetQuery"
-            />
-          </div>
-        </UForm>
       </SystemQueryCard>
     </div>
     <div class="system-page-shell__main">

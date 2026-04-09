@@ -168,19 +168,20 @@ function getSubRows(row: CategoryVO) {
 
       <SystemQueryCard>
         <template #actions>
-          <ActionGroup :table="table" @flush="fetchData"/>
+          <ActionGroup :table="table" @flush="fetchData">
+            <UForm @submit.prevent="handleQuery" class="w-full">
+              <div class="system-query-row">
+                <UInput v-model="searchForm.categoryName" icon="i-lucide-search" size="md" variant="outline"
+                        class="w-full sm:w-72"
+                        placeholder="请输入分类名称/分类代码"/>
+                <USelect v-model="searchForm.status" :items="statusItems" class="w-28"/>
+                <UButton type="submit" icon="i-lucide-search" :loading="loadingCategoryList" label="搜索"/>
+                <UButton type="button" variant="ghost" icon="i-lucide-rotate-ccw"
+                         :disabled="loadingCategoryList" label="重置" @click="resetQuery"/>
+              </div>
+            </UForm>
+          </ActionGroup>
         </template>
-        <UForm @submit.prevent="handleQuery" class="w-full">
-          <div class="system-query-row">
-            <UInput v-model="searchForm.categoryName" icon="i-lucide-search" size="md" variant="outline"
-                    class="w-full sm:w-72"
-                    placeholder="请输入分类名称/分类代码"/>
-            <USelect v-model="searchForm.status" :items="statusItems" class="w-28"/>
-            <UButton type="submit" icon="i-lucide-search" :loading="loadingCategoryList" label="搜索"/>
-            <UButton type="button" variant="ghost" icon="i-lucide-rotate-ccw"
-                     :disabled="loadingCategoryList" label="重置" @click="resetQuery"/>
-          </div>
-        </UForm>
       </SystemQueryCard>
     </div>
     <div class="system-page-shell__main">

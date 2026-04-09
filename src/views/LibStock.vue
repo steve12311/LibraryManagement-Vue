@@ -234,33 +234,33 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
       <SystemQueryCard>
         <template #actions>
           <ActionGroup @flush="fetchData" :table="table">
+            <UForm @submit.prevent="handleQuery" class="w-full">
+              <div class="system-query-row">
+                <USelect v-model="queryParams.field" defaultValue="name" :items="fieldItems" class="w-28"/>
+                <UInput
+                    v-model="queryParams.keyword"
+                    icon="i-lucide-search"
+                    size="md"
+                    variant="outline"
+                    class="w-full sm:w-72"
+                    placeholder="请输入搜索内容..."
+                />
+                <UButton type="submit" icon="i-lucide-search" :loading="loadingPageData" label="搜索"/>
+                <UButton
+                    type="button"
+                    variant="ghost"
+                    icon="i-lucide-rotate-ccw"
+                    :disabled="loadingPageData"
+                    label="重置"
+                    @click="resetQuery"
+                />
+              </div>
+            </UForm>
             <template #behind>
               <UButton @click="openEntryModal" icon="i-lucide-plus" :loading="loadingOptions" variant="subtle" label="入库"/>
             </template>
           </ActionGroup>
         </template>
-        <UForm @submit.prevent="handleQuery" class="w-full">
-          <div class="system-query-row">
-            <USelect v-model="queryParams.field" defaultValue="name" :items="fieldItems" class="w-28"/>
-            <UInput
-                v-model="queryParams.keyword"
-                icon="i-lucide-search"
-                size="md"
-                variant="outline"
-                class="w-full sm:w-72"
-                placeholder="请输入搜索内容..."
-            />
-            <UButton type="submit" icon="i-lucide-search" :loading="loadingPageData" label="搜索"/>
-            <UButton
-                type="button"
-                variant="ghost"
-                icon="i-lucide-rotate-ccw"
-                :disabled="loadingPageData"
-                label="重置"
-                @click="resetQuery"
-            />
-          </div>
-        </UForm>
       </SystemQueryCard>
     </div>
     <div class="system-page-shell__main">
