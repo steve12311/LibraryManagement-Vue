@@ -100,6 +100,13 @@ function resetEntryForm() {
   publishTime.value = toCalendarDate()
 }
 
+function normalizePressId(value: unknown) {
+  if (value === void 0 || value === null || value === "") return void 0
+  const pressId = Number(value)
+  if (!Number.isInteger(pressId) || pressId <= 0) return void 0
+  return pressId
+}
+
 async function nextEntryStep() {
   if (!entryStepper.value?.hasNext) return
 
@@ -153,6 +160,12 @@ async function submitStock() {
     isbn,
     publishTime: new Date(publishTime.value.toString())
   }
+  const normalizedPressId = normalizePressId(state.value.pressId)
+  if (state.value.pressId !== void 0 && normalizedPressId === void 0) {
+    toast.add({title: "错误", description: "出版社无效", color: "error"})
+    return
+  }
+  payload.pressId = normalizedPressId
 
   try {
     submittingStock.value = true
@@ -235,7 +248,13 @@ async function submitStock() {
                   </UFieldGroup>
                   <UFieldGroup class="w-full gap-2">
                     <UFormField class="w-full" label="出版社">
-                      <USelectMenu virtualize v-model="state.pressId" class="w-full" :items="props.publishOptions"/>
+                      <USelectMenu
+                          virtualize
+                          valueKey="value"
+                          v-model="state.pressId"
+                          class="w-full"
+                          :items="props.publishOptions"
+                      />
                     </UFormField>
                     <UFormField class="w-full" label="数量">
                       <UInputNumber v-model="state.stock" :min="0" class="w-full"/>
