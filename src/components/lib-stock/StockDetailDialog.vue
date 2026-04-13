@@ -6,10 +6,15 @@ const currentSelectedStock = defineModel<StockPageVO | undefined>('stock')
 </script>
 
 <template>
-  <UModal v-model:open="open" title="图书详情">
+  <UModal v-model:open="open"
+          title="图书详情"
+          :ui="{
+          content: 'sm:max-w-xl'
+          }"
+  >
     <template #body>
       <div class="flex">
-        <img style="max-width: 200px;object-fit: contain" :src="currentSelectedStock?.bookImage"
+        <img style="max-width: 200px;object-fit: contain;margin: 0 12px" :src="currentSelectedStock?.bookImage"
              :alt="currentSelectedStock?.name">
         <div>
           <p class="font-bold">{{ currentSelectedStock?.name }}</p>
