@@ -247,11 +247,11 @@ export function useDashboardScreen() {
   })
   const recentEventsQuery = reactive<DashboardRecentEventsQuery>({
     borrowPageNum: 1,
-    borrowPageSize: 10,
+    borrowPageSize: 4,
     operPageNum: 1,
-    operPageSize: 10,
+    operPageSize: 4,
     authPageNum: 1,
-    authPageSize: 10,
+    authPageSize: 4,
   })
   const overviewRequestSerial = ref(0)
   const trendRequestSerial = ref(0)
