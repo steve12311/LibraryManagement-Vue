@@ -63,8 +63,7 @@ function getRedirectPath() {
   const validateRedirectPath = (targetPath: string) => {
     if (!targetPath.startsWith("/")) return false;
     if (targetPath.startsWith("//")) return false;
-    if (targetPath.includes("://")) return false;
-    return true;
+    return !targetPath.includes("://");
   };
 
   try {
@@ -222,9 +221,7 @@ async function refreshCaptcha() {
                 />
               </div>
             </UFormField>
-          </UForm>
 
-          <template #footer>
             <div class="auth-footer">
               <p class="auth-footnote">验证码每 120 秒自动刷新一次，也可点击图片立即刷新。</p>
               <UButton
@@ -237,7 +234,7 @@ async function refreshCaptcha() {
                 登录系统
               </UButton>
             </div>
-          </template>
+          </UForm>
         </UCard>
       </section>
     </div>
