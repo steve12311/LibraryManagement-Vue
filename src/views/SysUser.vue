@@ -7,6 +7,7 @@ import {UserGenderTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts"
 import {useUserActions} from "@/composables/system/user/useUserActions";
 import {useUserDialog} from "@/composables/system/user/useUserDialog";
 import {useUserForm} from "@/composables/system/user/useUserForm";
+import {useUserImportExport} from "@/composables/system/user/useUserImportExport";
 import {useUserQuery} from "@/composables/system/user/useUserQuery";
 import {useUserSubmit} from "@/composables/system/user/useUserSubmit";
 import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
@@ -22,6 +23,8 @@ const UCheckbox = resolveComponent('UCheckbox')
 const UFieldGroup = resolveComponent('UFieldGroup')
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
+const USER_IMPORT_ACCEPT = ".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+const USER_IMPORT_DESCRIPTION = "仅支持 Excel 文件（.xlsx、.xls）"
 const {queryParams, searchForm, total, pageData, loadingPageData, handleQuery, resetQuery, fetchData} = useUserQuery()
 const statusQueryOptions = ref<OptionType[]>([
   {
@@ -118,6 +121,24 @@ const {
   openAssignRoleModal,
   fetchData,
   getAvatarFile: () => getAvatarFileFromModel(avatarModel.value),
+})
+const {
+  openImportModal,
+  openImportResultModal,
+  importFileModel,
+  downloadingTemplate,
+  importingUsers,
+  exportingUsers,
+  importResult,
+  importSummary,
+  resetImportState,
+  resetImportFile,
+  downloadTemplate,
+  submitImportUsers,
+  exportUsers,
+} = useUserImportExport({
+  fetchData,
+  getExportQuery: () => ({...queryParams}),
 })
 const {
   openEditUserModalBySelection,
@@ -313,9 +334,125 @@ function getGenderLabel(gender?: number) {
   if (gender === UserGenderTypeEnum.WOMAN) return "女"
   return "-"
 }
+
+function closeImportModal() {
+  openImportModal.value = false
+  resetImportFile()
+}
+
+function closeImportResultModal() {
+  openImportResultModal.value = false
+  resetImportState()
+}
 </script>
 
 <template>
+  <UModal
+      v-model:open="openImportModal"
+      title="导入用户"
+      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
+  >
+    <template #body>
+      <div class="system-modal-copy">
+        <p class="system-modal-title">批量导入</p>
+        <p class="system-modal-description">请先下载最新模板，按角色名称填写后再上传 Excel 文件。</p>
+      </div>
+
+      <div class="mt-5 space-y-4">
+        <div class="flex items-center justify-between gap-3 rounded-2xl border border-default bg-muted/30 px-4 py-3">
+          <div>
+            <p class="text-sm font-medium text-highlighted">模板说明</p>
+            <p class="mt-1 text-sm text-muted">角色列填写角色名称，多角色使用英文逗号分隔。</p>
+          </div>
+          <UButton
+              label="下载模板"
+              icon="i-lucide-file-down"
+              variant="subtle"
+              :loading="downloadingTemplate"
+              @click="downloadTemplate"
+          />
+        </div>
+
+        <UFileUpload
+            v-model="importFileModel"
+            :accept="USER_IMPORT_ACCEPT"
+            label="上传用户导入文件"
+            :description="USER_IMPORT_DESCRIPTION"
+            class="w-full min-h-32"
+        />
+
+        <ul class="space-y-1 text-sm text-muted">
+          <li>1. 模板中的角色字段使用角色名称，不填写角色 ID。</li>
+          <li>2. 导入采用部分成功模型，失败明细会在导入结果中展示。</li>
+          <li>3. 导出会复用当前列表页已生效的筛选条件。</li>
+        </ul>
+      </div>
+    </template>
+    <template #footer>
+      <div class="system-modal-footer">
+        <UButton label="取消" variant="ghost" @click="closeImportModal"/>
+        <UButton label="开始导入" icon="i-lucide-upload" :loading="importingUsers" @click="submitImportUsers"/>
+      </div>
+    </template>
+  </UModal>
+
+  <UModal
+      v-model:open="openImportResultModal"
+      title="导入结果"
+      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
+  >
+    <template #body>
+      <div class="system-modal-copy">
+        <p class="system-modal-title">导入完成</p>
+        <p class="system-modal-description">{{ importSummary }}</p>
+      </div>
+
+      <div class="mt-5 grid gap-3 md:grid-cols-3">
+        <div class="rounded-2xl border border-default bg-muted/30 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted">总条数</p>
+          <p class="mt-2 text-2xl font-semibold text-highlighted">{{ importResult.totalCount }}</p>
+        </div>
+        <div class="rounded-2xl border border-success/30 bg-success/10 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-[0.18em] text-success">成功</p>
+          <p class="mt-2 text-2xl font-semibold text-highlighted">{{ importResult.successCount }}</p>
+        </div>
+        <div class="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-[0.18em] text-warning">失败</p>
+          <p class="mt-2 text-2xl font-semibold text-highlighted">{{ importResult.failureCount }}</p>
+        </div>
+      </div>
+
+      <div class="mt-5">
+        <div class="flex items-center justify-between">
+          <p class="text-sm font-medium text-highlighted">失败明细</p>
+          <span class="text-xs text-muted">{{ importResult.messages.length }} 条</span>
+        </div>
+
+        <div
+            v-if="importResult.messages.length"
+            class="mt-3 max-h-64 overflow-y-auto rounded-2xl border border-default bg-muted/20 px-4 py-3"
+        >
+          <ul class="space-y-2 text-sm text-default">
+            <li v-for="message in importResult.messages" :key="message" class="leading-6">
+              {{ message }}
+            </li>
+          </ul>
+        </div>
+        <div
+            v-else
+            class="mt-3 rounded-2xl border border-default bg-muted/20 px-4 py-6 text-sm text-muted"
+        >
+          本次导入没有失败明细。
+        </div>
+      </div>
+    </template>
+    <template #footer>
+      <div class="system-modal-footer">
+        <UButton label="关闭" @click="closeImportResultModal"/>
+      </div>
+    </template>
+  </UModal>
+
   <UModal
       v-model:open="openAssignRoleModal"
       :title="`分配角色${assignRoleUsername ? ` - ${assignRoleUsername}` : ''}`"
@@ -427,7 +564,46 @@ function getGenderLabel(gender?: number) {
               @add-row="openAddUserModal"
               @modify-row="openEditUserModalBySelection"
               @delete-row="deleteUserBySelection"
-          />
+          >
+            <UButton icon="i-lucide-plus" @click="openAddUserModal" variant="subtle" label="新增"/>
+            <UButton
+                icon="i-lucide-clipboard-pen-line"
+                :disabled="(table?.tableApi?.getFilteredSelectedRowModel().flatRows.length ?? 0) !== 1"
+                @click="openEditUserModalBySelection"
+                variant="subtle"
+                label="修改"
+                color="info"
+            />
+            <UButton
+                icon="i-lucide-trash-2"
+                variant="subtle"
+                :disabled="(table?.tableApi?.getFilteredSelectedRowModel().flatRows.length ?? 0) === 0"
+                @click="deleteUserBySelection"
+                label="删除"
+                color="error"
+            />
+            <UButton
+                icon="i-lucide-file-down"
+                variant="subtle"
+                label="下载模板"
+                :loading="downloadingTemplate"
+                @click="downloadTemplate"
+            />
+            <UButton
+                icon="i-lucide-upload"
+                variant="subtle"
+                label="导入用户"
+                :loading="importingUsers"
+                @click="openImportModal = true"
+            />
+            <UButton
+                icon="i-lucide-download"
+                variant="subtle"
+                label="导出用户"
+                :loading="exportingUsers"
+                @click="exportUsers"
+            />
+          </ActionGroup>
         </template>
 
         <UForm @submit="handleQuery" class="w-full">
