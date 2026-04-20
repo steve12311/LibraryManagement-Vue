@@ -12,8 +12,8 @@ withDefaults(defineProps<{
       <UIcon name="i-lucide-library-big" class="h-5 w-5" />
     </div>
     <div v-if="!collapsed" class="logo-copy">
-      <p class="logo-title">智慧图书</p>
-      <p class="logo-subtitle">Campus Library Archive</p>
+      <p class="logo-title">校园图书馆</p>
+      <p class="logo-subtitle">Campus Library</p>
     </div>
   </div>
 </template>
