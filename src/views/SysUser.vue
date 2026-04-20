@@ -12,6 +12,10 @@ import {useUserQuery} from "@/composables/system/user/useUserQuery";
 import {useUserSubmit} from "@/composables/system/user/useUserSubmit";
 import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
 import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
+import UserAssignRoleModal from "@/components/system/user/UserAssignRoleModal.vue";
+import UserEditModal from "@/components/system/user/UserEditModal.vue";
+import UserImportModal from "@/components/system/user/UserImportModal.vue";
+import UserImportResultModal from "@/components/system/user/UserImportResultModal.vue";
 
 onMounted(() => {
   handleQuery()
@@ -41,7 +45,6 @@ const statusQueryOptions = ref<OptionType[]>([
   }
 ])
 const table = useTemplateRef('table')
-const editForm = useTemplateRef('editForm')
 const columnVisibility = ref({
   id: false,
 })
@@ -60,9 +63,9 @@ const assigningRoleUserId = ref("")
 const editingUserId = ref("")
 const assignRoleUserId = ref("")
 const assignRoleUsername = ref("")
-const avatarModel = ref<File>()
 type AvatarFileItem = File | { file?: File; raw?: File }
 type AvatarFileModel = AvatarFileItem | AvatarFileItem[]
+const avatarModel = ref<File>()
 const {
   initialUserFormData,
   editUserState,
@@ -340,209 +343,76 @@ function closeImportModal() {
   resetImportFile()
 }
 
+function updateImportModal(open: boolean) {
+  if (open) {
+    openImportModal.value = true
+    return
+  }
+  closeImportModal()
+}
+
 function closeImportResultModal() {
   openImportResultModal.value = false
   resetImportState()
 }
+
+function updateImportResultModal(open: boolean) {
+  if (open) {
+    openImportResultModal.value = true
+    return
+  }
+  closeImportResultModal()
+}
 </script>
 
 <template>
-  <UModal
-      v-model:open="openImportModal"
-      title="导入用户"
-      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
-  >
-    <template #body>
-      <div class="system-modal-copy">
-        <p class="system-modal-title">批量导入</p>
-        <p class="system-modal-description">请先下载最新模板，按角色名称填写后再上传 Excel 文件。</p>
-      </div>
+  <UserImportModal
+      :open="openImportModal"
+      :file-model="importFileModel"
+      :downloading-template="downloadingTemplate"
+      :importing="importingUsers"
+      :accept="USER_IMPORT_ACCEPT"
+      :description="USER_IMPORT_DESCRIPTION"
+      @update:open="updateImportModal"
+      @update:file-model="importFileModel = $event"
+      @download-template="downloadTemplate"
+      @submit="submitImportUsers"
+  />
 
-      <div class="mt-5 space-y-4">
-        <div class="flex items-center justify-between gap-3 rounded-2xl border border-default bg-muted/30 px-4 py-3">
-          <div>
-            <p class="text-sm font-medium text-highlighted">模板说明</p>
-            <p class="mt-1 text-sm text-muted">角色列填写角色名称，多角色使用英文逗号分隔。</p>
-          </div>
-          <UButton
-              label="下载模板"
-              icon="i-lucide-file-down"
-              variant="subtle"
-              :loading="downloadingTemplate"
-              @click="downloadTemplate"
-          />
-        </div>
+  <UserImportResultModal
+      :open="openImportResultModal"
+      :result="importResult"
+      :summary="importSummary"
+      @update:open="updateImportResultModal"
+  />
 
-        <UFileUpload
-            v-model="importFileModel"
-            :accept="USER_IMPORT_ACCEPT"
-            label="上传用户导入文件"
-            :description="USER_IMPORT_DESCRIPTION"
-            class="w-full min-h-32"
-        />
+  <UserAssignRoleModal
+      :open="openAssignRoleModal"
+      :username="assignRoleUsername"
+      :state="assignRoleState"
+      :role-options="roleOptions"
+      :loading-role-options="loadingRoleOptions"
+      :loading-assign-role="loadingAssignRole"
+      :submitting="submittingAssignRole"
+      @update:open="openAssignRoleModal = $event"
+      @update:state="assignRoleState = $event"
+      @submit="submitAssignRole"
+  />
 
-        <ul class="space-y-1 text-sm text-muted">
-          <li>1. 模板中的角色字段使用角色名称，不填写角色 ID。</li>
-          <li>2. 导入采用部分成功模型，失败明细会在导入结果中展示。</li>
-          <li>3. 导出会复用当前列表页已生效的筛选条件。</li>
-        </ul>
-      </div>
-    </template>
-    <template #footer>
-      <div class="system-modal-footer">
-        <UButton label="取消" variant="ghost" @click="closeImportModal"/>
-        <UButton label="开始导入" icon="i-lucide-upload" :loading="importingUsers" @click="submitImportUsers"/>
-      </div>
-    </template>
-  </UModal>
-
-  <UModal
-      v-model:open="openImportResultModal"
-      title="导入结果"
-      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
-  >
-    <template #body>
-      <div class="system-modal-copy">
-        <p class="system-modal-title">导入完成</p>
-        <p class="system-modal-description">{{ importSummary }}</p>
-      </div>
-
-      <div class="mt-5 grid gap-3 md:grid-cols-3">
-        <div class="rounded-2xl border border-default bg-muted/30 px-4 py-3">
-          <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted">总条数</p>
-          <p class="mt-2 text-2xl font-semibold text-highlighted">{{ importResult.totalCount }}</p>
-        </div>
-        <div class="rounded-2xl border border-success/30 bg-success/10 px-4 py-3">
-          <p class="text-xs font-medium uppercase tracking-[0.18em] text-success">成功</p>
-          <p class="mt-2 text-2xl font-semibold text-highlighted">{{ importResult.successCount }}</p>
-        </div>
-        <div class="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3">
-          <p class="text-xs font-medium uppercase tracking-[0.18em] text-warning">失败</p>
-          <p class="mt-2 text-2xl font-semibold text-highlighted">{{ importResult.failureCount }}</p>
-        </div>
-      </div>
-
-      <div class="mt-5">
-        <div class="flex items-center justify-between">
-          <p class="text-sm font-medium text-highlighted">失败明细</p>
-          <span class="text-xs text-muted">{{ importResult.messages.length }} 条</span>
-        </div>
-
-        <div
-            v-if="importResult.messages.length"
-            class="mt-3 max-h-64 overflow-y-auto rounded-2xl border border-default bg-muted/20 px-4 py-3"
-        >
-          <ul class="space-y-2 text-sm text-default">
-            <li v-for="message in importResult.messages" :key="message" class="leading-6">
-              {{ message }}
-            </li>
-          </ul>
-        </div>
-        <div
-            v-else
-            class="mt-3 rounded-2xl border border-default bg-muted/20 px-4 py-6 text-sm text-muted"
-        >
-          本次导入没有失败明细。
-        </div>
-      </div>
-    </template>
-    <template #footer>
-      <div class="system-modal-footer">
-        <UButton label="关闭" @click="closeImportResultModal"/>
-      </div>
-    </template>
-  </UModal>
-
-  <UModal
-      v-model:open="openAssignRoleModal"
-      :title="`分配角色${assignRoleUsername ? ` - ${assignRoleUsername}` : ''}`"
-      :ui="{ content: 'sm:max-w-xl rounded-[28px] border border-default bg-default shadow-lg' }"
-  >
-    <template #body>
-      <div class="system-modal-copy">
-        <p class="system-modal-title">角色分配</p>
-        <p class="system-modal-description">为当前用户调整角色集合，保存后立即更新权限范围。</p>
-      </div>
-      <UForm :state="assignRoleState" @submit="submitAssignRole" class="mt-5 space-y-4">
-        <UFormField class="w-full" label="角色">
-          <USelect
-              multiple
-              valueKey="value"
-              :loading="loadingRoleOptions || loadingAssignRole"
-              v-model="assignRoleState.roleIds"
-              :items="roleOptions"
-              class="w-full"
-              placeholder="请选择角色"
-          />
-        </UFormField>
-      </UForm>
-    </template>
-    <template #footer>
-      <div class="system-modal-footer">
-        <UButton label="取消" variant="ghost" @click="openAssignRoleModal=false"/>
-        <UButton label="保存" :loading="submittingAssignRole" @click="submitAssignRole"/>
-      </div>
-    </template>
-  </UModal>
-  <UModal
-      v-model:open="openEditModal"
+  <UserEditModal
+      :open="openEditModal"
       :title="editModalTitle"
-      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
-  >
-    <template #body>
-      <div class="system-modal-copy">
-        <p class="system-modal-title">用户资料</p>
-        <p class="system-modal-description">维护基础资料、角色信息和头像。</p>
-      </div>
-      <UForm ref="editForm" :state="editUserState" @submit="submitEditUser" class="mt-5 space-y-4">
-        <UFieldGroup class="w-full gap-2">
-          <UFormField class="w-full" label="昵称" required>
-            <UInput v-model="editUserState.nickname" class="w-full" placeholder="请输入昵称"/>
-          </UFormField>
-          <UFormField class="w-full" label="手机号">
-            <UInput v-model="editUserState.mobile" class="w-full" placeholder="请输入手机号"/>
-          </UFormField>
-        </UFieldGroup>
-        <UFieldGroup class="w-full gap-2">
-          <UFormField class="w-full" label="性别">
-            <USelect v-model="editUserState.gender" valueKey="value" :items="genderOptions" class="w-full"/>
-          </UFormField>
-          <UFormField class="w-full" label="电子邮箱">
-            <UInput v-model="editUserState.email" class="w-full" type="email" placeholder="请输入电子邮箱"/>
-          </UFormField>
-        </UFieldGroup>
-        <UFormField class="w-full" label="角色" required>
-          <USelect
-              multiple
-              valueKey="value"
-              :loading="loadingRoleOptions"
-              v-model="editUserState.roleIds"
-              :items="roleOptions"
-              class="w-full"
-              placeholder="请选择角色"
-          />
-        </UFormField>
-        <UFormField class="w-full" label="头像">
-          <UFieldGroup class="w-full items-center gap-3">
-            <UAvatar size="lg" :src="editUserState.avatar"/>
-            <UFileUpload
-                v-model="avatarModel"
-                accept="image/*"
-                label="上传头像拖到此处"
-                description="图片会转为 Base64 存储"
-                class="w-full min-h-24"
-            />
-          </UFieldGroup>
-        </UFormField>
-      </UForm>
-    </template>
-    <template #footer>
-      <div class="system-modal-footer">
-        <UButton label="取消" variant="ghost" @click="openEditModal=false"/>
-        <UButton label="保存" :loading="submittingEditUser" @click="editForm?.submit()"/>
-      </div>
-    </template>
-  </UModal>
+      :state="editUserState"
+      :gender-options="genderOptions"
+      :role-options="roleOptions"
+      :loading-role-options="loadingRoleOptions"
+      :avatar-model="avatarModel"
+      :submitting="submittingEditUser"
+      @update:open="openEditModal = $event"
+      @update:state="editUserState = $event"
+      @update:avatar-model="avatarModel = $event"
+      @submit="submitEditUser"
+  />
   <div class="system-page-shell">
     <div class="system-page-shell__header">
       <SystemPageHeader
