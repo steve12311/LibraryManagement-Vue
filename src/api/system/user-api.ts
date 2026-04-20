@@ -1,3 +1,4 @@
+import type { AxiosResponse } from "axios";
 import request from "@/utils/request";
 import type {SelectMenuItem} from "@nuxt/ui";
 import type { BorrowStatusValue } from "@/enums/system/borrow-status-enum";
@@ -6,6 +7,37 @@ const USER_BASE_URL = "/api/v1/users";
 export type UserId = number | string;
 export type UserGender = 0 | 1 | 2;
 export type UserDateValue = string | Date;
+
+function resolveDownloadFileName(contentDisposition?: string, fallbackName = "下载文件.xlsx") {
+    if (!contentDisposition) {
+        return fallbackName;
+    }
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+        return decodeURIComponent(utf8Match[1]);
+    }
+
+    const plainMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+    if (plainMatch?.[1]) {
+        return decodeURIComponent(plainMatch[1]);
+    }
+
+    return fallbackName;
+}
+
+function triggerBlobDownload(response: AxiosResponse<Blob>, fallbackName: string) {
+    const blob = new Blob([response.data]);
+    const link = document.createElement("a");
+    const urlObject = window.URL.createObjectURL(blob);
+    const contentDisposition = response.headers["content-disposition"] as string | undefined;
+
+    link.href = urlObject;
+    link.download = resolveDownloadFileName(contentDisposition, fallbackName);
+    link.click();
+
+    window.URL.revokeObjectURL(urlObject);
+}
 
 const UserAPI = {
     /**
@@ -35,6 +67,35 @@ const UserAPI = {
         return request<unknown, SelectMenuItem[]>({
             url: `${USER_BASE_URL}/options`,
             method: "get",
+        });
+    },
+    downloadTemplate() {
+        return request<unknown, AxiosResponse<Blob>>({
+            url: `${USER_BASE_URL}/template`,
+            method: "get",
+            responseType: "blob",
+        }).then((response) => {
+            triggerBlobDownload(response as AxiosResponse<Blob>, "用户导入模板.xlsx");
+        });
+    },
+    importUsers(file: File) {
+        const formData = new FormData();
+        formData.append("file", file);
+        return request<unknown, UserImportResultVO, FormData>({
+            url: `${USER_BASE_URL}/import`,
+            method: "post",
+            data: formData,
+            headers: {"Content-Type": "multipart/form-data"},
+        });
+    },
+    exportUsers(queryParams?: UserPageQuery) {
+        return request<unknown, AxiosResponse<Blob>>({
+            url: `${USER_BASE_URL}/export`,
+            method: "get",
+            params: queryParams,
+            responseType: "blob",
+        }).then((response) => {
+            triggerBlobDownload(response as AxiosResponse<Blob>, "用户列表.xlsx");
         });
     },
     changeStatus(userId: UserId, status: UserPageStatus) {
@@ -173,6 +234,16 @@ export interface PasswordUpdateForm {
     newPassword: string;
 
     confirmPassword: string;
+}
+
+export interface UserImportResultVO {
+    totalCount: number;
+
+    successCount: number;
+
+    failureCount: number;
+
+    messages: string[];
 }
 
 export interface UserForm {
