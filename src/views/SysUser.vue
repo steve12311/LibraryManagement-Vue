@@ -561,9 +561,6 @@ function closeImportResultModal() {
           <ActionGroup
               :table="table"
               @flush="handleQuery"
-              @add-row="openAddUserModal"
-              @modify-row="openEditUserModalBySelection"
-              @delete-row="deleteUserBySelection"
           >
             <UButton icon="i-lucide-plus" @click="openAddUserModal" variant="subtle" label="新增"/>
             <UButton
@@ -581,13 +578,6 @@ function closeImportResultModal() {
                 @click="deleteUserBySelection"
                 label="删除"
                 color="error"
-            />
-            <UButton
-                icon="i-lucide-file-down"
-                variant="subtle"
-                label="下载模板"
-                :loading="downloadingTemplate"
-                @click="downloadTemplate"
             />
             <UButton
                 icon="i-lucide-upload"
