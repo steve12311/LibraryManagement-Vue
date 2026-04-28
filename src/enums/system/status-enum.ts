@@ -1,4 +1,3 @@
-// 核心枚举定义
 export const StatusTypeEnum = {
     ACCESS: 1, // 正常
     BAN: 0, // 禁用

@@ -1,6 +1,7 @@
 import { reactive, ref, shallowRef } from "vue";
 import UserAPI, { type UserPageQuery, type UserPageVO } from "@/api/system/user-api";
 
+/** 用户列表查询：分页参数 + 搜索 + 数据拉取 */
 export function useUserQuery() {
     const toast = useToast();
     const queryParams = reactive<UserPageQuery>({

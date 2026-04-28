@@ -11,10 +11,11 @@ type PendingRequest = {
 const MAX_REFRESH_RETRY_COUNT = 1;
 
 /**
- * Token刷新组合式函数
+ * Token 刷新与请求重试编排。
+ * 核心策略：多个 401 请求并发时，只触发一次 token 刷新，其余请求排队等待，
+ * 刷新成功后统一重放；刷新失败则全部 reject 并跳转登录。
  */
 export function useTokenRefresh() {
-    // Token 刷新相关状态
     let isRefreshingToken = false;
     let isRedirectingToLogin = false;
     const pendingRequests: PendingRequest[] = [];
@@ -33,7 +34,8 @@ export function useTokenRefresh() {
     }
 
     /**
-     * 刷新 Token 并重试请求
+     * 刷新 Token 并重试请求。并发请求排队，只刷新一次 token 后统一重放。
+     * @returns Promise — 重试请求的结果
      */
     async function refreshTokenAndRetry(
         config: RetryRequestConfig,
@@ -49,16 +51,18 @@ export function useTokenRefresh() {
         }
 
         return new Promise((resolve, reject) => {
+            // 当前请求入队
             pendingRequests.push({config, resolve, reject});
 
-            if (isRefreshingToken) {
-                return;
-            }
+            // 已有刷新进行中，仅排队等待
+            if (isRefreshingToken) return;
 
+            // 发起 token 刷新
             isRefreshingToken = true;
             useUserStoreHook()
                 .refreshToken()
                 .then(() => {
+                    // 刷新成功 → 取出所有排队请求，更新 token 并重放
                     const successRequests = [...pendingRequests];
                     pendingRequests.length = 0;
                     successRequests.forEach((request) => {
@@ -71,7 +75,9 @@ export function useTokenRefresh() {
                 })
                 .catch(async (error) => {
                     console.error("Token refresh failed:", error);
+                    // 刷新失败 → 全部排队请求 reject
                     rejectAllPending(new Error("Token refresh failed"));
+                    // 只跳转一次登录页
                     if (!isRedirectingToLogin) {
                         isRedirectingToLogin = true;
                         await redirectToLogin("登录状态已失效，请重新登录");
@@ -84,9 +90,6 @@ export function useTokenRefresh() {
         });
     }
 
-    /**
-     * 获取刷新状态（用于外部判断）
-     */
     function getRefreshStatus() {
         return {
             isRefreshing: isRefreshingToken,

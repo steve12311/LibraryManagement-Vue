@@ -7,6 +7,7 @@ interface UseStockOutOptions {
   fetchData: () => Promise<void>
 }
 
+/** 库存出库：校验数量 → 拉取表单 → API 更新库存 */
 export function useStockOut(options: UseStockOutOptions) {
   const toast = useToast()
   const stockOutIsbn = ref("")

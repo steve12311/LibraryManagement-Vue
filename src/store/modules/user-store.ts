@@ -8,7 +8,6 @@ import {ref} from "vue";
 import {usePermissionStoreHook} from "./permission-store";
 
 export const useUserStore = defineStore("user-store", () => {
-    // 用户信息
     const userInfo = ref<UserInfo>({} as UserInfo);
 
     async function refreshToken(): Promise<void> {
@@ -37,9 +36,6 @@ export const useUserStore = defineStore("user-store", () => {
 
     /**
      * 登录
-     *
-     * @returns
-     * @param LoginFormData
      */
     async function login(loginFormData: LoginFormData): Promise<void> {
         const {accessToken} = await AuthAPI.login(loginFormData);
@@ -51,11 +47,8 @@ export const useUserStore = defineStore("user-store", () => {
     }
 
     function resetUserState() {
-        // 清除用户凭证
         useAuthStoreHook().clearAuth();
-        // 重置路由
         usePermissionStoreHook().resetRouter();
-        // 重置用户信息
         userInfo.value = {} as UserInfo;
     }
 

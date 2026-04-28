@@ -12,6 +12,7 @@ interface ChatStreamOptions {
     onChunk: (payload: unknown) => void;
 }
 
+/** 聊天流错误，携带错误分类码和 HTTP 状态码 */
 export class ChatStreamError extends Error {
     code: ChatStreamErrorCode;
     status?: number;
@@ -24,11 +25,19 @@ export class ChatStreamError extends Error {
     }
 }
 
+/**
+ * 发送聊天消息并消费 SSE 流。401 时自动刷新 token 并重试一次。
+ */
 export async function streamChat(options: ChatStreamOptions): Promise<void> {
     const response = await sendChatRequest(options.message, options.signal, true);
     await consumeResponse(response, options);
 }
 
+/**
+ * 发送聊天请求。
+ * 流程：fetch → 401检查（触发 token 刷新重试）→ HTTP 错误转换 → 返回 Response
+ * @param allowRetry false 时不再递归重试，直接跳转登录（防止无限循环）
+ */
 async function sendChatRequest(
     message: string,
     signal: AbortSignal,
@@ -43,12 +52,11 @@ async function sendChatRequest(
             signal,
         });
     } catch (error) {
-        if (isAbortError(error)) {
-            throw error;
-        }
+        if (isAbortError(error)) throw error;
         throw new ChatStreamError("NETWORK_ERROR", "网络连接失败，请稍后重试");
     }
 
+    // 401 → 刷新 token 后重试
     if (response.status === 401) {
         return retryAfterRefresh(message, signal, allowRetry);
     }
@@ -61,6 +69,10 @@ async function sendChatRequest(
     return response;
 }
 
+/**
+ * 刷新 token 后重新发送请求。
+ * 仅允许一次重试（allowRetry=false 时直接跳登录），防止无限递归。
+ */
 async function retryAfterRefresh(
     message: string,
     signal: AbortSignal,
@@ -74,16 +86,21 @@ async function retryAfterRefresh(
     try {
         await useUserStoreHook().refreshToken();
     } catch (error) {
-        if (isAbortError(error)) {
-            throw error;
-        }
+        if (isAbortError(error)) throw error;
         await redirectToLogin(AUTH_EXPIRED_MESSAGE);
         throw new ChatStreamError("AUTH_EXPIRED", AUTH_EXPIRED_MESSAGE, 401);
     }
 
+    // 重试，allowRetry=false 防止再次递归
     return sendChatRequest(message, signal, false);
 }
 
+/**
+ * 按 Content-Type 分流处理响应体：
+ * application/json → 直接 parse → onChunk
+ * text/event-stream → SSE 逐行读取 → 解析 data: 行 → onChunk(JSON)
+ * 其余 → 当纯文本 → onChunk
+ */
 async function consumeResponse(response: Response, options: ChatStreamOptions) {
     const contentType = response.headers.get("content-type") ?? "";
 
@@ -101,6 +118,7 @@ async function consumeResponse(response: Response, options: ChatStreamOptions) {
         return;
     }
 
+    // SSE 流式读取
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let pendingLine = "";
@@ -108,14 +126,14 @@ async function consumeResponse(response: Response, options: ChatStreamOptions) {
     try {
         while (true) {
             const { done, value } = await reader.read();
-            if (done) {
-                break;
-            }
+            if (done) break;
 
             pendingLine += decoder.decode(value, { stream: true });
+            // 按 \n 切分，最后一段不完整行留到下次拼接
             pendingLine = flushLines(pendingLine, options.onChunk);
         }
 
+        // flush 解码器缓冲区残留
         pendingLine += decoder.decode();
         flushRemainingLine(pendingLine, options.onChunk);
     } finally {
@@ -123,6 +141,7 @@ async function consumeResponse(response: Response, options: ChatStreamOptions) {
     }
 }
 
+/** 将缓冲区按行切分，完整行送入 consumeLine，最后一段不完整行返回 */
 function flushLines(buffer: string, onChunk: (payload: unknown) => void) {
     const lines = buffer.split(/\r?\n/);
     const pendingLine = lines.pop() ?? "";
@@ -134,14 +153,14 @@ function flushLines(buffer: string, onChunk: (payload: unknown) => void) {
     return pendingLine;
 }
 
+/** 处理流结束后残留的最后一行 */
 function flushRemainingLine(line: string, onChunk: (payload: unknown) => void) {
     const trimmed = line.trim();
-    if (!trimmed) {
-        return;
-    }
+    if (!trimmed) return;
     consumeLine(trimmed, onChunk);
 }
 
+/** 解析单行 SSE 数据：跳过注释行(:)、空行、非 data: 行、[DONE] 标记 */
 function consumeLine(line: string, onChunk: (payload: unknown) => void) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith(":") || !trimmed.startsWith("data:")) {
@@ -149,9 +168,7 @@ function consumeLine(line: string, onChunk: (payload: unknown) => void) {
     }
 
     const rawPayload = trimmed.slice(5).trim();
-    if (!rawPayload || rawPayload === "[DONE]") {
-        return;
-    }
+    if (!rawPayload || rawPayload === "[DONE]") return;
 
     try {
         onChunk(JSON.parse(rawPayload));
@@ -189,19 +206,19 @@ function resolveBaseURL() {
     return "";
 }
 
+/**
+ * 从错误响应中提取可读错误消息。
+ * JSON → msg 字段 | 纯文本 → 截取 | 兜底 → 状态码对应文案
+ */
 async function extractErrorMessage(response: Response) {
     try {
         const contentType = response.headers.get("content-type") ?? "";
         if (contentType.includes("application/json")) {
             const payload = await response.json() as { msg?: string };
-            if (payload.msg) {
-                return payload.msg;
-            }
+            if (payload.msg) return payload.msg;
         } else {
             const text = await response.text();
-            if (text.trim()) {
-                return text.trim();
-            }
+            if (text.trim()) return text.trim();
         }
     } catch (error) {
         console.error("Failed to extract chat error message:", error);

@@ -21,6 +21,7 @@ interface UseUserFormOptions {
   assigningRoleUserId: Ref<string>
 }
 
+/** 用户表单状态管理：角色选项、编辑/分配表单重置 */
 export function useUserForm(options: UseUserFormOptions) {
   const toast = useToast()
   const initialUserFormData: UserForm = {

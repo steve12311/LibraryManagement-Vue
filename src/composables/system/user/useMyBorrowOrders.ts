@@ -27,6 +27,7 @@ function normalizeBorrowRecord(raw?: Partial<MyBorrowPageVO>): MyBorrowPageVO {
   }
 }
 
+/** 个人借阅记录：分页查询 + 状态筛选 */
 export function useMyBorrowOrders() {
   const toast = useToast()
   const requestSerial = ref(0)

@@ -24,6 +24,7 @@ interface UseUserActionsOptions {
   togglingStatusUserId: Ref<string>
 }
 
+/** 用户操作：编辑、重置密码、删除、状态切换 */
 export function useUserActions(options: UseUserActionsOptions) {
   const toast = useToast()
 

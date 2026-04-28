@@ -26,10 +26,18 @@ function fileToBase64(file: File): Promise<string> {
   })
 }
 
+/**
+ * 用户编辑与角色分配提交逻辑。
+ */
 export function useUserSubmit(options: UseUserSubmitOptions) {
   const toast = useToast()
 
+  /**
+   * 提交用户新增/编辑。
+   * 流程：校验（ID/昵称/角色）→ 构建 payload → 头像 base64 转换 → API（新增/修改）→ 刷新列表
+   */
   async function submitEditUser() {
+    // 编辑模式校验
     if (options.editModalMode.value === "edit" && !options.editingUserId.value) {
       toast.add({title: "错误", description: "用户ID不能为空", color: "error"})
       return
@@ -42,6 +50,8 @@ export function useUserSubmit(options: UseUserSubmitOptions) {
       toast.add({title: "错误", description: "请至少选择一个角色", color: "error"})
       return
     }
+
+    // 构建提交 payload
     const payload: UserForm = {
       ...options.editUserState.value,
       id: options.editModalMode.value === "edit"
@@ -54,6 +64,7 @@ export function useUserSubmit(options: UseUserSubmitOptions) {
 
     try {
       options.submittingEditUser.value = true
+      // 有头像文件时转 base64
       const file = options.getAvatarFile()
       if (file) {
         payload.avatar = await fileToBase64(file)
@@ -78,6 +89,10 @@ export function useUserSubmit(options: UseUserSubmitOptions) {
     }
   }
 
+  /**
+   * 提交角色分配。
+   * 流程：校验角色ID → 构建 payload → API 更新 → 刷新列表
+   */
   async function submitAssignRole() {
     if (!options.assignRoleUserId.value) {
       toast.add({title: "错误", description: "用户ID不能为空", color: "error"})

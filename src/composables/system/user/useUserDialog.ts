@@ -21,6 +21,7 @@ interface UseUserDialogOptions {
   fetchRoleOptions: () => Promise<void>
 }
 
+/** 用户弹窗管理：打开编辑/新增弹窗 → 拉取表单数据+角色选项 → 填充表单 */
 export function useUserDialog(options: UseUserDialogOptions) {
   const toast = useToast()
 

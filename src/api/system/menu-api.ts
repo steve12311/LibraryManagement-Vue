@@ -30,22 +30,18 @@ const MenuAPI = {
             params: onlyParent === undefined ? undefined : {onlyParent},
         });
     },
-    /** 获取菜单表单数据 */
     getFormData(id: MenuId) {
         return request<unknown, MenuForm>({url: `${MENU_BASE_URL}/${id}/form`, method: "get"});
     },
 
-    /** 新增菜单 */
     create(data: MenuForm) {
         return request({url: `${MENU_BASE_URL}`, method: "post", data});
     },
 
-    /** 修改菜单 */
     update(id: MenuId, data: MenuForm) {
         return request({url: `${MENU_BASE_URL}/${id}`, method: "put", data});
     },
     delete(deleteIds: MenuId[] | MenuId) {
-        // 将数组转为字符串，以逗号分隔
         const deleteIdsStr = Array.isArray(deleteIds) ? deleteIds.join(",") : String(deleteIds);
         return request({url: `${MENU_BASE_URL}/${deleteIdsStr}`, method: "delete"});
     }

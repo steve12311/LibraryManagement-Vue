@@ -25,6 +25,7 @@ interface UseMenuActionsOptions {
   handleQuery: () => Promise<void> | void;
 }
 
+/** 菜单操作：编辑选中项、删除选中项（确认弹窗→API删除→刷新列表） */
 export function useMenuActions(options: UseMenuActionsOptions) {
   const toast = useToast();
 

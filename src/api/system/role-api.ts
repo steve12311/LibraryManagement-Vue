@@ -7,7 +7,6 @@ export type RoleStatus = 0 | 1;
 export type RoleDataScope = 1 | 2 | 3 | 4;
 
 const RoleAPI = {
-    /** 获取角色分页数据 */
     getPage(queryParams?: RolePageQuery) {
         return request<unknown, PageResult<RolePageVO[]>>({
             url: `${ROLE_BASE_URL}/page`,
@@ -98,28 +97,18 @@ export interface RoleForm {
 }
 
 export interface RolePageQuery extends PageQuery {
-    /** 搜索关键字 */
     keywords?: string;
-    /** 开始日期 */
     startDate?: string;
-    /** 结束日期 */
     endDate?: string;
 }
 
 export interface RolePageVO {
-    /** 角色ID */
     id?: RoleId;
-    /** 角色编码 */
     code?: string;
-    /** 角色名称 */
     name?: string;
-    /** 排序 */
     sort?: number;
-    /** 角色状态 */
     status?: RoleStatus;
-    /** 创建时间 */
     createTime?: string | Date;
-    /** 修改时间 */
     updateTime?: string | Date;
 }
 

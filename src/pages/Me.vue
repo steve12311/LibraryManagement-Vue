@@ -216,15 +216,21 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+/**
+ * 拉取个人资料。使用请求序号机制防止快速切换时的竞态条件：
+ * 仅最近一次请求的结果会写入状态。
+ */
 async function fetchProfile() {
   const currentRequestSerial = ++profileRequestSerial.value;
   try {
     loadingProfile.value = true;
     const data = await UserAPI.getProfile();
+    // 不是最新请求，丢弃结果
     if (currentRequestSerial !== profileRequestSerial.value) return;
     const normalizedProfile = normalizeProfile(data);
     profileInfo.value = normalizedProfile;
     applyProfileToForm(normalizedProfile);
+    // 同步更新 store 中的展示信息
     Object.assign(userStore.userInfo, {
       username: normalizedProfile.username,
       nickname: normalizedProfile.nickname,
@@ -247,8 +253,14 @@ async function refreshPage() {
   ]);
 }
 
+/**
+ * 提交个人信息编辑。
+ * 流程：表单校验 → 构建 payload → 头像文件检查+ base64 转换 → API 更新 → 刷新资料
+ */
 async function submitProfile() {
   if (submittingProfile.value || loadingProfile.value) return;
+
+  // 表单校验
   const nickname = normalizeText(profileForm.nickname);
   const mobile = normalizeText(profileForm.mobile);
   const email = normalizeText(profileForm.email);
@@ -267,6 +279,7 @@ async function submitProfile() {
 
   try {
     submittingProfile.value = true;
+    // 构建提交 payload
     const payload: UserProfileForm = {
       id: profileForm.id ?? profileInfo.value.id,
       username: normalizeText(profileForm.username),
@@ -276,6 +289,7 @@ async function submitProfile() {
       mobile,
       email,
     };
+    // 头像文件 → base64
     const file = getAvatarFileFromModel(avatarModel.value);
     if (file) {
       if (!file.type.startsWith("image/")) {
@@ -304,8 +318,14 @@ function resetPasswordState() {
   Object.assign(passwordState, createPasswordForm());
 }
 
+/**
+ * 提交密码修改。
+ * 流程：校验（完整性 / 一致性 / 新旧不同 / 长度）→ API 更新 → 关闭弹窗
+ */
 async function submitPassword() {
   if (submittingPassword.value) return;
+
+  // 前端校验
   const oldPassword = passwordState.oldPassword.trim();
   const newPassword = passwordState.newPassword.trim();
   const confirmPassword = passwordState.confirmPassword.trim();

@@ -9,13 +9,13 @@ const modules = import.meta.glob("../../views/**/**.vue");
 const Layout = () => import("../../pages/Home.vue");
 
 export const usePermissionStore = defineStore('permission-store', () => {
-    // 动态路由是否已生成
     const isRouteGenerated = ref(false);
     const routes = ref<RouteRecordRaw[]>([])
 
+    /** 从后端拉取菜单路由，转换为 Vue Router 配置并注册 */
     async function generateRoutes(): Promise<RouteRecordRaw[]> {
         try {
-            const data = await MenuAPI.getRoutes(); // 获取当前登录人的菜单路由
+            const data = await MenuAPI.getRoutes();
             const dynamicRoutes = transformRoutes(data);
 
             routes.value = [...constantRoutes, ...dynamicRoutes];
@@ -23,14 +23,13 @@ export const usePermissionStore = defineStore('permission-store', () => {
 
             return dynamicRoutes;
         } catch (error) {
-            // 路由生成失败，重置状态
             isRouteGenerated.value = false;
             throw error;
         }
     }
 
+    /** 移除所有动态注册的路由，恢复为仅静态路由 */
     function resetRouter() {
-        // 移除动态添加的路由
         const constantRouteNames = new Set(constantRoutes.map((route) => route.name).filter(Boolean));
         routes.value.forEach((route) => {
             if (route.name && !constantRouteNames.has(route.name)) {
@@ -38,7 +37,6 @@ export const usePermissionStore = defineStore('permission-store', () => {
             }
         });
 
-        // 重置所有状态
         routes.value = [...constantRoutes];
         isRouteGenerated.value = false;
     }
@@ -52,23 +50,26 @@ export const usePermissionStore = defineStore('permission-store', () => {
 })
 
 /**
- * 转换后端路由数据为Vue Router配置
- * 处理组件路径映射和Layout层级嵌套
+ * 将后端 RouteVO 转换为 Vue Router 的 RouteRecordRaw 格式。
+ * 转换规则：
+ * - 顶层路由：直接映射组件路径
+ * - 中间层 Layout：设为 undefined（只做容器，不渲染组件）
+ * - 子路由：递归转换
+ * - 组件路径通过 import.meta.glob 动态懒加载，找不到时 fallback 到 404
  */
 const transformRoutes = (routes: RouteVO[], isTopLevel: boolean = true): RouteRecordRaw[] => {
     return routes.map((route) => {
         const {component, children, ...args} = route;
 
-        // 处理组件：顶层或非Layout保留组件，中间层Layout设为undefined
+        // 顶层或非 Layout 保留组件；中间层 Layout 去掉组件渲染
         const processedComponent = isTopLevel || component !== "Layout" ? component : undefined;
 
         const normalizedRoute = {...args} as RouteRecordRaw;
 
         if (!processedComponent) {
-            // 多级菜单的父级菜单，不需要组件
             normalizedRoute.component = undefined;
         } else {
-            // 动态导入组件，Layout特殊处理，找不到组件时返回404
+            // Layout 单独懒加载，其余从 glob 匹配
             normalizedRoute.component =
                 processedComponent === "Layout"
                     ? Layout
@@ -76,7 +77,6 @@ const transformRoutes = (routes: RouteVO[], isTopLevel: boolean = true): RouteRe
                     modules[`../../views/error/404.vue`];
         }
 
-        // 递归处理子路由
         if (children && children.length > 0) {
             normalizedRoute.children = transformRoutes(children, false);
         }

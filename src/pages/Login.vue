@@ -54,6 +54,10 @@ const schema = v.object({
   captchaCode: v.pipe(v.string(), v.minLength(4, "请输入合法的验证码")),
 });
 
+/**
+ * 解析登录后的跳转路径。从 URL query 中提取 redirect 参数，
+ * 校验合法性（必须以 / 开头、不含协议头、长度 ≤ 2048），防止开放重定向攻击。
+ */
 function getRedirectPath() {
   const redirect = route.query.redirect;
   if (typeof redirect !== "string" || redirect.trim() === "") {
@@ -77,6 +81,7 @@ function getRedirectPath() {
   }
 }
 
+/** 提交登录 → 调用 store.login → 跳转重定向路径。失败时刷新验证码。 */
 async function onSubmit() {
   if (loginLoading.value) {
     return;

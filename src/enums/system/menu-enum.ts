@@ -1,4 +1,3 @@
-// 核心枚举定义
 export const MenuTypeEnum = {
     CATALOG: 2, // 目录
     MENU: 1, // 菜单

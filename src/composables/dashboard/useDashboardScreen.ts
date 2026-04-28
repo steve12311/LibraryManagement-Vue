@@ -226,6 +226,10 @@ function normalizeRecentEvents(raw?: Partial<DashboardRecentEvents>): DashboardR
   }
 }
 
+/**
+ * 仪表盘数据大屏状态与数据拉取。
+ * 所有 fetchXxx 使用请求序号机制防止快速切换时的竞态条件。
+ */
 export function useDashboardScreen() {
   const toast = useToast()
   const lastUpdatedAt = ref("")
@@ -313,6 +317,7 @@ export function useDashboardScreen() {
     lastUpdatedAt.value = normalizeDateText(new Date())
   }
 
+  /** 拉取总览数据（请求序号防竞态） */
   async function fetchOverview({ silent = false } = {}) {
     const currentRequestSerial = ++overviewRequestSerial.value
     try {

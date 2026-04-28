@@ -298,6 +298,7 @@ function resetDelayForm() {
   submittingDelay.value = false
 }
 
+/** 提交借阅单：校验 ISBN + 用户ID → 构建 payload → API 创建 → 刷新列表 */
 async function submitForm() {
   const isbn = String(state.value.isbn ?? "").trim()
   if (!isbn) {
@@ -329,6 +330,7 @@ async function submitForm() {
   }
 }
 
+/** 延期还书：校验延期天数 → 计算新截止日期 → API 更新 → 刷新列表 */
 async function submitDelayDay() {
   if (!selectedDelayBorrowId.value) {
     toast.add({title: "错误", description: "借阅单不存在", color: "error"})
@@ -355,6 +357,7 @@ async function submitDelayDay() {
   }
 }
 
+/** 确认还书：弹窗确认 → API 更新（写入实际归还时间）→ 刷新列表 */
 async function confirmReturnBorrow(borrowId: string) {
   try {
     await ElMessageBox.confirm("还书后不可撤销", "确认还书吗？")

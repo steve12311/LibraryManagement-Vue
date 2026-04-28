@@ -2,6 +2,7 @@ import {reactive, ref, shallowRef} from "vue";
 import stockApi, {type StockPageVO, type StockQuery} from "@/api/library/stock-api.ts";
 import FileApi from "@/api/file-api.ts";
 
+/** 库存列表查询：分页 + 搜索 + 图片缓存 */
 export function useStockQuery() {
   const toast = useToast()
   const pageDate = shallowRef<StockPageVO[]>([])

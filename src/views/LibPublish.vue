@@ -257,6 +257,7 @@ function openEditPublishBySelection() {
   void openEditPublishModal(selectedRow.publishId)
 }
 
+/** 提交出版社新增/编辑。校验名称 → 构建 payload → API 调用（新增/修改）→ 刷新列表 */
 async function submitForm() {
   if (submittingPublish.value || loadingEditPublish.value) return
   const payload = normalizePublishPayload(
@@ -290,6 +291,7 @@ async function submitForm() {
   }
 }
 
+/** 批量删除选中出版社：收集选中行 → 提取有效 ID → 确认弹窗 → API 删除 → 刷新列表 */
 async function deletePublishBySelection() {
   if (deletingPublish.value) return
   const selectedRows = getSelectedRows()

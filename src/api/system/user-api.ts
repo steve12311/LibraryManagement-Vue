@@ -51,11 +51,6 @@ const UserAPI = {
             method: "get",
         });
     },
-    /**
-     * 获取用户分页列表
-     *
-     * @param queryParams 查询参数
-     */
     getPage(queryParams?: UserPageQuery) {
         return request<unknown, PageResult<UserPageVO[]>>({
             url: `${USER_BASE_URL}/page`,
@@ -113,7 +108,7 @@ const UserAPI = {
             method: "get",
         });
     },
-    /*如果不填重置的密码则后端默认会为123456*/
+    // 未填密码时后端默认设为 123456
     resetPassword(userId: UserId, password?: string) {
         return request<unknown, string>({
             url: `${USER_BASE_URL}/${userId}/password/reset`,
@@ -121,7 +116,6 @@ const UserAPI = {
             params: password ? {password} : undefined,
         });
     },
-    /*更改自己的密码*/
     editPassword(data: PasswordUpdateForm) {
         return request<unknown, string>({
             url: `${USER_BASE_URL}/password`,
@@ -274,79 +268,39 @@ export type UserPageStatus = 0 | 1;
 export type UserSortDirection = "ASC" | "DESC";
 export type UserPageSearchField = "username" | "nickname" | "mobile" | "email" | string;
 
-/** 用户分页对象 */
 export interface UserPageVO {
-    /** 用户ID */
     id: number | string;
-    /** 用户头像URL */
     avatar?: string;
-    /** 创建时间 */
     createTime?: UserDateValue;
-    /** 部门名称 */
     deptName?: string;
-    /** 用户邮箱 */
     email?: string;
-    /** 性别 */
     gender?: UserGender;
-    /** 手机号 */
     mobile?: string;
-    /** 用户昵称 */
     nickname?: string;
     /** 角色名称，多个使用英文逗号(,)分割 */
     roleNames?: string;
     /** 用户状态(1:启用;0:禁用) */
     status?: UserPageStatus;
-    /** 用户名 */
     username?: string;
 }
 
-/**
- * 用户分页查询对象
- */
 export interface UserPageQuery extends PageQuery {
-    /** 搜索关键字 */
     keywords?: string;
-
-    /** 用户状态 */
     status?: UserPageStatus;
-
-    /** 部门ID */
     deptId?: UserId;
-
-    /** 角色ID列表 */
     roleIds?: number[];
-
-    /** 排序字段 */
     field?: UserPageSearchField;
-
-    /** 排序方向 */
     direction?: UserSortDirection;
-
-    /** 是否超级管理员 */
     isRoot?: boolean;
-
-    /** 开始时间 */
     createTime?: [string, string];
 }
 
-/** 登录用户信息 */
 export interface UserInfo {
-    /** 用户ID */
     userId?: UserId;
-
-    /** 用户名 */
     username?: string;
-
-    /** 昵称 */
     nickname?: string;
-
-    /** 头像URL */
     avatar?: string;
-
-    /** 角色 */
     roles: string[];
-
-    /** 权限 */
     perms: string[];
 }
 

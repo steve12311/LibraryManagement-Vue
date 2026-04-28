@@ -2,6 +2,10 @@ type EventName = string;
 type EventArgs = unknown[];
 type EventListener = (...args: EventArgs) => void;
 
+/**
+ * 支持"先发后订阅"的事件总线：emit 时若尚无监听者，事件会被暂存，
+ * 待后续 on 时立即回放。适合跨组件解耦场景。
+ */
 class EventEmitter {
     events: Record<EventName, Set<EventListener>> = {};
     pendingEvent: Record<EventName, EventArgs[]> = {};

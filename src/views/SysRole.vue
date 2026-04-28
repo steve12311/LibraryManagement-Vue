@@ -339,6 +339,7 @@ function openEditRoleBySelection() {
   openEditRoleModal(selectedRow.id)
 }
 
+/** 提交角色新增/编辑：校验名称 → 构建 payload → API 调用（新增/修改）→ 刷新列表 */
 async function submitEditRole() {
   const payload = normalizeRolePayload(
       roleState.value,
@@ -390,6 +391,7 @@ async function openAssignUsersDialog(id: string | number | undefined, name?: str
   }
 }
 
+/** 提交角色分配用户：收集选中用户ID → API 分配 → 刷新列表 */
 async function submitAssignUsers() {
   if (!assignUsersRoleId.value) {
     toast.add({title: "错误", description: "角色ID不能为空", color: "error"})
@@ -416,6 +418,7 @@ async function submitAssignUsers() {
   }
 }
 
+/** 批量删除角色：确认弹窗 → API 删除 → 刷新列表 */
 async function confirmDeleteRoles(ids: RoleId[], names: string[] = []) {
   if (!ids.length) return
   const nameText = names[0]?.trim()

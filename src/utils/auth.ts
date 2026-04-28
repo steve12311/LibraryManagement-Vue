@@ -2,7 +2,8 @@ import {useUserStoreHook} from "@/store";
 import router from "@/router";
 
 /**
- * 重定向到登录页面
+ * 清除登录态并跳转到登录页，当前路由会作为 redirect 参数带回以便登录后恢复。
+ * 若路由跳转失败则兜底使用 window.location 强制跳转。
  */
 export async function redirectToLogin(message: string = "请重新登录"): Promise<void> {
     const toast = useToast()
@@ -11,12 +12,10 @@ export async function redirectToLogin(message: string = "请重新登录"): Prom
     await useUserStoreHook().resetAllState();
 
     try {
-        // 跳转到登录页，保留当前路由用于登录后跳转
         const currentPath = router.currentRoute.value.fullPath;
         await router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
     } catch (error) {
         console.error("Redirect to login error:", error);
-        // 强制跳转，即使路由重定向失败
         window.location.href = "/login";
     }
 }

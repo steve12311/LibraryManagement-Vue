@@ -16,6 +16,10 @@ export function normalizeBorrowStatus(value: unknown, fallback: BorrowStatusValu
   return isBorrowStatusValue(value) ? value : fallback
 }
 
+/**
+ * 根据实际归还日期和应还日期推算借阅状态：
+ * 有实际归还时间 → RETURNED，已过应还日期 → OVERDUE，其余 → BORROWING
+ */
 export function resolveBorrowStatus(returnTime?: BorrowDateValue, realityReturnTime?: BorrowDateValue): BorrowStatusValue {
   if (parseBorrowDate(realityReturnTime)) {
     return BorrowStatusEnum.RETURNED

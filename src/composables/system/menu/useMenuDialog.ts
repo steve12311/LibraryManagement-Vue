@@ -14,6 +14,7 @@ type MenuTableRow = {
   original: MenuVO;
 };
 
+/** 菜单弹窗管理：新增/编辑/查看，拉取菜单选项树+表单数据 */
 export function useMenuDialog(formData: Ref<MenuForm>, tabActiveIndex: Ref<string>) {
   const toast = useToast();
   const mode = ref<DialogMode>("show");

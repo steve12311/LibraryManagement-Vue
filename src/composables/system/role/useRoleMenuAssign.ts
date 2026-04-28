@@ -25,6 +25,13 @@ function normalizeMenuIds(menuIds: number[]) {
   ))
 }
 
+/**
+ * 从菜单树 + 已分配菜单ID列表中，反向推算出需要回填选中状态的节点。
+ * 规则：
+ * - 叶子节点：已分配即选中
+ * - 非叶子节点：仅当自身已分配且无任何子节点被分配时才选中
+ *   （避免父节点选中导致子节点被连带勾选）
+ */
 export function collectReplayCheckedMenuIds(menuTree: RoleMenuOption[], assignedMenuIds: number[]) {
   const assignedIdSet = new Set(normalizeMenuIds(assignedMenuIds))
   const replayCheckedMenuIds: Array<RoleMenuOption["value"]> = []
@@ -49,17 +56,18 @@ export function collectReplayCheckedMenuIds(menuTree: RoleMenuOption[], assigned
       const hasChildren = children.length > 0
       const isAssigned = Number.isInteger(menuId) && assignedIdSet.has(menuId)
 
+      // 叶子节点：已分配即选中
       if (!hasChildren) {
-        if (isAssigned) {
-          replayCheckedMenuIds.push(node.value)
-        }
+        if (isAssigned) replayCheckedMenuIds.push(node.value)
         continue
       }
 
+      // 非叶子节点：先递归子节点，再判断自身
       walk(children)
 
       const hasAssignedChild = hasAssignedDescendant(children)
 
+      // 自身已分配但无子节点被分配 → 选中自身
       if (isAssigned && !hasAssignedChild) {
         replayCheckedMenuIds.push(node.value)
       }
@@ -70,6 +78,11 @@ export function collectReplayCheckedMenuIds(menuTree: RoleMenuOption[], assigned
   return Array.from(new Set(replayCheckedMenuIds))
 }
 
+/**
+ * 角色菜单权限分配逻辑。
+ * openAssignMenuDialog 并发拉取菜单树 + 已分配菜单ID，
+ * submitAssignMenus 提交选中的菜单ID列表。
+ */
 export function useRoleMenuAssign(options: UseRoleMenuAssignOptions) {
   const toast = useToast()
   const assignMenuRoleId = ref("")
@@ -87,6 +100,7 @@ export function useRoleMenuAssign(options: UseRoleMenuAssignOptions) {
     options.assigningMenuRoleId.value = ""
   }
 
+  /** 打开分配菜单弹窗：并发拉取菜单树 + 已分配菜单ID */
   async function openAssignMenuDialog(roleId: RoleId | undefined, roleName?: string) {
     if (roleId === undefined || roleId === null || roleId === "") return
     options.assigningMenuRoleId.value = String(roleId)
@@ -94,6 +108,7 @@ export function useRoleMenuAssign(options: UseRoleMenuAssignOptions) {
     assignMenuRoleId.value = String(roleId)
     assignMenuRoleName.value = roleName?.trim() ?? ""
     assignedMenuIds.value = []
+
     try {
       const [menuTree, menuIds] = await Promise.all([
         MenuAPI.getOptions(),
@@ -110,6 +125,7 @@ export function useRoleMenuAssign(options: UseRoleMenuAssignOptions) {
     }
   }
 
+  /** 提交菜单权限分配 */
   async function submitAssignMenus(menuIds: number[]) {
     if (!assignMenuRoleId.value) {
       toast.add({title: "错误", description: "角色ID不能为空", color: "error"})

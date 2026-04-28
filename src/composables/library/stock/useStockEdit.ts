@@ -51,6 +51,7 @@ function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
   return void 0
 }
 
+/** 库存图书编辑：新增入库 + 编辑图书信息（封面上传→API 更新→刷新列表） */
 export function useStockEdit(options: UseStockEditOptions) {
   const toast = useToast()
 
