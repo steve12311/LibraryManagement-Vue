@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
+import {computed, h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
 import type {TableColumn} from "@nuxt/ui";
 import moment from "moment";
 import type {UserPageVO} from "@/api/system/user-api.ts"
@@ -16,6 +16,7 @@ import UserAssignRoleModal from "@/components/system/user/UserAssignRoleModal.vu
 import UserEditModal from "@/components/system/user/UserEditModal.vue";
 import UserImportModal from "@/components/system/user/UserImportModal.vue";
 import UserImportResultModal from "@/components/system/user/UserImportResultModal.vue";
+import {useUserStore} from "@/store";
 
 onMounted(() => {
   handleQuery()
@@ -29,7 +30,10 @@ const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
 const USER_IMPORT_ACCEPT = ".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
 const USER_IMPORT_DESCRIPTION = "仅支持 Excel 文件（.xlsx、.xls）"
+const userStore = useUserStore()
 const {queryParams, searchForm, total, pageData, loadingPageData, handleQuery, resetQuery, fetchData} = useUserQuery()
+const currentUserId = computed(() => userStore.userInfo.userId)
+const currentUsername = computed(() => userStore.userInfo.username)
 const statusQueryOptions = ref<OptionType[]>([
   {
     label: "全部状态",
@@ -149,6 +153,7 @@ const {
   confirmDeleteUsers,
   updateUserStatus,
   deleteUserBySelection,
+  isCurrentUser,
 } = useUserActions({
   table,
   openEditUserModal,
@@ -156,6 +161,8 @@ const {
   resettingUserId,
   deletingUserId,
   togglingStatusUserId,
+  currentUserId,
+  currentUsername,
 })
 const genderOptions = ref<OptionType[]>([
   {
@@ -232,11 +239,14 @@ const columns = ref<TableColumn<UserPageVO>[]>([
     accessorKey: "status",
     header: "状态",
     cell: ({row}) => {
+      const isSelf = isCurrentUser(row.original)
+      const isToggling = togglingStatusUserId.value === String(row.original.id)
       return h(USwitch, {
-        modelValue: row.original.status === 1,
-        disabled: togglingStatusUserId.value === String(row.original.id),
+        modelValue: row.original.status === StatusTypeEnum.ACCESS,
+        disabled: isSelf || isToggling,
+        title: isSelf ? "不能禁用当前登录用户" : "切换用户状态",
         "onUpdate:modelValue": (value: boolean) => {
-          updateUserStatus(row.original.id, value)
+          updateUserStatus(row.original, value)
         }
       }, undefined)
     }

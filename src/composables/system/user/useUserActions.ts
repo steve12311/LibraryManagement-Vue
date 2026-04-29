@@ -22,11 +22,40 @@ interface UseUserActionsOptions {
   resettingUserId: Ref<string>
   deletingUserId: Ref<string>
   togglingStatusUserId: Ref<string>
+  currentUserId?: Readonly<Ref<string | number | undefined>>
+  currentUsername?: Readonly<Ref<string | undefined>>
 }
+
+type UserStatusTarget = Pick<UserPageVO, "id" | "username"> | string | number | undefined
 
 /** 用户操作：编辑、重置密码、删除、状态切换 */
 export function useUserActions(options: UseUserActionsOptions) {
   const toast = useToast()
+
+  function normalizeIdentity(value: unknown) {
+    return String(value ?? "").trim()
+  }
+
+  function resolveUserId(user: UserStatusTarget) {
+    return typeof user === "object" && user !== null ? user.id : user
+  }
+
+  function isCurrentUser(user: UserStatusTarget) {
+    const currentUserId = normalizeIdentity(options.currentUserId?.value)
+    const currentUsername = normalizeIdentity(options.currentUsername?.value)
+
+    if (typeof user === "object" && user !== null) {
+      const userId = normalizeIdentity(user.id)
+      const username = normalizeIdentity(user.username)
+      return Boolean(
+        (currentUserId && userId && currentUserId === userId)
+        || (currentUsername && username && currentUsername === username)
+      )
+    }
+
+    const userId = normalizeIdentity(user)
+    return Boolean(currentUserId && userId && currentUserId === userId)
+  }
 
   function openEditUserModalBySelection() {
     const selectedRow = options.table.value?.tableApi?.getFilteredSelectedRowModel().flatRows?.[0]?.original
@@ -90,8 +119,14 @@ export function useUserActions(options: UseUserActionsOptions) {
     }
   }
 
-  async function updateUserStatus(userId: string | number | undefined, value: boolean) {
+  async function updateUserStatus(user: UserStatusTarget, value: boolean) {
+    const userId = resolveUserId(user)
     if (userId === undefined || userId === null || userId === "") return
+    if (isCurrentUser(user)) {
+      toast.add({title: "错误", description: "不能禁用当前登录用户", color: "error"})
+      await options.fetchData()
+      return
+    }
     try {
       options.togglingStatusUserId.value = String(userId)
       const status = value ? StatusTypeEnum.ACCESS : StatusTypeEnum.BAN
@@ -129,5 +164,6 @@ export function useUserActions(options: UseUserActionsOptions) {
     confirmDeleteUsers,
     updateUserStatus,
     deleteUserBySelection,
+    isCurrentUser,
   }
 }

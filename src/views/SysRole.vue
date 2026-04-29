@@ -29,6 +29,7 @@ const UFieldGroup = resolveComponent('UFieldGroup')
 const UButton = resolveComponent('UButton')
 const UTooltip = resolveComponent('UTooltip')
 
+const ROOT_ROLE_ID = 1
 const toast = useToast()
 const table = useTemplateRef("table")
 const columnVisibility = ref({
@@ -154,9 +155,12 @@ const columns = ref<TableColumn<RolePageVO>[]>([
     accessorKey: "status",
     header: "状态",
     cell: ({row}) => {
+      const isRoot = isRootRole(row.original.id)
+      const isUpdating = roleStatusUpdatingId.value === String(row.original.id)
       return h(USwitch, {
         modelValue: row.original.status === StatusTypeEnum.ACCESS,
-        disabled: roleStatusUpdatingId.value === String(row.original.id),
+        disabled: isRoot || isUpdating,
+        title: isRoot ? "ROOT角色不可禁用" : "切换角色状态",
         "onUpdate:modelValue": (value: boolean) => {
           updateRoleStatus(row.original.id, value)
         }
@@ -173,7 +177,7 @@ const columns = ref<TableColumn<RolePageVO>[]>([
     accessorKey: "userId",
     header: "操作",
     cell: ({row}) => {
-      if (Number(row.original.id) === 1) {
+      if (isRootRole(row.original.id)) {
         return h('div', undefined, undefined);
       }
       return h(UFieldGroup, undefined, () => [
@@ -268,6 +272,10 @@ function normalizeRolePayload(raw: RoleForm, overrideId?: RoleId): RoleForm {
     status: Number(raw.status ?? StatusTypeEnum.ACCESS) as RoleStatus,
     dataScope: Number(raw.dataScope ?? DataScopeTypeEnum.ALL) as RoleForm["dataScope"],
   }
+}
+
+function isRootRole(roleId: RoleId | undefined) {
+  return Number(roleId) === ROOT_ROLE_ID
 }
 
 function applySearchParams() {
@@ -456,7 +464,7 @@ function deleteRoleBySelection() {
   }
   const deleteRoles = selectedRows
       .map(row => row.original)
-      .filter(item => item.id && Number(item.id) !== 1)
+      .filter(item => item.id && !isRootRole(item.id))
   if (!deleteRoles.length) {
     toast.add({title: "错误", description: "超级管理员不可删除", color: "error"})
     return
@@ -468,6 +476,11 @@ function deleteRoleBySelection() {
 
 async function updateRoleStatus(roleId: RoleId | undefined, value: boolean) {
   if (roleId === undefined || roleId === null || roleId === "") return
+  if (isRootRole(roleId)) {
+    toast.add({title: "错误", description: "ROOT角色不可禁用", color: "error"})
+    await fetchData()
+    return
+  }
   const status = (value ? StatusTypeEnum.ACCESS : StatusTypeEnum.BAN) as RoleStatus
   try {
     roleStatusUpdatingId.value = String(roleId)
