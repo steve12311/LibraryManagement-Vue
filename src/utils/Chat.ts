@@ -16,21 +16,39 @@ interface ChatToolCall {
 interface ChatAssistantMessage {
     messageType?: ChatMessageType;
     textContent?: string | null;
+    reasoningContent?: string | null;
     toolCalls?: ChatToolCall[];
+}
+
+interface ChatOutput {
+    text?: string | null;
+    reasoningContent?: string | null;
 }
 
 interface ChatGeneration {
     assistantMessage?: ChatAssistantMessage;
+    output?: ChatOutput;
+}
+
+interface ChatResult {
+    output?: ChatOutput | null;
 }
 
 interface ChatResponseChunk {
     generations?: ChatGeneration[];
-    result?: {
-        output?: {
-            text?: string;
-        };
-    };
+    results?: ChatResult[];
+    result?: ChatResult | null;
+    data?: unknown;
 }
+
+interface ParsedChatContent {
+    text: string;
+    reasoning: string;
+}
+
+type ChatPart = UIMessage["parts"][number];
+type ChatTextPart = Extract<ChatPart, { type: "text" }>;
+type ChatReasoningPart = Extract<ChatPart, { type: "reasoning" }>;
 
 /**
  * AI 聊天会话管理器，封装消息流、SSE 流读取、错误恢复与状态管理。
@@ -78,19 +96,26 @@ export class AIChat {
         // 开始流式请求
         this.status.value = "submitted";
         this.status.value = "streaming";
-        let hasParsedChunk = false;
+        let hasContentChunk = false;
+        const requestController = new AbortController();
+        this.controller = requestController;
 
         return streamChat({
             message: normalizedText,
-            signal: this.controller.signal,
+            signal: requestController.signal,
             onChunk: (payload) => {
-                hasParsedChunk = true;
-                const deltaText = this.extractTextFromPayload(payload);
-                this.appendAssistantText(assistantIndex, deltaText);
+                const deltaContent = this.extractContentFromPayload(payload);
+                if (!deltaContent.text && !deltaContent.reasoning) {
+                    return;
+                }
+                hasContentChunk = true;
+                this.appendAssistantReasoning(assistantIndex, deltaContent.reasoning);
+                this.appendAssistantText(assistantIndex, deltaContent.text);
             }
         })
             .then(() => {
-                if (!hasParsedChunk) {
+                this.finishAssistantParts(assistantIndex);
+                if (!hasContentChunk) {
                     this.errorMessage.value = "AI 服务暂未返回有效内容，请稍后重试";
                     this.status.value = "error";
                     return;
@@ -98,6 +123,7 @@ export class AIChat {
                 this.status.value = "ready";
             })
             .catch((error: unknown) => {
+                this.finishAssistantParts(assistantIndex);
                 // 用户主动停止 → 恢复 ready
                 if (this.isAbortError(error)) {
                     this.status.value = "ready";
@@ -110,13 +136,17 @@ export class AIChat {
             })
             .finally(() => {
                 // 重置 AbortController 以便下次请求
-                this.controller = new AbortController();
+                this.finishAssistantParts(assistantIndex);
+                if (this.controller === requestController) {
+                    this.controller = new AbortController();
+                }
             });
     }
 
     /** 中止当前请求 */
     stop() {
         this.controller.abort();
+        this.finishStreamingParts();
         this.status.value = "ready";
         this.controller = new AbortController();
     }
@@ -132,15 +162,20 @@ export class AIChat {
     }
 
     private createTextMessage(role: "user" | "assistant", text: string): UIMessage {
-        return {
-            id: this.createMessageId(),
-            role,
-            parts: [
+        const parts: UIMessage["parts"] = text
+            ? [
                 {
                     type: "text",
                     text,
+                    state: role === "assistant" ? "streaming" : "done",
                 }
-            ],
+            ]
+            : [];
+
+        return {
+            id: this.createMessageId(),
+            role,
+            parts,
         };
     }
 
@@ -152,37 +187,95 @@ export class AIChat {
     }
 
     /**
-     * 从 AI 响应 payload 中提取文本。兼容多种格式：
+     * 从 AI 响应 payload 中提取文本与思考内容。兼容多种格式：
      * 纯文本 → 直接返回 | 数组 → 递归拼接 |
-     * ChatGeneration.textContent → result.output.text → data 递归
+     * ChatGeneration.textContent → result/results.output → data 递归
      */
-    private extractTextFromPayload(payload: unknown): string {
-        if (!payload) return "";
+    private extractContentFromPayload(payload: unknown): ParsedChatContent {
+        const content: ParsedChatContent = {text: "", reasoning: ""};
+        this.collectContentFromPayload(payload, content, new Set<string>(), new WeakSet<object>());
+        return content;
+    }
 
-        if (typeof payload === "string") return payload;
+    private collectContentFromPayload(
+        payload: unknown,
+        content: ParsedChatContent,
+        seenStructuredContent: Set<string>,
+        seenObjects: WeakSet<object>
+    ) {
+        if (!payload) return;
 
-        if (Array.isArray(payload)) {
-            return payload.map((item) => this.extractTextFromPayload(item)).join("");
+        if (typeof payload === "string") {
+            content.text += payload;
+            return;
         }
 
-        if (typeof payload !== "object") return "";
+        if (Array.isArray(payload)) {
+            payload.forEach((item) => {
+                this.collectContentFromPayload(item, content, seenStructuredContent, seenObjects);
+            });
+            return;
+        }
 
-        const chunk = payload as ChatResponseChunk & { data?: unknown };
+        if (typeof payload !== "object") return;
+        if (seenObjects.has(payload)) return;
+        seenObjects.add(payload);
 
-        const generatedText = chunk.generations
-            ?.map((generation) => generation.assistantMessage?.textContent ?? "")
-            .join("") ?? "";
-        if (generatedText) return generatedText;
+        const chunk = payload as ChatResponseChunk;
 
-        const legacyText = chunk.result?.output?.text ?? "";
-        if (legacyText) return legacyText;
+        chunk.generations?.forEach((generation) => {
+            this.appendStructuredContent(
+                content,
+                generation.assistantMessage?.textContent,
+                generation.assistantMessage?.reasoningContent,
+                seenStructuredContent
+            );
+            this.appendStructuredContent(
+                content,
+                generation.output?.text,
+                generation.output?.reasoningContent,
+                seenStructuredContent
+            );
+        });
+
+        chunk.results?.forEach((result) => {
+            this.appendStructuredContent(
+                content,
+                result.output?.text,
+                result.output?.reasoningContent,
+                seenStructuredContent
+            );
+        });
+
+        this.appendStructuredContent(
+            content,
+            chunk.result?.output?.text,
+            chunk.result?.output?.reasoningContent,
+            seenStructuredContent
+        );
 
         // 嵌套 data 字段，继续递归
         if (chunk.data !== undefined) {
-            return this.extractTextFromPayload(chunk.data);
+            this.collectContentFromPayload(chunk.data, content, seenStructuredContent, seenObjects);
         }
+    }
 
-        return "";
+    private appendStructuredContent(
+        content: ParsedChatContent,
+        textValue: string | null | undefined,
+        reasoningValue: string | null | undefined,
+        seenStructuredContent: Set<string>
+    ) {
+        const text = textValue ?? "";
+        const reasoning = reasoningValue ?? "";
+        if (!text && !reasoning) return;
+
+        const contentKey = `${text}\u0000${reasoning}`;
+        if (seenStructuredContent.has(contentKey)) return;
+        seenStructuredContent.add(contentKey);
+
+        content.text += text;
+        content.reasoning += reasoning;
     }
 
     /**
@@ -207,19 +300,68 @@ export class AIChat {
         const assistantMessage = this.messages.value[assistantIndex];
         if (!assistantMessage) return;
 
-        const textPart = assistantMessage.parts.find(
-            (part): part is Extract<UIMessage["parts"][number], { type: "text" }> => part.type === "text"
-        );
+        const textPart = assistantMessage.parts.find((part): part is ChatTextPart => part.type === "text");
 
         if (textPart) {
             textPart.text += deltaText;
+            textPart.state = "streaming";
             return;
         }
 
         assistantMessage.parts.push({
             type: "text",
             text: deltaText,
+            state: "streaming",
         });
+    }
+
+    /** 将 deltaReasoning 追加到 assistant 消息的 reasoning part */
+    private appendAssistantReasoning(assistantIndex: number, deltaReasoning: string) {
+        if (!deltaReasoning) return;
+
+        const assistantMessage = this.messages.value[assistantIndex];
+        if (!assistantMessage) return;
+
+        const reasoningPart = assistantMessage.parts.find(
+            (part): part is ChatReasoningPart => part.type === "reasoning"
+        );
+
+        if (reasoningPart) {
+            reasoningPart.text += deltaReasoning;
+            reasoningPart.state = "streaming";
+            return;
+        }
+
+        assistantMessage.parts.push({
+            type: "reasoning",
+            text: deltaReasoning,
+            state: "streaming",
+        });
+    }
+
+    private finishAssistantParts(assistantIndex: number) {
+        const assistantMessage = this.messages.value[assistantIndex];
+        if (!assistantMessage) return;
+
+        assistantMessage.parts.forEach((part) => {
+            if (this.isStreamContentPart(part)) {
+                part.state = "done";
+            }
+        });
+    }
+
+    private finishStreamingParts() {
+        this.messages.value.forEach((message) => {
+            message.parts.forEach((part) => {
+                if (this.isStreamContentPart(part)) {
+                    part.state = "done";
+                }
+            });
+        });
+    }
+
+    private isStreamContentPart(part: ChatPart): part is ChatTextPart | ChatReasoningPart {
+        return part.type === "text" || part.type === "reasoning";
     }
 
     /**
