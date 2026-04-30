@@ -4,6 +4,8 @@ import {type UIMessage} from 'ai'
 import {getTextFromMessage} from '@nuxt/ui/utils/ai'
 import {AIChat} from '@/utils/Chat.ts'
 
+type ChatPart = UIMessage['parts'][number]
+
 const open = defineModel<boolean>('open', {default: false})
 const MAX_INPUT_LENGTH = 1000
 const Markdown = defineAsyncComponent(() => import('markstream-vue'))
@@ -57,8 +59,16 @@ function usePrompt(prompt: string) {
   submitMessage(prompt)
 }
 
-function hasAssistantText(message: UIMessage) {
-  return message.role === 'assistant' && getTextFromMessage(message).trim() !== ''
+function isTextPart(part: ChatPart): part is Extract<ChatPart, { type: 'text' }> {
+  return part.type === 'text'
+}
+
+function isReasoningPart(part: ChatPart): part is Extract<ChatPart, { type: 'reasoning' }> {
+  return part.type === 'reasoning'
+}
+
+function hasPartText(text?: string) {
+  return (text ?? '').trim() !== ''
 }
 
 async function copy(_: MouseEvent, message: UIMessage) {
@@ -147,13 +157,27 @@ async function copy(_: MouseEvent, message: UIMessage) {
           :messages="chat.messages.value"
       >
         <template #content="{ message }">
-          <Markdown
-              v-if="hasAssistantText(message)"
-              :content="getTextFromMessage(message)"
-              class="*:first:mt-0 *:last:mb-0"
-          />
+          <div v-if="message.role === 'assistant'" class="space-y-3">
+            <template
+                v-for="(part, index) in message.parts"
+                :key="`${message.id}-${part.type}-${index}`"
+            >
+              <UChatReasoning
+                  v-if="isReasoningPart(part) && hasPartText(part.text)"
+                  :text="part.text"
+                  :streaming="part.state === 'streaming'"
+                  icon="i-lucide-brain"
+                  class="ai-reasoning"
+              />
+              <Markdown
+                  v-else-if="isTextPart(part) && hasPartText(part.text)"
+                  :content="part.text"
+                  class="*:first:mt-0 *:last:mb-0"
+              />
+            </template>
+          </div>
           <div
-              v-else-if="message.role === 'user'"
+              v-else
               class="whitespace-pre-wrap break-words"
               v-text="getTextFromMessage(message)"
           />
