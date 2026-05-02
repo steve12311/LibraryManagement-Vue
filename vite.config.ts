@@ -11,53 +11,22 @@ export default defineConfig(({mode}: ConfigEnv): UserConfig => {
     return {
         plugins: [vue(), ui({colorMode: true, dts: false})],
         build: {
-            rollupOptions: {
+            rolldownOptions: {
                 output: {
-                    manualChunks(id) {
-                        if (!id.includes("node_modules")) return;
-
-                        if (id.includes("markstream-vue/dist/index8.js")) {
-                            return "ai-diagram-heavy";
-                        }
-
-                        if (id.includes("markstream-vue")) {
-                            return "ai-markdown";
-                        }
-
-                        if (
-                            id.includes("/node_modules/ai/")
-                            || id.includes("@ai-sdk")
-                        ) {
-                            return "ai-runtime";
-                        }
-
-                        if (id.includes("/node_modules/echarts/")) {
-                            return "dashboard-echarts";
-                        }
-
-                        if (id.includes("/node_modules/zrender/")) {
-                            return "dashboard-zrender";
-                        }
-
-                        if (id.includes("@nuxt/ui")) {
-                            return "nuxt-ui";
-                        }
-
-                        if (id.includes("element-plus")) {
-                            return "element-plus";
-                        }
-
-
-                        if (
-                            id.includes("/node_modules/vue/")
-                            || id.includes("/node_modules/vue-router/")
-                            || id.includes("/node_modules/pinia/")
-                        ) {
-                            return "vue-core";
-                        }
-                    }
-                }
-            }
+                    advancedChunks: {
+                        groups: [
+                            { name: "ai-diagram-heavy", test: /markstream-vue\/dist\/index8\.js/ },
+                            { name: "ai-markdown", test: /markstream-vue/ },
+                            { name: "ai-runtime", test: /\/node_modules\/ai\/|@ai-sdk/ },
+                            { name: "dashboard-echarts", test: /\/node_modules\/echarts\// },
+                            { name: "dashboard-zrender", test: /\/node_modules\/zrender\// },
+                            { name: "nuxt-ui", test: /@nuxt\/ui/ },
+                            { name: "element-plus", test: /element-plus/ },
+                            { name: "vue-core", test: /\/node_modules\/vue\/|\/node_modules\/vue-router\/|\/node_modules\/pinia\// },
+                        ],
+                    },
+                },
+            },
         },
         resolve: {
             alias: {
