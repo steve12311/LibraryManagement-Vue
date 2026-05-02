@@ -3,7 +3,8 @@ import {computed, h, onMounted, ref, resolveComponent, useTemplateRef, watch} fr
 import type {TableColumn} from "@nuxt/ui";
 import { formatDateTime } from "@/utils/date-format";
 import type {UserPageVO} from "@/api/system/user-api.ts"
-import {UserGenderTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
+import {StatusTypeEnum, UserGenderTypeEnum} from "@/enums/system/status-enum.ts";
+import { createGenderOptions, createStatusOptions } from "@/utils/option-items";
 import {useUserActions} from "@/composables/system/user/useUserActions";
 import {useUserDialog} from "@/composables/system/user/useUserDialog";
 import {useUserForm} from "@/composables/system/user/useUserForm";
@@ -34,20 +35,7 @@ const userStore = useUserStore()
 const {queryParams, searchForm, total, pageData, loadingPageData, handleQuery, resetQuery, fetchData} = useUserQuery()
 const currentUserId = computed(() => userStore.userInfo.userId)
 const currentUsername = computed(() => userStore.userInfo.username)
-const statusQueryOptions = ref<OptionType[]>([
-  {
-    label: "全部状态",
-    value: -1,
-  },
-  {
-    label: "启用",
-    value: StatusTypeEnum.ACCESS,
-  },
-  {
-    label: "禁用",
-    value: StatusTypeEnum.BAN,
-  }
-])
+const statusQueryOptions = ref(createStatusOptions(true))
 const table = useTemplateRef('table')
 const columnVisibility = ref({
   id: false,
@@ -164,20 +152,7 @@ const {
   currentUserId,
   currentUsername,
 })
-const genderOptions = ref<OptionType[]>([
-  {
-    label: "保密",
-    value: UserGenderTypeEnum.UNKNOWN
-  },
-  {
-    label: "男",
-    value: UserGenderTypeEnum.MAN
-  },
-  {
-    label: "女",
-    value: UserGenderTypeEnum.WOMAN
-  }
-])
+const genderOptions = ref(createGenderOptions())
 const columns = ref<TableColumn<UserPageVO>[]>([
   {
     id: "select",

@@ -1,10 +1,9 @@
 import type {Ref} from "vue";
 import UserAPI, {type UserForm} from "@/api/system/user-api";
-
-type EditModalMode = "add" | "edit";
+import type { ModalEditMode } from "@/types/common";
 
 interface UseUserSubmitOptions {
-  editModalMode: Ref<EditModalMode>
+  editModalMode: Ref<ModalEditMode>
   editingUserId: Ref<string>
   assignRoleUserId: Ref<string>
   editUserState: Ref<UserForm>

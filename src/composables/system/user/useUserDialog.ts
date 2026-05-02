@@ -1,12 +1,11 @@
 import type {Ref} from "vue";
 import UserAPI, {type UserForm} from "@/api/system/user-api";
-
-type EditModalMode = "add" | "edit";
+import type { ModalEditMode } from "@/types/common";
 
 interface UseUserDialogOptions {
   openEditModal: Ref<boolean>
   openAssignRoleModal: Ref<boolean>
-  editModalMode: Ref<EditModalMode>
+  editModalMode: Ref<ModalEditMode>
   editModalTitle: Ref<string>
   loadingEditUser: Ref<boolean>
   loadingAssignRole: Ref<boolean>

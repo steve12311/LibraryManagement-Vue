@@ -1,10 +1,11 @@
 import type { SelectItem } from "@nuxt/ui"
+import type { BorrowDateValue } from "@/types/common"
 import {
   BorrowStatusEnum,
   type BorrowStatusColor,
   type BorrowStatusValue
 } from "@/enums/system/borrow-status-enum"
-export type BorrowDateValue = string | Date | null | undefined
+
 
 export function isBorrowStatusValue(value: unknown): value is BorrowStatusValue {
   return value === BorrowStatusEnum.RETURNED

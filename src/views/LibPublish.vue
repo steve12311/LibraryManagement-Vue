@@ -12,6 +12,9 @@ import SystemQueryCard from "@/components/system/SystemQueryCard.vue"
 import PublishEditModal from "@/components/library/publish/PublishEditModal.vue"
 
 const UCheckbox = resolveComponent("UCheckbox")
+const UButton = resolveComponent("UButton")
+const UTooltip = resolveComponent("UTooltip")
+const UFieldGroup = resolveComponent("UFieldGroup")
 
 onMounted(() => { void handleQuery() })
 
@@ -42,13 +45,13 @@ function toggleAllRows(selected: boolean) {
   table.value?.tableApi?.toggleAllPageRowsSelected(selected)
 }
 
-const { open, openAddPublishModal, openEditPublishBySelection } = usePublishDialog({
+const { open, openAddPublishModal, openEditPublishModal, openEditPublishBySelection } = usePublishDialog({
   loadingEditPublish, submittingPublish, editModalMode, editModalTitle, editingPublishId, state,
   createPublishForm, loadPublishForm, getFirstSelectedRow,
 })
 
 const deletingPublish = ref(false)
-const { submitForm, deletePublishBySelection } = usePublishActions({
+const { submitForm, deletePublishBySelection, confirmDeletePublish } = usePublishActions({
   state, open, editModalMode, editingPublishId, loadingEditPublish, submittingPublish, deletingPublish,
   normalizePublishPayload, fetchData, getSelectedRows, toggleAllRows,
 })
@@ -78,6 +81,26 @@ const columns = ref<TableColumn<PublishPageVO>[]>([
     accessorKey: "createTime",
     header: "创建时间",
     cell: ({ row }) => formatDateTime(row.original.createTime),
+  },
+  {
+    id: "action",
+    header: "操作",
+    cell: ({ row }) => h(UFieldGroup, undefined, () => [
+      h(UTooltip, { text: "修改", delayDuration: 0 }, () => [
+        h(UButton, {
+          icon: "i-lucide-clipboard-pen-line",
+          variant: "ghost",
+          onClick: (ev: Event) => { ev.stopPropagation(); openEditPublishModal(row.original.publishId) },
+        }),
+      ]),
+      h(UTooltip, { text: "删除", delayDuration: 0 }, () => [
+        h(UButton, {
+          icon: "i-lucide-trash-2",
+          variant: "ghost",
+          onClick: (ev: Event) => { ev.stopPropagation(); void confirmDeletePublish(row.original.publishId as PublishId, row.original.publishName) },
+        }),
+      ]),
+    ]),
   },
 ])
 </script>

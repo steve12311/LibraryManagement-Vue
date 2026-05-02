@@ -3,14 +3,8 @@ import type {Ref} from "vue";
 import {CalendarDate} from "@internationalized/date";
 import bookApi, {type BookForm} from "@/api/library/book-api";
 import FileApi from "@/api/file-api";
+import type { CoverFileModel } from "@/types/common";
 import type {CategoryLazyOption} from "@/api/library/category-api";
-
-interface CoverFileLike {
-  file?: File
-  raw?: File
-}
-
-export type CoverFileModel = File | CoverFileLike | Array<File | CoverFileLike>
 
 interface UseStockEditOptions {
   openEditBookDialog: Ref<boolean>
@@ -34,7 +28,7 @@ function toCalendarDate(value?: Date | string) {
   return new CalendarDate(target.getFullYear(), target.getMonth() + 1, target.getDate())
 }
 
-function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
+export function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
   if (!model) return void 0
   if (model instanceof File) return model
   if (Array.isArray(model)) {

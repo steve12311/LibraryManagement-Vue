@@ -46,7 +46,7 @@ interface ParsedChatContent {
     reasoning: string;
 }
 
-type ChatPart = UIMessage["parts"][number];
+export type ChatPart = UIMessage["parts"][number];
 type ChatTextPart = Extract<ChatPart, { type: "text" }>;
 type ChatReasoningPart = Extract<ChatPart, { type: "reasoning" }>;
 

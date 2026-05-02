@@ -6,13 +6,7 @@ import {ElDialog, ElTreeSelect} from 'element-plus'
 import type {BookForm} from '@/api/library/book-api'
 import type {CategoryLazyOption} from '@/api/library/category-api'
 import {SAFE_IMAGE_UPLOAD_ACCEPT, SAFE_IMAGE_UPLOAD_DESCRIPTION} from '@/api/file-api'
-
-interface CategoryTreeNode {
-  level?: number
-  data?: {
-    value?: string | number
-  }
-}
+import type { CategoryTreeNode } from '@/types/common'
 
 const open = defineModel<boolean>('open', {default: false})
 const state = defineModel<BookForm>('state', {required: true})
@@ -37,7 +31,7 @@ const editBookInputDate = useTemplateRef('editBookInputDate')
 </script>
 
 <template>
-  <ElDialog v-model="open" title="修改图书信息" align-center>
+  <ElDialog v-model="open" title="修改图书信息" align-center :close-on-click-modal="false">
     <div class="w-full" style="max-height: 70vh;overflow-y: scroll;overflow-x: hidden">
       <UForm :state="state" class="flex flex-col gap-y-4">
         <UFormField class="w-full" label="出版日期">

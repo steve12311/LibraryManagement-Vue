@@ -1,13 +1,10 @@
 import type { AxiosResponse } from "axios";
 import request from "@/utils/request";
+import { MAX_SAFE_IMAGE_SIZE_BYTES, SAFE_IMAGE_FILE_PATTERN, SAFE_IMAGE_MIME_TYPES } from "@/constants/file-constants";
+
+export { SAFE_IMAGE_UPLOAD_ACCEPT, SAFE_IMAGE_UPLOAD_DESCRIPTION } from "@/constants/file-constants";
 
 const FILE_BASE_URL = "/api/v1/files";
-const SAFE_IMAGE_FILE_PATTERN = /\.(jpg|jpeg|png|gif)$/i;
-const SAFE_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/gif"]);
-const MAX_SAFE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
-
-export const SAFE_IMAGE_UPLOAD_ACCEPT = ".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif";
-export const SAFE_IMAGE_UPLOAD_DESCRIPTION = "支持 JPG、JPEG、PNG、GIF，单文件最大 5MB";
 
 function normalizeFilePath(url?: string | null) {
     const rawUrl = String(url ?? "").trim();

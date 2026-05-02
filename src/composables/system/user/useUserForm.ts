@@ -4,15 +4,14 @@ import type {SelectMenuItem} from "@nuxt/ui";
 import RoleAPI from "@/api/system/role-api";
 import type {UserForm} from "@/api/system/user-api";
 import {UserGenderTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum";
-
-type EditModalMode = "add" | "edit";
+import type { ModalEditMode } from "@/types/common";
 
 interface UseUserFormOptions {
   avatarModel: Ref<File | undefined>
   submittingEditUser: Ref<boolean>
   loadingEditUser: Ref<boolean>
   editingUserId: Ref<string>
-  editModalMode: Ref<EditModalMode>
+  editModalMode: Ref<ModalEditMode>
   editModalTitle: Ref<string>
   assignRoleUserId: Ref<string>
   assignRoleUsername: Ref<string>

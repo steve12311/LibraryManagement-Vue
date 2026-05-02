@@ -1,3 +1,5 @@
+export const SYSTEM_ROOT_ROLE_ID = 1
+
 export const StatusTypeEnum = {
     ACCESS: 1, // 正常
     BAN: 0, // 禁用

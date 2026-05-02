@@ -3,6 +3,7 @@ import type { SelectMenuItem } from "@nuxt/ui"
 import RoleAPI, { type RoleForm, type RoleId } from "@/api/system/role-api"
 import UserAPI from "@/api/system/user-api"
 import { DataScopeTypeEnum, StatusTypeEnum } from "@/enums/system/status-enum"
+import { createStatusOptions } from "@/utils/option-items"
 
 const initialRoleFormData: RoleForm = {
   id: 0,
@@ -13,10 +14,7 @@ const initialRoleFormData: RoleForm = {
   dataScope: DataScopeTypeEnum.ALL as RoleForm["dataScope"],
 }
 
-const statusOptions = [
-  { label: "启用", value: StatusTypeEnum.ACCESS },
-  { label: "禁用", value: StatusTypeEnum.BAN },
-]
+const statusOptions = createStatusOptions()
 
 const dataScopeOptions = [
   { label: "全部数据", value: DataScopeTypeEnum.ALL },

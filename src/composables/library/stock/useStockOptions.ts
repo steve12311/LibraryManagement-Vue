@@ -2,13 +2,7 @@ import {ref} from "vue";
 import type {SelectMenuItem} from "@nuxt/ui";
 import categoryApi, {type CategoryLazyOption} from "@/api/library/category-api.ts";
 import publishApi from "@/api/library/publish-api.ts";
-
-interface CategoryTreeNode {
-  level?: number
-  data?: {
-    value?: string | number
-  }
-}
+import type { CategoryTreeNode } from "@/types/common";
 
 export function useStockOptions() {
   const toast = useToast()

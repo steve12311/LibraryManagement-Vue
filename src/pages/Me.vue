@@ -13,7 +13,8 @@ import MeOverviewCard from "@/components/me/MeOverviewCard.vue";
 import PasswordEditModal from "@/components/me/PasswordEditModal.vue";
 import ProfileEditModal from "@/components/me/ProfileEditModal.vue";
 import {useUserStore} from "@/store";
-import {UserGenderTypeEnum} from "@/enums/system/status-enum.ts";
+import { UserGenderTypeEnum } from "@/enums/system/status-enum.ts";
+import { createGenderOptions } from "@/utils/option-items";
 import {useMyBorrowOrders} from "@/composables/system/user/useMyBorrowOrders";
 
 const PHONE_PATTERN = /^$|^1(3\d|4[5-9]|5[0-35-9]|6[2567]|7[0-8]|8\d|9[0-35-9])\d{8}$/;
@@ -45,11 +46,7 @@ const passwordSchema = v.object({
   newPassword: v.pipe(v.string(), v.nonEmpty("请输入新密码"), v.minLength(6, "新密码不少于6位")),
   confirmPassword: v.pipe(v.string(), v.nonEmpty("请再次输入新密码"), v.minLength(6, "确认密码不少于6位")),
 });
-const genderOptions = ref<OptionType[]>([
-  {label: "保密", value: UserGenderTypeEnum.UNKNOWN},
-  {label: "男", value: UserGenderTypeEnum.MAN},
-  {label: "女", value: UserGenderTypeEnum.WOMAN}
-]);
+const genderOptions = ref(createGenderOptions());
 const roleItems = computed(() => normalizeRoleNames(profileInfo.value.roleNames));
 const createTimeText = computed(() => formatDateTime(profileInfo.value.createTime));
 const displayName = computed(() => profileInfo.value.nickname || profileInfo.value.username || "未设置昵称");

@@ -90,5 +90,24 @@ export function usePublishActions(options: UsePublishActionsOptions) {
     }
   }
 
-  return { submitForm, deletePublishBySelection }
+  async function confirmDeletePublish(id: PublishId, name?: string) {
+    const content = name?.trim() ? `确定删除出版社 ${name} 吗？` : '确定删除该出版社吗？'
+    try {
+      await ElMessageBox.confirm(content, "删除出版社", { type: "warning", confirmButtonText: "确定", cancelButtonText: "取消" })
+    } catch {
+      return
+    }
+    try {
+      options.deletingPublish.value = true
+      await publishApi.delete([Number(id)])
+      toast.add({ title: "成功", description: "删除成功", color: "success" })
+      await options.fetchData()
+    } catch {
+      toast.add({ title: "错误", description: "删除失败", color: "error" })
+    } finally {
+      options.deletingPublish.value = false
+    }
+  }
+
+  return { submitForm, deletePublishBySelection, confirmDeletePublish }
 }

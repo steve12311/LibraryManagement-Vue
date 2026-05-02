@@ -2,9 +2,9 @@
 import {computed, defineAsyncComponent, ref, watch} from 'vue'
 import {type UIMessage} from 'ai'
 import {getTextFromMessage} from '@nuxt/ui/utils/ai'
-import {AIChat} from '@/utils/Chat.ts'
+import {AIChat, type ChatPart} from '@/utils/Chat.ts'
 
-type ChatPart = UIMessage['parts'][number]
+
 
 const open = defineModel<boolean>('open', {default: false})
 const MAX_INPUT_LENGTH = 1000

@@ -1,9 +1,10 @@
 import request from "@/utils/request";
 import type { BorrowStatusValue } from "@/enums/system/borrow-status-enum";
+import type { BorrowDateValue } from "@/types/common";
 
 const BORROW_BASE_URL = "/api/v1/borrow";
 export type BorrowId = string;
-export type BorrowDateValue = string | Date;
+
 export type BorrowQueryField = "username" | "isbn" | "status";
 
 const BorrowApi = {

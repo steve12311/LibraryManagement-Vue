@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {h, onMounted, reactive, ref, resolveComponent, shallowRef, useTemplateRef} from "vue";
-import type {SelectItem, TableColumn} from "@nuxt/ui";
+import { StatusTypeEnum } from "@/enums/system/status-enum";
+import { createStatusOptions } from "@/utils/option-items";
+import type {TableColumn} from "@nuxt/ui";
 import categoryApi, {
   type CategoryId,
   type CategoryQuery,
@@ -25,20 +27,7 @@ const searchForm = reactive({
   categoryName: "",
   status: -1 as CategoryStatus | -1
 })
-const statusItems = ref<SelectItem[]>([
-  {
-    label: "全部状态",
-    value: -1
-  },
-  {
-    label: "启用",
-    value: 1
-  },
-  {
-    label: "禁用",
-    value: 0
-  }
-])
+const statusItems = ref(createStatusOptions(true))
 const columns = ref<TableColumn<CategoryVO>[]>([
   {
     accessorKey: "categoryId",
@@ -161,7 +150,7 @@ function getSubRows(row: CategoryVO) {
           description="分类树维护与启停管理"
           :stats="[
             { label: '分类节点', value: categoryList.length },
-            { label: '状态筛选', value: searchForm.status === -1 ? '全部' : searchForm.status === 1 ? '启用' : '停用' },
+            { label: '状态筛选', value: searchForm.status === -1 ? '全部' : searchForm.status === StatusTypeEnum.ACCESS ? '启用' : '停用' },
             { label: '搜索词', value: searchForm.categoryName.trim() || '未设置' }
           ]"
       />

@@ -2,9 +2,7 @@ import { type Ref } from "vue"
 import type { RoleForm, RoleId, RoleStatus } from "@/api/system/role-api"
 import RoleAPI from "@/api/system/role-api"
 import { ElMessageBox } from "element-plus"
-import { StatusTypeEnum } from "@/enums/system/status-enum"
-
-const ROOT_ROLE_ID = 1
+import { StatusTypeEnum, SYSTEM_ROOT_ROLE_ID } from "@/enums/system/status-enum"
 
 interface UseRoleActionsOptions {
   roleState: Ref<RoleForm>
@@ -26,7 +24,7 @@ export function useRoleActions(options: UseRoleActionsOptions) {
   const toast = useToast()
 
   function isRootRole(roleId: RoleId | undefined) {
-    return Number(roleId) === ROOT_ROLE_ID
+    return Number(roleId) === SYSTEM_ROOT_ROLE_ID
   }
 
   async function submitEditRole() {

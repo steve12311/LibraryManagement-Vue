@@ -9,7 +9,6 @@ import {redirectToLogin} from "@/utils/auth";
 
 const {refreshTokenAndRetry} = useTokenRefresh();
 type BinaryResponseData = Blob | ArrayBuffer | ReadableStream<Uint8Array>;
-const BUSINESS_ACCESS_DENIED_CODE = "A0301";
 
 const httpRequest = axios.create({
     baseURL: import.meta.env.VITE_APP_API_URL,
@@ -98,7 +97,7 @@ httpRequest.interceptors.response.use(
                     return Promise.reject(new Error(msg || "Forbidden"));
                 }
 
-                if (code === BUSINESS_ACCESS_DENIED_CODE) {
+                if (code === ApiCodeEnum.BUSINESS_ACCESS_DENIED) {
                     toast.add({title: "错误", description: msg || "无权访问当前资源", color: "error"})
                     return Promise.reject(new Error(msg || "Business Forbidden"));
                 }

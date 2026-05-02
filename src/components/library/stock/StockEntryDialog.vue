@@ -6,20 +6,8 @@ import stockApi, {type StockForm} from "@/api/library/stock-api.ts";
 import FileApi, {SAFE_IMAGE_UPLOAD_ACCEPT, SAFE_IMAGE_UPLOAD_DESCRIPTION} from "@/api/file-api.ts";
 import type {CategoryLazyOption} from "@/api/library/category-api.ts";
 import {ElDialog, ElTreeSelect} from "element-plus";
-
-interface CategoryTreeNode {
-  level?: number
-  data?: {
-    value?: string | number
-  }
-}
-
-interface CoverFileLike {
-  file?: File
-  raw?: File
-}
-
-type CoverFileModel = File | CoverFileLike | Array<File | CoverFileLike>
+import type { CategoryTreeNode } from "@/types/common";
+import { getCoverFileFromModel } from "@/composables/library/stock/useStockEdit";
 
 const open = defineModel<boolean>("open", {default: false})
 
@@ -63,32 +51,18 @@ const coverModel = ref<File>()
 const inputDate = useTemplateRef("inputDate")
 const publishTime = shallowRef(new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate()))
 
+const stepperKey = ref(0)
+
 watch(open, (isOpen) => {
   if (isOpen) {
     resetEntryForm()
+    stepperKey.value++
   }
 })
 
 function toCalendarDate(value?: Date | string) {
   const target = value ? new Date(value) : new Date()
   return new CalendarDate(target.getFullYear(), target.getMonth() + 1, target.getDate())
-}
-
-function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
-  if (!model) return void 0
-  if (model instanceof File) return model
-  if (Array.isArray(model)) {
-    if (model.length === 0) return void 0
-    const first = model[0]
-    if (!first) return void 0
-    if (first instanceof File) return first
-    if (first.file instanceof File) return first.file
-    if (first.raw instanceof File) return first.raw
-    return void 0
-  }
-  if (model.file instanceof File) return model.file
-  if (model.raw instanceof File) return model.raw
-  return void 0
 }
 
 function resetEntryForm() {
@@ -193,9 +167,9 @@ async function submitStock() {
 </script>
 
 <template>
-  <ElDialog v-model="open" title="图书入库" align-center>
+  <ElDialog v-model="open" title="图书入库" align-center :close-on-click-modal="false">
     <div class="w-full" style="max-height: 70vh;overflow-y: scroll;overflow-x: hidden">
-      <UStepper disabled ref="entryStepper" :items="entryStepperItems">
+      <UStepper disabled ref="entryStepper" :key="stepperKey" :items="entryStepperItems">
         <template #content="{ item }">
           <div class="w-full">
             <UForm :state="state" class="flex flex-col gap-y-4">
