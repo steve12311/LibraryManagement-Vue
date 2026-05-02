@@ -62,12 +62,12 @@ const emailModel = computed({
   <UModal
       v-model:open="openModel"
       title="编辑资料"
-      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
+      :ui="{ content: 'sm:max-w-2xl rounded-2xl border border-default bg-default shadow' }"
   >
     <template #body>
       <div class="modal-copy">
         <p class="modal-title">基础资料</p>
-        <p class="modal-description">更新头像、昵称、联系方式和基础身份信息。</p>
+        <p class="modal-description">头像、昵称与联系方式</p>
       </div>
       <UForm :schema="schema" :state="state" class="mt-5 space-y-4" @submit.prevent="emit('submit')">
         <UFieldGroup class="w-full gap-2">

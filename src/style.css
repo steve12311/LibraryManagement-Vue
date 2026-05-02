@@ -50,7 +50,6 @@ h5,
 h6 {
   color: var(--library-text);
   font-family: var(--library-title-font);
-  letter-spacing: -0.02em;
 }
 
 button,
@@ -66,9 +65,8 @@ textarea {
 
 .system-page-card {
   border: 1px solid var(--library-border);
-  border-radius: 28px;
+  border-radius: 16px;
   background: var(--library-card);
-  box-shadow: var(--library-shadow-soft);
 }
 
 .system-page-shell {
@@ -112,8 +110,8 @@ textarea {
 .system-page-header__kicker,
 .system-page-header__stat-label {
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--library-accent);
 }
@@ -121,7 +119,7 @@ textarea {
 .system-page-header__title {
   margin-top: 4px;
   font-size: clamp(22px, 2vw, 26px);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.15;
   color: var(--library-text);
 }
@@ -141,7 +139,7 @@ textarea {
 }
 
 .system-page-header__stat {
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 10px 12px;
   background: var(--library-card-muted);
 }
@@ -150,12 +148,12 @@ textarea {
   display: block;
   margin-top: 4px;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--library-text);
 }
 
 .system-query-card {
-  border-radius: 22px;
+  border-radius: 12px;
   padding: 14px 16px;
   border: 1px solid var(--library-border);
   background: color-mix(in srgb, var(--library-card) 86%, var(--library-surface-muted));
@@ -182,7 +180,7 @@ textarea {
 .system-table-card {
   height: 100%;
   min-height: 0;
-  border-radius: 22px;
+  border-radius: 12px;
   overflow: hidden;
 }
 
@@ -192,8 +190,8 @@ textarea {
 
 .system-table-card th {
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ui-text-highlighted);
 }
@@ -227,7 +225,7 @@ textarea {
 
 .system-modal-title {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--library-text);
 }
 
@@ -267,11 +265,10 @@ textarea {
   display: grid;
   grid-template-columns: minmax(0, 1.18fr) minmax(320px, 0.82fr);
   gap: 18px;
-  border-radius: 28px;
+  border-radius: 16px;
   padding: 24px;
   border: 1px solid var(--library-border);
   background: var(--library-card);
-  box-shadow: var(--library-shadow-soft);
 }
 
 .hero-copy,
@@ -283,8 +280,8 @@ textarea {
 
 .section-kicker {
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.22em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   color: var(--library-accent);
   text-transform: uppercase;
 }
@@ -293,7 +290,7 @@ textarea {
 .section-title {
   margin-top: 10px;
   font-size: clamp(20px, 1.9vw, 26px);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -335,7 +332,7 @@ textarea {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 16px 18px;
   border: 1px solid var(--library-border);
   background: var(--library-card-muted);
@@ -343,7 +340,7 @@ textarea {
 
 .summary-label {
   font-size: 11px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   color: var(--library-text-muted);
   text-transform: uppercase;
 }
@@ -351,7 +348,7 @@ textarea {
 .summary-value {
   margin-top: 8px;
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--library-text);
 }
 
@@ -388,9 +385,8 @@ textarea {
 .catalog-card,
 .empty-card {
   border: 1px solid var(--library-border);
-  border-radius: 26px;
+  border-radius: 16px;
   background: var(--library-card);
-  box-shadow: var(--library-shadow-soft);
 }
 
 .featured-book-body {
@@ -403,7 +399,7 @@ textarea {
 .featured-cover {
   min-height: 320px;
   overflow: hidden;
-  border-radius: 26px 0 0 26px;
+  border-radius: 16px 0 0 16px;
   background: var(--library-card-muted);
 }
 
@@ -430,7 +426,7 @@ textarea {
 
 .featured-title {
   font-size: clamp(20px, 2.1vw, 24px);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.16;
 }
 
@@ -467,9 +463,8 @@ textarea {
   justify-content: center;
   padding: 22px;
   border: 1px solid var(--library-border);
-  border-radius: 26px;
+  border-radius: 16px;
   background: var(--library-card);
-  box-shadow: var(--library-shadow-soft);
 }
 
 .recommendation-card {
@@ -486,7 +481,7 @@ textarea {
   width: 72px;
   height: 100px;
   flex-shrink: 0;
-  border-radius: 18px;
+  border-radius: 12px;
 }
 
 .catalog-grid {
@@ -516,7 +511,7 @@ textarea {
   width: 96px;
   height: 132px;
   flex-shrink: 0;
-  border-radius: 20px;
+  border-radius: 12px;
 }
 
 .catalog-footer {
@@ -548,7 +543,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-radius: 18px;
+  border-radius: 12px;
   padding: 12px 14px;
   border: 1px solid var(--library-border);
   background: color-mix(in srgb, var(--library-card) 82%, var(--library-surface-muted));
@@ -563,9 +558,6 @@ textarea {
   color: var(--library-accent);
   border: 1px solid color-mix(in srgb, var(--library-accent) 18%, var(--library-border));
   background: color-mix(in srgb, var(--library-card) 58%, transparent) !important;
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 16px 30px color-mix(in srgb, var(--library-accent) 16%, transparent);
 }
 
 .ai-floating:hover,
@@ -591,15 +583,15 @@ textarea {
 
 .me-page-kicker {
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.22em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   color: var(--library-accent);
 }
 
 .me-page-title {
   margin-top: 4px;
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .me-page-actions {
@@ -626,7 +618,7 @@ textarea {
 
   .featured-cover {
     min-height: 260px;
-    border-radius: 26px 26px 0 0;
+    border-radius: 16px 16px 0 0;
   }
 }
 

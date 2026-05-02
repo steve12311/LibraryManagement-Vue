@@ -11,9 +11,6 @@ const PublicBookApi = {
             url: `${PUBLIC_BOOK_BASE_URL}/page`,
             method: "get",
             params: queryParams,
-            headers: {
-                Authorization: "no-auth",
-            },
         });
     },
 };

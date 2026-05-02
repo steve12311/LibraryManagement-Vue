@@ -36,13 +36,13 @@ function updateDataScope(value: string | number | undefined) {
   <UModal
       :open="open"
       :title="title"
-      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
+      :ui="{ content: 'sm:max-w-2xl rounded-2xl border border-default bg-default shadow' }"
       @update:open="emit('update:open', $event)"
   >
     <template #body>
       <div class="system-modal-copy">
         <p class="system-modal-title">角色资料</p>
-        <p class="system-modal-description">维护角色名称、权限字符、排序和数据权限范围。</p>
+        <p class="system-modal-description">角色名称、权限字符与数据范围</p>
       </div>
       <UForm class="mt-5 space-y-4">
         <UFieldGroup class="w-full gap-2">

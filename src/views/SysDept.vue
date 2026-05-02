@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {h, onMounted, ref, resolveComponent, useTemplateRef} from "vue";
 import type {TableColumn} from "@nuxt/ui";
-import moment from "moment";
+import { formatDateTime } from "@/utils/date-format";
 import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
 import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
 
@@ -67,7 +67,7 @@ const columns = ref<TableColumn<DeptTableRow>[]>([
   {
     accessorKey: "createTime",
     header: "创建时间",
-    cell: ({row}) => moment(row.original.createTime).format("YYYY-MM-DD HH:mm:ss"),
+    cell: ({row}) => formatDateTime(row.original.createTime),
   },
   {
     id: "action",
@@ -105,9 +105,9 @@ async function getDepList() {
   <div class="system-page-shell">
     <div class="system-page-shell__header">
       <SystemPageHeader
-          kicker="DEPARTMENT TREE"
+          kicker="DEPARTMENT"
           title="部门管理"
-          description="查看部门层级、负责人和联系方式，统一维护组织结构。"
+          description="部门层级、负责人与组织架构"
           :stats="[
             { label: '顶层部门', value: dataList.length },
             { label: '列数', value: columns.length },
@@ -123,7 +123,7 @@ async function getDepList() {
     </div>
     <div class="system-page-shell__main">
       <div class="system-table-card">
-      <UTable ref="table" :column-visibility="columnVisibility" :get-sub-rows="(row) => row.children" :columns="columns"
+      <UTable ref="table" :column-visibility="columnVisibility" :get-sub-rows="(row: DeptTableRow) => row.children" :columns="columns"
               :data="dataList" class="h-full" :ui="{
         base: 'border-separate border-spacing-0',
         tbody: '[&>tr]:last:[&>td]:border-b-0',

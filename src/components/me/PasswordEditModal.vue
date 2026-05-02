@@ -49,12 +49,12 @@ const confirmPasswordModel = computed({
   <UModal
       v-model:open="openModel"
       title="修改密码"
-      :ui="{ content: 'sm:max-w-xl rounded-[28px] border border-default bg-default shadow-lg' }"
+      :ui="{ content: 'sm:max-w-xl rounded-2xl border border-default bg-default shadow' }"
   >
     <template #body>
       <div class="modal-copy">
         <p class="modal-title">账号安全</p>
-        <p class="modal-description">通过弹窗完成密码更新，保存后立即对当前账号生效。</p>
+        <p class="modal-description">更新后立即生效</p>
       </div>
       <UForm :schema="schema" :state="state" class="mt-5 space-y-4" @submit.prevent="emit('submit')">
         <UFormField label="当前密码" name="oldPassword" required>

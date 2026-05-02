@@ -6,7 +6,7 @@
   <UPageCard
       class="w-full h-full"
       title="错误"
-      description="页面不见啦！检查路径是否正确，或页面已被删除～"
+      description="页面未找到，请检查路径"
       icon="i-simple-icons-tailwindcss"
       orientation="horizontal"
       spotlight

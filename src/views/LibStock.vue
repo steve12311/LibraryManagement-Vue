@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import {h, onMounted, ref, resolveComponent, shallowRef, useTemplateRef} from "vue";
 import type {SelectItem, TableColumn, TableRow} from "@nuxt/ui";
-import moment from "moment";
+import { formatDateTime } from "@/utils/date-format";
 import type {StockPageVO} from "@/api/library/stock-api.ts";
 import type {BookForm} from "@/api/library/book-api.ts";
 import {CalendarDate} from "@internationalized/date";
-import StockOutDialog from "@/components/lib-stock/StockOutDialog.vue";
-import EditBookDialog from "@/components/lib-stock/EditBookDialog.vue";
-import StockDetailDialog from "@/components/lib-stock/StockDetailDialog.vue";
-import StockEntryDialog from "@/components/lib-stock/StockEntryDialog.vue";
+import StockOutDialog from "@/components/library/stock/StockOutDialog.vue";
+import EditBookDialog from "@/components/library/stock/EditBookDialog.vue";
+import StockDetailDialog from "@/components/library/stock/StockDetailDialog.vue";
+import StockEntryDialog from "@/components/library/stock/StockEntryDialog.vue";
 import {useStockQuery} from "@/composables/library/stock/useStockQuery";
 import {useStockOptions} from "@/composables/library/stock/useStockOptions";
 import {useStockOut} from "@/composables/library/stock/useStockOut";
@@ -116,7 +116,7 @@ const columns = ref<TableColumn<StockPageVO>[]>([
     id: "createTime",
     accessorKey: "createTime",
     header: "入库日期",
-    cell: ({row}) => moment(row.original.createTime).format("YYYY-MM-DD HH:mm:ss"),
+    cell: ({row}) => formatDateTime(row.original.createTime),
   },
   {
     id: "active",
@@ -221,9 +221,9 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
   <div class="system-page-shell">
     <div class="system-page-shell__header">
       <SystemPageHeader
-          kicker="BOOK INVENTORY"
+          kicker="INVENTORY"
           title="图书库存"
-          description="查看馆藏库存、维护图书信息，并在当前页完成入库与出库操作。"
+          description="馆藏查看、入库与出库"
           :stats="[
             { label: '库存记录', value: total },
             { label: '当前页', value: queryParams.pageNum },
@@ -279,7 +279,7 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
     </div>
     <div class="system-page-shell__footer">
       <div class="system-page-footer">
-        <p class="system-page-summary">当前共 {{ total }} 条库存记录</p>
+        <p class="system-page-summary">共 {{ total }} 条记录</p>
         <UPagination v-model:page="queryParams.pageNum" :total="total"
                      :items-per-page="queryParams.pageSize" @update:page="fetchData"
         />

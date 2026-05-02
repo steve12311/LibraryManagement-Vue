@@ -41,7 +41,7 @@ export function useUserQuery() {
             pageData.value = data.list ?? [];
             total.value = data.total ?? 0;
         } catch {
-            toast.add({title: "错误", description: "用户数据加载失败", color: "error"});
+            toast.add({title: "错误", description: "数据加载失败", color: "error"});
         } finally {
             loadingPageData.value = false;
         }

@@ -30,7 +30,7 @@ function updateRoleIds(value: Array<string | number> | undefined) {
   <UModal
       :open="open"
       :title="`分配角色${username ? ` - ${username}` : ''}`"
-      :ui="{ content: 'sm:max-w-xl rounded-[28px] border border-default bg-default shadow-lg' }"
+      :ui="{ content: 'sm:max-w-xl rounded-2xl border border-default bg-default shadow' }"
       @update:open="emit('update:open', $event)"
   >
     <template #body>

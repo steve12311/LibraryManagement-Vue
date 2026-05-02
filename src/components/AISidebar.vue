@@ -92,7 +92,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
   <USlideover
       v-model:open="open"
       title="智慧咨询"
-      description="结合首页检索继续提问，获得阅读建议与借阅辅助"
+      description="检索后继续提问，获得阅读建议"
       :ui="{
       overlay: 'bg-black/35 backdrop-blur-[2px]',
       content: 'sm:max-w-xl border-l border-default bg-default',
@@ -112,9 +112,9 @@ async function copy(_: MouseEvent, message: UIMessage) {
           <UIcon name="i-lucide-sparkles" class="h-4 w-4"/>
           AI 阅读助手
         </p>
-        <h3 class="mt-4 text-lg font-semibold text-highlighted">欢迎使用智慧咨询</h3>
+        <h3 class="mt-4 text-lg font-semibold text-highlighted">AI 阅读助手</h3>
         <p class="mt-2 text-sm leading-6 text-toned">
-          你可以直接提问图书推荐、学习路线或阅读计划，助手会结合图书馆场景给出可执行建议。
+          提问图书推荐、学习路线或阅读计划
         </p>
         <div class="mt-4 flex flex-wrap gap-2">
           <UButton
@@ -213,7 +213,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
         <UChatPrompt
             v-model="inputMessage"
             variant="subtle"
-            placeholder="输入你的问题，例如：推荐三本数据结构入门书"
+            placeholder="输入问题，如：推荐三本数据结构入门书"
             :disabled="chat.status.value === 'streaming'"
             :ui="{
                 root: 'rounded-2xl border border-default bg-default px-3 py-2 shadow-sm backdrop-blur',
@@ -224,7 +224,7 @@ async function copy(_: MouseEvent, message: UIMessage) {
             @submit="sendMessage"
         >
           <template #footer>
-            <span class="text-xs text-muted">Enter 发送，Shift + Enter 换行</span>
+            <span class="text-xs text-muted">Enter 发送 / Shift+Enter 换行</span>
             <UChatPromptSubmit
                 @reload="chat.reload()"
                 @stop="chat.stop()"

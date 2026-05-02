@@ -108,11 +108,11 @@ export function useUserSubmit(options: UseUserSubmitOptions) {
     try {
       options.submittingAssignRole.value = true
       await UserAPI.update(options.assignRoleUserId.value, payload)
-      toast.add({title: "成功", description: "分配角色成功", color: "success"})
+      toast.add({title: "成功", description: "角色分配成功", color: "success"})
       options.openAssignRoleModal.value = false
       await options.fetchData()
     } catch {
-      toast.add({title: "错误", description: "分配角色失败", color: "error"})
+      toast.add({title: "错误", description: "角色分配失败", color: "error"})
     } finally {
       options.submittingAssignRole.value = false
     }

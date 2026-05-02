@@ -57,14 +57,14 @@ function getMenuOptionTag(node: RoleMenuOption) {
   <UModal
       :open="open"
       :title="`分配菜单${roleName ? ` - ${roleName}` : ''}`"
-      :ui="{ content: 'sm:max-w-3xl rounded-[28px] border border-default bg-default shadow-lg' }"
+      :ui="{ content: 'sm:max-w-3xl rounded-2xl border border-default bg-default shadow' }"
       @update:open="emit('update:open', $event)"
   >
     <template #body>
       <div class="space-y-4">
         <div class="system-modal-copy">
           <p class="system-modal-title">分配菜单</p>
-          <p class="system-modal-description">勾选后保存，即可更新当前角色的菜单与按钮权限。</p>
+          <p class="system-modal-description">勾选并保存以更新菜单权限</p>
         </div>
         <div class="max-h-[420px] overflow-auto rounded-lg border border-default p-3">
           <ElTree

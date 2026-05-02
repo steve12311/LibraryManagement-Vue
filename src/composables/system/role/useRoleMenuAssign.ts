@@ -118,7 +118,7 @@ export function useRoleMenuAssign(options: UseRoleMenuAssignOptions) {
       assignedMenuIds.value = normalizeMenuIds(menuIds ?? [])
       options.openAssignMenuModal.value = true
     } catch {
-      toast.add({title: "错误", description: "加载角色菜单权限失败", color: "error"})
+      toast.add({title: "错误", description: "数据加载失败", color: "error"})
     } finally {
       options.loadingAssignMenus.value = false
       options.assigningMenuRoleId.value = ""
@@ -135,10 +135,10 @@ export function useRoleMenuAssign(options: UseRoleMenuAssignOptions) {
     try {
       options.submittingAssignMenus.value = true
       await RoleAPI.assignMenusToRole(Number(assignMenuRoleId.value), normalizeMenuIds(menuIds))
-      toast.add({title: "成功", description: "分配菜单权限成功", color: "success"})
+      toast.add({title: "成功", description: "菜单分配成功", color: "success"})
       options.openAssignMenuModal.value = false
     } catch {
-      toast.add({title: "错误", description: "分配菜单权限失败", color: "error"})
+      toast.add({title: "错误", description: "菜单分配失败", color: "error"})
     } finally {
       options.submittingAssignMenus.value = false
     }

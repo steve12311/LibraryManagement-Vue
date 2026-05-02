@@ -98,5 +98,6 @@ src/
 
 - `docs/前端代码规范标准.md` — 命名、类型、组件、API、样式等完整规范
 - `docs/CodeReview-Checklist.md` — Code Review 检查清单
+- `docs/代码审查报告-2026-05-02.md` — 当前代码合理性、模块化、耦合、过度设计与死代码审查
 - `docs/代码审查报告-2026-03-07.md` — 历史审查记录
 - `CLAUDE.md` — AI 编码助手上下文指引

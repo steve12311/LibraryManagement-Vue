@@ -12,14 +12,14 @@ const userStore = useUserStore();
 
 const items = ref<BreadcrumbItem[]>([]);
 const navigationUi = {
-  link: "rounded-2xl px-4 py-3 text-sm",
+  link: "rounded-lg px-4 py-3 text-sm",
   linkLeadingIcon: "size-5",
-  linkLabel: "font-semibold tracking-tight",
+  linkLabel: "font-medium tracking-tight",
   childList: "mt-2 space-y-1 border-l border-[var(--library-border)] pl-4",
-  childLink: "rounded-xl px-3 py-2 text-sm",
+  childLink: "rounded-md px-3 py-2 text-sm",
   childLinkIcon: "size-4",
   childLinkLabel: "font-medium",
-  label: "px-4 py-2 text-xs font-bold tracking-[0.18em] text-[var(--library-text-muted)] uppercase"
+  label: "px-4 py-2 text-xs font-semibold tracking-[0.12em] text-[var(--library-text-muted)] uppercase"
 };
 const dropItems = ref<DropdownMenuItem[][]>([
   [
@@ -45,13 +45,17 @@ const dropItems = ref<DropdownMenuItem[][]>([
   ]
 ]);
 
-watchEffect(() => {
-  items.value = router.currentRoute.value.matched
-      .filter(route => route.meta?.title && route.meta.title !== "")
-      .map(route => ({
-        label: route.meta.title as string,
-        to: route.path
+function buildBreadcrumbs(route: { matched: { meta?: Record<string, unknown>; path: string }[] }): BreadcrumbItem[] {
+  return route.matched
+      .filter(r => r.meta?.title && r.meta.title !== "")
+      .map(r => ({
+        label: r.meta!.title as string,
+        to: r.path
       }));
+}
+
+watchEffect(() => {
+  items.value = buildBreadcrumbs(router.currentRoute.value);
 });
 </script>
 
@@ -65,7 +69,7 @@ watchEffect(() => {
           :min-size="12"
           :max-size="22"
           :ui="{
-            root: 'border-r border-default bg-default/80 backdrop-blur-xl',
+            root: 'border-r border-default bg-default',
             header: 'px-4 pt-5 pb-4',
             body: 'px-3 py-2',
             footer: 'px-3 pb-4 pt-4 border-t-0'
@@ -94,7 +98,7 @@ watchEffect(() => {
       <div class="main-stage">
         <UDashboardNavbar
             :ui="{
-              root: 'sticky top-0 z-10 border-b border-default/70 bg-default/75 px-4 py-3 shadow-sm supports-[backdrop-filter]:bg-default/60 supports-[backdrop-filter]:backdrop-blur-xl',
+              root: 'sticky top-0 z-10 border-b border-default/70 bg-default px-4 py-3',
               left: 'gap-3 min-w-0',
               right: 'gap-3'
             }"
@@ -105,7 +109,7 @@ watchEffect(() => {
                 <span class="mx-2 text-(--library-text-muted)">/</span>
               </template>
             </UBreadcrumb>
-            <UDashboardSidebarCollapse class="rounded-full border border-default/70 bg-default/70 shadow-sm supports-[backdrop-filter]:bg-default/55 supports-[backdrop-filter]:backdrop-blur" />
+            <UDashboardSidebarCollapse class="rounded-full border border-default/70 bg-default/70" />
           </template>
 
           <template #right>
@@ -139,9 +143,7 @@ watchEffect(() => {
 <style scoped>
 .home-shell {
   height: 100vh;
-  background:
-      radial-gradient(circle at top right, color-mix(in srgb, var(--library-accent) 10%, transparent), transparent 24%),
-      linear-gradient(180deg, var(--library-surface) 0%, var(--library-surface-muted) 100%);
+  background: var(--library-surface);
 }
 
 .admin-layout {
@@ -177,7 +179,6 @@ watchEffect(() => {
   padding-inline: 10px;
   border: 1px solid color-mix(in srgb, var(--library-border) 82%, transparent);
   background: color-mix(in srgb, var(--library-card) 68%, transparent);
-  backdrop-filter: blur(14px);
 }
 
 .content-stage {

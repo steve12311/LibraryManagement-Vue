@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, h, onMounted, ref, resolveComponent, useTemplateRef, watch} from "vue";
 import type {TableColumn} from "@nuxt/ui";
-import moment from "moment";
+import { formatDateTime } from "@/utils/date-format";
 import type {UserPageVO} from "@/api/system/user-api.ts"
 import {UserGenderTypeEnum, StatusTypeEnum} from "@/enums/system/status-enum.ts";
 import {useUserActions} from "@/composables/system/user/useUserActions";
@@ -254,7 +254,7 @@ const columns = ref<TableColumn<UserPageVO>[]>([
   {
     accessorKey: "createTime",
     header: "创建时间",
-    cell: ({row}) => moment(row.original.createTime).format("YYYY-MM-DD HH:mm:ss"),
+    cell: ({row}) => formatDateTime(row.original.createTime),
   },
   {
     id: "action",
@@ -426,9 +426,9 @@ function updateImportResultModal(open: boolean) {
   <div class="system-page-shell">
     <div class="system-page-shell__header">
       <SystemPageHeader
-          kicker="USER MANAGEMENT"
+          kicker="USER"
           title="用户管理"
-          description="统一维护账号资料、角色分配与启停状态。"
+          description="账号资料、角色分配与启停管理"
           :stats="[
             { label: '总用户', value: total },
             { label: '当前页', value: queryParams.pageNum },
@@ -515,7 +515,7 @@ function updateImportResultModal(open: boolean) {
     </div>
     <div class="system-page-shell__footer">
       <div class="system-page-footer">
-        <p class="system-page-summary">当前共 {{ total }} 条用户记录</p>
+        <p class="system-page-summary">共 {{ total }} 条记录</p>
         <UPagination v-model:page="queryParams.pageNum" :total="total"
                      :items-per-page="queryParams.pageSize" @update:page="fetchData"/>
       </div>

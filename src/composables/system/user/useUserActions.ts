@@ -134,7 +134,7 @@ export function useUserActions(options: UseUserActionsOptions) {
       toast.add({title: "成功", description: "状态已更新", color: "success"})
       await options.fetchData()
     } catch {
-      toast.add({title: "错误", description: "状态更新失败", color: "error"})
+      toast.add({title: "错误", description: "更新失败", color: "error"})
     } finally {
       options.togglingStatusUserId.value = ""
     }

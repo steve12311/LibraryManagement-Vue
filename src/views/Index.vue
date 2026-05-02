@@ -26,9 +26,9 @@ const queryParams = reactive<PublicBookQuery>({
 });
 const imageCache = new Map<string, string>();
 const aiHighlights = [
-  {icon: "i-lucide-book-open-check", text: "根据书名与主题继续追问阅读建议"},
-  {icon: "i-lucide-list-filter", text: "帮助理解借阅状态与馆藏可用情况"},
-  {icon: "i-lucide-messages-square", text: "在首页直接发起咨询，不需要切换页面"}
+  {icon: "i-lucide-book-open-check", text: "按书名继续追问"},
+  {icon: "i-lucide-list-filter", text: "借阅状态与馆藏可用性"},
+  {icon: "i-lucide-messages-square", text: "首页直接发起咨询"}
 ];
 
 const featuredBook = computed(() => books.value[0]);
@@ -120,7 +120,7 @@ async function fetchBooks() {
     console.error(error);
     books.value = [];
     total.value = 0;
-    toast.add({title: "错误", description: "图书数据加载失败", color: "error"});
+    toast.add({title: "错误", description: "数据加载失败", color: "error"});
   } finally {
     if (currentFetchSerial === fetchSerial.value) {
       loading.value = false;
@@ -169,9 +169,9 @@ function getAvailabilityColor(book: HomeBookCard) {
         <section class="portal-hero">
           <div class="hero-copy">
             <p class="section-kicker">PUBLIC LIBRARY PORTAL</p>
-            <h1 class="hero-title">面向读者的公开馆藏入口</h1>
+            <h1 class="hero-title">馆藏检索</h1>
             <p class="hero-description">
-              通过书名快速检索公开馆藏，查看可借状态、基础书目信息，并在需要时调用智慧咨询继续追问。
+              按书名检索公开馆藏，查看可借状态与书目信息
             </p>
 
             <form class="hero-search" @submit.prevent="handleSearch">
@@ -180,7 +180,7 @@ function getAvailabilityColor(book: HomeBookCard) {
                   icon="i-lucide-search"
                   size="xl"
                   class="w-full"
-                  placeholder="输入书名，例如：活着、三体、数据结构"
+                  placeholder="输入书名搜索"
               />
               <div class="hero-search-actions">
                 <UButton type="submit" size="xl" icon="i-lucide-search" :loading="loading">
@@ -234,7 +234,7 @@ function getAvailabilityColor(book: HomeBookCard) {
           <section class="section-stack">
             <div class="section-heading">
               <p class="section-kicker">馆藏推荐</p>
-              <h2 class="section-title">优先浏览当前页的重点图书</h2>
+              <h2 class="section-title">当前页重点图书</h2>
             </div>
 
             <div class="featured-grid" :class="{ 'single-column': recommendationBooks.length === 0 }">
@@ -276,7 +276,7 @@ function getAvailabilityColor(book: HomeBookCard) {
                     </div>
 
                     <div class="featured-footnote">
-                      公开门户仅展示书目信息与当前可借状态，借阅办理请通过馆内业务流程完成。
+                      仅展示书目信息与可借状态
                     </div>
                   </div>
                 </div>
@@ -318,8 +318,8 @@ function getAvailabilityColor(book: HomeBookCard) {
                 </UCard>
               </div>
               <UCard v-else class="recommendation-empty">
-                <p class="text-base font-semibold text-[var(--library-text)]">当前页仅展示一本重点图书</p>
-                <p class="mt-2 text-sm text-[var(--library-text-muted)]">继续翻页或重新搜索，可查看更多公开馆藏。</p>
+                <p class="text-base font-semibold text-[var(--library-text)]">当前页仅一本图书</p>
+                <p class="mt-2 text-sm text-[var(--library-text-muted)]">翻页或搜索查看其他馆藏</p>
               </UCard>
             </div>
           </section>
@@ -380,7 +380,7 @@ function getAvailabilityColor(book: HomeBookCard) {
           <UCard class="empty-card">
             <p class="text-base font-semibold text-[var(--library-text)]">没有找到相关图书</p>
             <p class="mt-2 text-sm text-[var(--library-text-muted)]">
-              可以换一个更短或更准确的书名再次搜索。
+              换一个书名再次搜索
             </p>
           </UCard>
         </section>
@@ -388,9 +388,9 @@ function getAvailabilityColor(book: HomeBookCard) {
         <section class="consulting-section">
           <div class="consulting-copy">
             <p class="section-kicker">智慧咨询</p>
-            <h2 class="section-title">检索到图书之后，继续向助手提问</h2>
+            <h2 class="section-title">检索后继续向助手提问</h2>
             <p class="consulting-description">
-              可继续追问选书建议、阅读路线、主题延展和借阅说明，帮助读者从检索进入理解与决策。
+              选书建议、阅读路线与借阅咨询
             </p>
           </div>
 

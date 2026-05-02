@@ -156,9 +156,9 @@ function getSubRows(row: CategoryVO) {
   <div class="system-page-shell">
     <div class="system-page-shell__header">
       <SystemPageHeader
-          kicker="CATEGORY MANAGEMENT"
+          kicker="CATEGORY"
           title="图书分类"
-          description="维护分类树结构、分类代码和启停状态，保持馆藏目录整洁一致。"
+          description="分类树维护与启停管理"
           :stats="[
             { label: '分类节点', value: categoryList.length },
             { label: '状态筛选', value: searchForm.status === -1 ? '全部' : searchForm.status === 1 ? '启用' : '停用' },

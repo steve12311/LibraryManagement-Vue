@@ -479,9 +479,9 @@ watch(tabActiveIndex, (value) => {
   <div class="system-page-shell">
     <div class="system-page-shell__header">
       <SystemPageHeader
-          kicker="MENU GOVERNANCE"
+          kicker="MENU"
           title="菜单管理"
-          description="统一维护目录、菜单、按钮权限及其路由配置。"
+          description="目录、菜单与按钮权限配置"
           :stats="[
             { label: '顶层节点', value: menuTableData.length },
             { label: '表格列数', value: columns.length },
@@ -513,7 +513,7 @@ watch(tabActiveIndex, (value) => {
     </div>
     <div class="system-page-shell__main">
       <div class="system-table-card">
-      <UTable ref="table" :data="menuTableData" :get-sub-rows="(row)=>row.children"
+      <UTable ref="table" :data="menuTableData" :get-sub-rows="(row: MenuVO)=>row.children"
               :column-visibility="columnVisibility" :columns="columns"
               class="h-full"
               :loading="loadingMenuList"
@@ -532,7 +532,7 @@ watch(tabActiveIndex, (value) => {
     </div>
     <div class="system-page-shell__footer">
       <div class="system-page-footer">
-        <p class="system-page-summary">当前展示 {{ menuTableData.length }} 个顶层菜单节点</p>
+        <p class="system-page-summary">{{ menuTableData.length }} 个顶层菜单</p>
       </div>
     </div>
   </div>

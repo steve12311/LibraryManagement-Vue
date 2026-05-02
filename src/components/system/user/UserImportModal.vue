@@ -34,13 +34,13 @@ function updateFileModel(value: File | File[] | null | undefined) {
   <UModal
       :open="open"
       title="导入用户"
-      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
+      :ui="{ content: 'sm:max-w-2xl rounded-2xl border border-default bg-default shadow' }"
       @update:open="emit('update:open', $event)"
   >
     <template #body>
       <div class="system-modal-copy">
         <p class="system-modal-title">批量导入</p>
-        <p class="system-modal-description">请先下载最新模板，按角色名称填写后再上传 Excel 文件。</p>
+        <p class="system-modal-description">下载模板填写后上传</p>
       </div>
 
       <div class="mt-5 space-y-4">

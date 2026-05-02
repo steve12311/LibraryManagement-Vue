@@ -41,21 +41,21 @@ const collectionMetrics = computed(() => [
   {
     title: "图书总数",
     value: overview.value.bookTotal,
-    description: "已建档图书品种总量",
+    description: "已建档品种",
     icon: "i-lucide-book-copy",
     tone: "sky" as const,
   },
   {
     title: "库存总量",
     value: overview.value.stockTotal,
-    description: "全部在库副本总量",
+    description: "在库副本",
     icon: "i-lucide-library-big",
     tone: "violet" as const,
   },
   {
     title: "可借库存",
     value: overview.value.availableStockTotal,
-    description: "当前可流通馆藏数量",
+    description: "可流通馆藏",
     icon: "i-lucide-circle-check-big",
     tone: "emerald" as const,
   },
@@ -65,28 +65,28 @@ const circulationMetrics = computed(() => [
   {
     title: "借阅中",
     value: overview.value.borrowingTotal,
-    description: "当前仍在借阅流程中的副本",
+    description: "借阅中副本",
     icon: "i-lucide-book-up-2",
     tone: "sky" as const,
   },
   {
     title: "已归还",
     value: overview.value.returnedTotal,
-    description: "累计完成归还的记录量",
+    description: "累计归还",
     icon: "i-lucide-book-check",
     tone: "violet" as const,
   },
   {
     title: "已逾期",
     value: overview.value.overdueTotal,
-    description: "需要重点催还的记录量",
+    description: "待催还",
     icon: "i-lucide-triangle-alert",
     tone: "amber" as const,
   },
   {
     title: "启用用户",
     value: overview.value.enabledUserTotal,
-    description: "当前可正常登录与借阅的用户",
+    description: "正常可登录",
     icon: "i-lucide-users",
     tone: "emerald" as const,
   },
@@ -96,28 +96,28 @@ const securityMetrics = computed(() => [
   {
     title: "今日登录成功",
     value: overview.value.todayLoginSuccessCount,
-    description: "认证成功次数",
+    description: "成功",
     icon: "i-lucide-log-in",
     tone: "sky" as const,
   },
   {
     title: "今日登录失败",
     value: overview.value.todayLoginFailureCount,
-    description: "需关注的异常认证次数",
+    description: "失败",
     icon: "i-lucide-shield-alert",
     tone: "rose" as const,
   },
   {
     title: "今日操作成功",
     value: overview.value.todayOperSuccessCount,
-    description: "后台写操作成功次数",
+    description: "成功",
     icon: "i-lucide-badge-check",
     tone: "emerald" as const,
   },
   {
     title: "今日操作失败",
     value: overview.value.todayOperFailureCount,
-    description: "后台写操作失败次数",
+    description: "失败",
     icon: "i-lucide-badge-x",
     tone: "rose" as const,
   },
@@ -164,7 +164,7 @@ const securityMetrics = computed(() => [
           <div>
             <p class="section-kicker">异常摘要</p>
             <h2 class="section-title">今日需重点关注</h2>
-            <p class="section-description">快速扫描认证风险、逾期压力与后台写操作负载。</p>
+            <p class="section-description">认证风险、逾期与后台操作概览</p>
           </div>
           <UIcon name="i-lucide-scan-eye" class="h-5 w-5 text-muted" />
         </div>
@@ -197,7 +197,7 @@ const securityMetrics = computed(() => [
         <div>
           <p class="section-kicker">关键指标</p>
           <h2 class="section-title">关键指标总览</h2>
-          <p class="section-description">按馆藏、流通和安全三组查看当前运行状态。</p>
+          <p class="section-description">馆藏、流通与安全三组指标</p>
         </div>
         <p v-if="blockErrors.overview" class="text-sm text-error">{{ blockErrors.overview }}</p>
       </div>
@@ -261,7 +261,7 @@ const securityMetrics = computed(() => [
           <div>
             <p class="section-kicker">趋势分析</p>
             <h2 class="section-title">趋势分析</h2>
-            <p class="section-description">按固定时间窗口查看业务与安全走势。</p>
+            <p class="section-description">业务与安全趋势</p>
           </div>
           <div class="flex flex-wrap gap-2">
             <UButton
@@ -281,7 +281,7 @@ const securityMetrics = computed(() => [
         <div class="grid gap-4 xl:grid-cols-2">
           <DashboardTrendCard
             title="借阅流通趋势"
-            subtitle="重点观察借阅中、已归还、逾期三类业务走势。"
+            subtitle="借阅中、归还、逾期走势"
             :categories="trendCategories"
             :series="businessTrendSeries"
             :loading="loadingTrend"
@@ -289,7 +289,7 @@ const securityMetrics = computed(() => [
           />
           <DashboardTrendCard
             title="安全与操作趋势"
-            subtitle="同步查看登录与后台写操作的成功/失败波动。"
+            subtitle="登录与写操作波动"
             :categories="trendCategories"
             :series="securityTrendSeries"
             :loading="loadingTrend"
@@ -303,7 +303,7 @@ const securityMetrics = computed(() => [
           <div>
             <p class="section-kicker">排行观察</p>
             <h2 class="section-title">排行观察</h2>
-            <p class="section-description">按固定统计口径查看重点排行结果。</p>
+            <p class="section-description">排行概览</p>
           </div>
         </div>
         <p v-if="blockErrors.ranking" class="text-sm text-error">{{ blockErrors.ranking }}</p>
@@ -346,7 +346,7 @@ const securityMetrics = computed(() => [
         <div>
           <p class="section-kicker">最近记录</p>
           <h2 class="section-title">最近记录</h2>
-          <p class="section-description">三类记录同时可见，翻页互不影响。</p>
+          <p class="section-description">三类记录同时可见</p>
         </div>
         <p v-if="blockErrors.recentEvents" class="text-sm text-error">
           {{ blockErrors.recentEvents }}
@@ -356,7 +356,7 @@ const securityMetrics = computed(() => [
       <div class="grid gap-4 xl:grid-cols-3">
         <DashboardRecentEventCard
           title="最近借阅"
-          subtitle="优先关注借阅中与逾期记录"
+          subtitle="借阅中与逾期"
           kind="borrow"
           :loading="loadingRecentEvents"
           :items="recentEvents.borrows.list"
@@ -368,7 +368,7 @@ const securityMetrics = computed(() => [
         />
         <DashboardRecentEventCard
           title="最近操作日志"
-          subtitle="聚焦后台关键写操作结果"
+          subtitle="后台写操作"
           kind="oper"
           :loading="loadingRecentEvents"
           :items="recentEvents.operLogs.list"
@@ -380,7 +380,7 @@ const securityMetrics = computed(() => [
         />
         <DashboardRecentEventCard
           title="最近认证失败"
-          subtitle="用于快速观察异常登录来源"
+          subtitle="登录异常来源"
           kind="auth"
           :loading="loadingRecentEvents"
           :items="recentEvents.authFailures.list"

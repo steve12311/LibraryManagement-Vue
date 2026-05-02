@@ -84,7 +84,7 @@ export function useMenuDialog(formData: Ref<MenuForm>, tabActiveIndex: Ref<strin
         dialog.value.visible = true;
       }
     } catch {
-      toast.add({title: "错误", description: "菜单信息加载失败", color: "error"});
+      toast.add({title: "错误", description: "数据加载失败", color: "error"});
     } finally {
       loadingMenuOptions.value = false;
     }

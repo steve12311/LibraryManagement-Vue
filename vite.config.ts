@@ -47,9 +47,6 @@ export default defineConfig(({mode}: ConfigEnv): UserConfig => {
                             return "element-plus";
                         }
 
-                        if (id.includes("/node_modules/moment/")) {
-                            return "moment";
-                        }
 
                         if (
                             id.includes("/node_modules/vue/")

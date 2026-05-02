@@ -1,408 +1,190 @@
 <script setup lang="ts">
-import {onMounted, onUnmounted, reactive, ref} from "vue";
-import * as v from "valibot";
-import {useRoute, useRouter} from "vue-router";
-import AuthAPI, {type LoginFormData} from "@/api/system/auth-api";
-import {useUserStore} from "@/store";
+import { onMounted, onUnmounted, reactive, ref } from "vue"
+import * as v from "valibot"
+import { useRoute, useRouter } from "vue-router"
+import AuthAPI, { type LoginFormData } from "@/api/system/auth-api"
+import { useUserStore } from "@/store"
 
-const brandHighlights = [
-  "统一管理馆藏、借阅与系统账号",
-  "支持公开检索、后台运营与数据分析",
-  "延续校园图书馆系统的克制与学院气质"
-];
+const brandTitle = import.meta.env.VITE_APP_BRAND_TITLE || "校园图书馆"
 
-const entrySteps = [
-  {
-    label: "账号登录",
-    text: "使用个人账号进入系统工作台"
-  },
-  {
-    label: "校验验证码",
-    text: "通过动态验证码保护登录入口"
-  },
-  {
-    label: "进入工作区",
-    text: "在统一界面处理图书与借阅业务"
-  }
-];
+onMounted(() => { startCaptchaAutoRefresh() })
+onUnmounted(() => { stopCaptchaAutoRefresh() })
 
-onMounted(() => {
-  startCaptchaAutoRefresh();
-});
-
-onUnmounted(() => {
-  stopCaptchaAutoRefresh();
-});
-
-let captchaTimer: ReturnType<typeof setInterval> | undefined;
-const CAPTCHA_REFRESH_INTERVAL = 120 * 1000;
-const userStore = useUserStore();
-const router = useRouter();
-const route = useRoute();
-const captchaLoading = ref(false);
-const loginLoading = ref(false);
+let captchaTimer: ReturnType<typeof setInterval> | undefined
+const CAPTCHA_REFRESH_INTERVAL = 120 * 1000
+const userStore = useUserStore()
+const router = useRouter()
+const route = useRoute()
+const captchaLoading = ref(false)
+const loginLoading = ref(false)
 const loginFormData = reactive<LoginFormData>({
   username: "",
   password: "",
   captchaKey: "",
   captchaCode: "",
-});
-const captchaBase64 = ref("");
+})
+const captchaBase64 = ref("")
 const schema = v.object({
   username: v.pipe(v.string(), v.minLength(4, "账号最低4个字符")),
   password: v.pipe(v.string(), v.minLength(6, "密码最低6个字符")),
   captchaCode: v.pipe(v.string(), v.minLength(4, "请输入合法的验证码")),
-});
+})
 
-/**
- * 解析登录后的跳转路径。从 URL query 中提取 redirect 参数，
- * 校验合法性（必须以 / 开头、不含协议头、长度 ≤ 2048），防止开放重定向攻击。
- */
 function getRedirectPath() {
-  const redirect = route.query.redirect;
-  if (typeof redirect !== "string" || redirect.trim() === "") {
-    return "/";
-  }
+  const redirect = route.query.redirect
+  if (typeof redirect !== "string" || redirect.trim() === "") return "/"
 
   const validateRedirectPath = (targetPath: string) => {
-    if (!targetPath.startsWith("/")) return false;
-    if (targetPath.startsWith("//")) return false;
-    return !targetPath.includes("://");
-  };
+    if (!targetPath.startsWith("/")) return false
+    if (targetPath.startsWith("//")) return false
+    return !targetPath.includes("://")
+  }
 
   try {
-    const decodedPath = decodeURIComponent(redirect).trim();
-    if (!decodedPath || decodedPath.length > 2048) {
-      return "/";
-    }
-    return validateRedirectPath(decodedPath) ? decodedPath : "/";
+    const decodedPath = decodeURIComponent(redirect).trim()
+    if (!decodedPath || decodedPath.length > 2048) return "/"
+    return validateRedirectPath(decodedPath) ? decodedPath : "/"
   } catch {
-    return "/";
+    return "/"
   }
 }
 
-/** 提交登录 → 调用 store.login → 跳转重定向路径。失败时刷新验证码。 */
 async function onSubmit() {
-  if (loginLoading.value) {
-    return;
-  }
-
+  if (loginLoading.value) return
   try {
-    loginLoading.value = true;
-    await userStore.login(loginFormData);
-    await router.push(getRedirectPath());
+    loginLoading.value = true
+    await userStore.login(loginFormData)
+    await router.push(getRedirectPath())
   } catch (err) {
-    await refreshCaptcha();
-    loginFormData.captchaCode = "";
-    console.error("登录失败:", err);
+    await refreshCaptcha()
+    loginFormData.captchaCode = ""
+    console.error("登录失败:", err)
   } finally {
-    loginLoading.value = false;
+    loginLoading.value = false
   }
 }
 
 function stopCaptchaAutoRefresh() {
-  if (captchaTimer) {
-    clearInterval(captchaTimer);
-    captchaTimer = undefined;
-  }
+  if (captchaTimer) { clearInterval(captchaTimer); captchaTimer = undefined }
 }
 
 function startCaptchaAutoRefresh() {
-  stopCaptchaAutoRefresh();
-  void refreshCaptcha();
-  captchaTimer = setInterval(() => {
-    void refreshCaptcha();
-  }, CAPTCHA_REFRESH_INTERVAL);
+  stopCaptchaAutoRefresh()
+  void refreshCaptcha()
+  captchaTimer = setInterval(() => { void refreshCaptcha() }, CAPTCHA_REFRESH_INTERVAL)
 }
 
 async function refreshCaptcha() {
-  if (captchaLoading.value) {
-    return;
-  }
-
-  captchaLoading.value = true;
+  if (captchaLoading.value) return
+  captchaLoading.value = true
   try {
-    const data = await AuthAPI.getCaptcha();
-    loginFormData.captchaKey = data.captchaKey;
-    captchaBase64.value = data.captchaBase64;
+    const data = await AuthAPI.getCaptcha()
+    loginFormData.captchaKey = data.captchaKey
+    captchaBase64.value = data.captchaBase64
   } finally {
-    captchaLoading.value = false;
+    captchaLoading.value = false
   }
 }
 </script>
 
 <template>
   <div class="login-page">
-    <div class="login-glow login-glow-primary" />
-    <div class="login-glow login-glow-secondary" />
+    <div class="login-card">
+      <div class="login-brand">
+        <p class="login-brand-kicker">CAMPUS LIBRARY SYSTEM</p>
+        <h1 class="login-brand-title">{{ brandTitle }}</h1>
+        <p class="login-brand-desc">馆藏检索、借阅服务与系统管理</p>
+      </div>
 
-    <div class="login-layout">
-      <section class="brand-panel">
-        <div class="brand-shell">
-          <div class="brand-copy">
-            <p class="brand-kicker">CAMPUS LIBRARY SYSTEM</p>
-            <h1 class="brand-title">校园图书馆知识归档与运营平台</h1>
-            <p class="brand-description">
-              面向馆员与系统管理员的统一工作台，集中处理馆藏流转、借阅服务、
-              用户管理与后台运营。
-            </p>
+      <div class="login-form-section">
+        <h2 class="login-form-title">用户登录</h2>
+
+        <UForm :schema="schema" :state="loginFormData" class="login-form-fields" @submit="onSubmit">
+          <UFormField label="账号" name="username" required>
+            <UInput v-model="loginFormData.username" class="w-full" size="xl" icon="i-lucide-user-round" placeholder="请输入账号"/>
+          </UFormField>
+
+          <UFormField label="密码" name="password" required>
+            <UInput v-model="loginFormData.password" class="w-full" size="xl" type="password" icon="i-lucide-lock-keyhole" placeholder="请输入密码"/>
+          </UFormField>
+
+          <UFormField label="验证码" name="captchaCode" required>
+            <div class="captcha-row">
+              <UInput v-model="loginFormData.captchaCode" class="w-full" size="xl" icon="i-lucide-shield-check" placeholder="请输入验证码"/>
+              <img class="captcha-image" :src="captchaBase64" :style="{ opacity: captchaLoading ? 0.5 : 1 }" alt="captchaCode" @click="refreshCaptcha"/>
+            </div>
+          </UFormField>
+
+          <div class="login-submit-row">
+            <p class="login-footnote">点击验证码图片可刷新</p>
+            <UButton class="login-submit-btn" type="submit" size="xl" :loading="loginLoading" @click="onSubmit">登录系统</UButton>
           </div>
-
-          <div class="brand-highlight-list">
-            <div
-                v-for="item in brandHighlights"
-                :key="item"
-                class="brand-highlight"
-            >
-              <UIcon name="i-lucide-check-circle-2" class="brand-highlight-icon" />
-              <span>{{ item }}</span>
-            </div>
-          </div>
-
-          <div class="brand-step-grid">
-            <div v-for="item in entrySteps" :key="item.label" class="brand-step">
-              <p class="brand-step-label">{{ item.label }}</p>
-              <p class="brand-step-text">{{ item.text }}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="auth-panel">
-        <UCard
-            class="auth-card"
-            :ui="{
-              root: 'rounded-[28px] border border-default bg-default',
-              body: 'p-7 sm:p-8',
-              header: 'px-7 pt-7 sm:px-8 sm:pt-8',
-              footer: 'px-7 pb-7 sm:px-8 sm:pb-8'
-            }"
-        >
-          <template #header>
-            <div class="auth-header">
-              <p class="auth-kicker">欢迎回来</p>
-              <h2 class="auth-title">用户登录</h2>
-              <p class="auth-description">输入账号、密码与验证码后进入系统工作区。</p>
-            </div>
-          </template>
-
-          <UForm :schema="schema" :state="loginFormData" class="space-y-4" @submit="onSubmit">
-            <UFormField label="账号" name="username" required>
-              <UInput
-                  v-model="loginFormData.username"
-                  class="w-full"
-                  size="xl"
-                  icon="i-lucide-user-round"
-                  placeholder="请输入账号"
-              />
-            </UFormField>
-
-            <UFormField label="密码" name="password" required>
-              <UInput
-                  v-model="loginFormData.password"
-                  class="w-full"
-                  size="xl"
-                  type="password"
-                  icon="i-lucide-lock-keyhole"
-                  placeholder="请输入密码"
-              />
-            </UFormField>
-
-            <UFormField label="验证码" name="captchaCode" required>
-              <div class="captcha-row">
-                <UInput
-                    v-model="loginFormData.captchaCode"
-                    class="w-full"
-                    size="xl"
-                    icon="i-lucide-shield-check"
-                    placeholder="请输入验证码"
-                />
-                <img
-                    class="captcha-image"
-                    :src="captchaBase64"
-                    :style="{ opacity: captchaLoading ? 0.5 : 1 }"
-                    alt="captchaCode"
-                    @click="refreshCaptcha"
-                />
-              </div>
-            </UFormField>
-
-            <div class="auth-footer">
-              <p class="auth-footnote">验证码每 120 秒自动刷新一次，也可点击图片立即刷新。</p>
-              <UButton
-                  class="auth-submit"
-                  type="submit"
-                  size="xl"
-                  :loading="loginLoading"
-                  @click="onSubmit"
-              >
-                登录系统
-              </UButton>
-            </div>
-          </UForm>
-        </UCard>
-      </section>
+        </UForm>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .login-page {
-  position: relative;
   display: flex;
   min-height: 100vh;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  padding: 32px 20px;
-  background:
-      radial-gradient(circle at top left, color-mix(in srgb, var(--library-accent) 12%, transparent), transparent 34%),
-      linear-gradient(180deg, var(--library-surface) 0%, var(--library-surface-muted) 100%);
+  padding: 40px 20px;
+  background: var(--library-surface);
 }
 
-.login-glow {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(42px);
-  opacity: 0.9;
-  pointer-events: none;
-}
-
-.login-glow-primary {
-  top: -120px;
-  left: -60px;
-  width: 320px;
-  height: 320px;
-  background: rgb(0 99 152 / 12%);
-}
-
-.login-glow-secondary {
-  right: -120px;
-  bottom: -140px;
-  width: 360px;
-  height: 360px;
-  background: rgb(32 43 61 / 10%);
-}
-
-.login-layout {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: min(1160px, 100%);
-  grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
-  gap: 24px;
-  align-items: stretch;
-}
-
-.brand-panel,
-.auth-panel {
-  min-width: 0;
-}
-
-.brand-shell {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  justify-content: space-between;
+.login-card {
+  width: 100%;
+  max-width: 440px;
   border: 1px solid var(--library-border);
-  border-radius: 32px;
-  padding: 40px;
-  background: color-mix(in srgb, var(--library-card) 92%, var(--library-surface-muted));
-  box-shadow: var(--library-shadow);
-  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  background: var(--library-card);
+  overflow: hidden;
 }
 
-.brand-kicker,
-.auth-kicker {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.24em;
+.login-brand {
+  padding: 36px 36px 0;
+}
+
+.login-brand-kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   color: var(--library-accent);
+  text-transform: uppercase;
 }
 
-.brand-title {
-  margin-top: 18px;
-  font-size: clamp(34px, 4vw, 52px);
-  font-weight: 800;
-  line-height: 1.08;
+.login-brand-title {
+  margin-top: 12px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.18;
+  font-family: var(--library-title-font);
 }
 
-.brand-description {
-  max-width: 32rem;
-  margin-top: 18px;
-  font-size: 16px;
-  line-height: 1.75;
+.login-brand-desc {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.65;
   color: var(--library-text-muted);
 }
 
-.brand-highlight-list {
-  display: grid;
-  gap: 12px;
-  margin-top: 28px;
+.login-form-section {
+  padding: 28px 36px 36px;
 }
 
-.brand-highlight {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 15px;
-  color: var(--library-text);
+.login-form-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
 }
 
-.brand-highlight-icon {
-  width: 18px;
-  height: 18px;
-  color: var(--library-accent);
-}
-
-.brand-step-grid {
-  display: grid;
-  gap: 14px;
-  margin-top: 40px;
-}
-
-.brand-step {
-  border-radius: 22px;
-  padding: 18px 20px;
-  background: color-mix(in srgb, var(--library-card) 82%, var(--library-surface-muted));
-  box-shadow: inset 0 0 0 1px var(--library-border);
-}
-
-.brand-step-label {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--library-text);
-}
-
-.brand-step-text {
-  margin-top: 6px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--library-text-muted);
-}
-
-.auth-card {
-  height: 100%;
-  background: color-mix(in srgb, var(--library-card) 94%, var(--library-surface-muted));
-  box-shadow: var(--library-shadow);
-}
-
-.auth-header {
+.login-form-fields {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.auth-title {
-  font-size: 30px;
-  font-weight: 800;
-}
-
-.auth-description,
-.auth-footnote {
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--library-text-muted);
+  gap: 16px;
 }
 
 .captcha-row {
@@ -418,49 +200,49 @@ async function refreshCaptcha() {
   box-sizing: border-box;
   cursor: pointer;
   border: 1px solid var(--library-border);
-  border-radius: 16px;
+  border-radius: 10px;
   object-fit: contain;
   background: var(--library-card);
+  flex-shrink: 0;
 }
 
-.auth-footer {
+.login-submit-row {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  padding-top: 4px;
 }
 
-.auth-submit {
+.login-footnote {
+  font-size: 12px;
+  color: var(--library-text-muted);
+  text-align: center;
+}
+
+.login-submit-btn {
   width: 100%;
   justify-content: center;
-  border-radius: 16px;
-  background:
-      linear-gradient(135deg, var(--library-accent) 0%, var(--library-accent-strong) 100%);
-  box-shadow: 0 16px 32px rgb(0 99 152 / 18%);
-}
-
-@media (max-width: 1024px) {
-  .login-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .brand-shell,
-  .auth-card {
-    border-radius: 28px;
-  }
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--library-accent) 0%, var(--library-accent-strong) 100%);
 }
 
 @media (max-width: 640px) {
   .login-page {
-    padding: 18px;
+    padding: 20px 16px;
+    align-items: flex-start;
+    padding-top: 64px;
   }
 
-  .brand-shell,
-  .auth-card {
-    border-radius: 24px;
+  .login-card {
+    max-width: 100%;
   }
 
-  .brand-shell {
-    padding: 28px 22px;
+  .login-brand {
+    padding: 28px 24px 0;
+  }
+
+  .login-form-section {
+    padding: 22px 24px 28px;
   }
 
   .captcha-row {

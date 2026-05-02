@@ -25,13 +25,13 @@ function updateUserIds(value: Array<string | number> | undefined) {
   <UModal
       :open="open"
       :title="`分配用户${roleName ? ` - ${roleName}` : ''}`"
-      :ui="{ content: 'sm:max-w-xl rounded-[28px] border border-default bg-default shadow-lg' }"
+      :ui="{ content: 'sm:max-w-xl rounded-2xl border border-default bg-default shadow' }"
       @update:open="emit('update:open', $event)"
   >
     <template #body>
       <div class="system-modal-copy">
         <p class="system-modal-title">分配用户</p>
-        <p class="system-modal-description">将选中的用户纳入当前角色。</p>
+        <p class="system-modal-description">为当前角色选择用户</p>
       </div>
       <UForm class="mt-5 space-y-4">
         <UFormField class="w-full" label="用户" required>

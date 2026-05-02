@@ -21,7 +21,7 @@ export function useMenuQuery() {
       applySearchParams();
       menuTableData.value = await MenuAPI.getList(queryParams);
     } catch {
-      toast.add({title: "错误", description: "菜单数据加载失败", color: "error"});
+      toast.add({title: "错误", description: "数据加载失败", color: "error"});
     } finally {
       loadingMenuList.value = false;
     }

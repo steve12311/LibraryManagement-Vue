@@ -16,7 +16,7 @@ const emit = defineEmits<{
   <UModal
       :open="open"
       title="导入结果"
-      :ui="{ content: 'sm:max-w-2xl rounded-[28px] border border-default bg-default shadow-lg' }"
+      :ui="{ content: 'sm:max-w-2xl rounded-2xl border border-default bg-default shadow' }"
       @update:open="emit('update:open', $event)"
   >
     <template #body>

@@ -1,4 +1,7 @@
 <script setup lang="ts">
+const brandTitle = import.meta.env.VITE_APP_BRAND_TITLE || "校园图书馆"
+const brandSubtitle = import.meta.env.VITE_APP_BRAND_SUBTITLE || "Campus Library"
+
 withDefaults(defineProps<{
   collapsed?: boolean
 }>(), {
@@ -12,8 +15,8 @@ withDefaults(defineProps<{
       <UIcon name="i-lucide-library-big" class="h-5 w-5" />
     </div>
     <div v-if="!collapsed" class="logo-copy">
-      <p class="logo-title">校园图书馆</p>
-      <p class="logo-subtitle">Campus Library</p>
+      <p class="logo-title">{{ brandTitle }}</p>
+      <p class="logo-subtitle">{{ brandSubtitle }}</p>
     </div>
   </div>
 </template>

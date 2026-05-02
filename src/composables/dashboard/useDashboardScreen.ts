@@ -350,7 +350,7 @@ export function useDashboardScreen() {
     } catch (error) {
       if (currentRequestSerial !== trendRequestSerial.value) return
       trendPoints.value = []
-      setBlockError("trend", error instanceof Error ? error.message : "趋势数据加载失败")
+      setBlockError("trend", error instanceof Error ? error.message : "数据加载失败")
     } finally {
       if (currentRequestSerial === trendRequestSerial.value) {
         loadingTrend.value = false
@@ -390,7 +390,7 @@ export function useDashboardScreen() {
     } catch (error) {
       if (currentRequestSerial !== recentEventsRequestSerial.value) return
       recentEvents.value = {...DEFAULT_RECENT_EVENTS}
-      setBlockError("recentEvents", error instanceof Error ? error.message : "最近事件加载失败")
+      setBlockError("recentEvents", error instanceof Error ? error.message : "数据加载失败")
     } finally {
       if (currentRequestSerial === recentEventsRequestSerial.value) {
         loadingRecentEvents.value = false
