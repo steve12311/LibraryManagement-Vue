@@ -14,7 +14,7 @@ Vite + Vue 3 + TypeScript 构建的图书馆管理后台，支持图书、借阅
 | 路由 | vue-router 5（Hash 模式） |
 | HTTP | axios + qs |
 | 图表 | echarts |
-| AI 对话 | @ai-sdk/vue + markstream-vue |
+| AI 对话 | ai + markstream-vue |
 | 表格 | @tanstack/vue-table |
 | 表单验证 | valibot |
 | 工具库 | @vueuse/core |
@@ -49,7 +49,9 @@ pnpm format
 ```ini
 VITE_APP_PORT=3000
 VITE_APP_TITLE=system-management-admin
-VITE_APP_API_URL=http://localhost:8080   # 后端接口地址
+VITE_APP_BRAND_TITLE=校园图书馆              # 品牌名称（侧栏、登录页、网页标题）
+VITE_APP_BRAND_SUBTITLE=Campus Library       # 品牌副标题
+VITE_APP_API_URL=http://localhost:8080       # 后端接口地址
 ```
 
 生产环境在 `.env.production` 中配置同名变量。
@@ -60,15 +62,16 @@ VITE_APP_API_URL=http://localhost:8080   # 后端接口地址
 src/
 ├── pages/          # 页面骨架：Login、Home（主布局含侧边栏）、Me
 ├── views/          # 业务视图：Dashboard、SysUser/Role/Menu/Dept、LibStock/Borrow/Category/Publish
-├── components/     # 可复用组件，按业务分组（lib-stock/、dashboard/、me/）
-├── composables/    # 视图逻辑拆分，与 views 结构对应（system/user/、library/stock/ 等）
+├── components/     # 可复用组件，按业务分组（library/、dashboard/、me/、system/）
+├── composables/    # 视图逻辑拆分，与 views 结构对应（system/user/、library/borrow/ 等）
+├── constants/      # 共享常量（file-constants.ts）
 ├── api/            # 接口客户端，按域划分（system/、library/、dashboard-api.ts）
 ├── store/modules/  # auth-store（token）、user-store（用户信息）、permission-store（动态路由）
 ├── router/         # 静态路由定义，动态路由由 permission-store 从后端生成
 ├── plugins/        # 应用插件：permission.ts（全局导航守卫）
-├── enums/          # 枚举：API 状态码、菜单类型、借阅状态
-├── utils/          # 基础设施：request.ts（axios 实例）、auth.ts、Chat.ts、EventManager.ts
-└── types/          # 全局类型声明
+├── enums/          # 枚举：API 状态码、菜单类型、借阅状态、系统状态
+├── types/          # 全局类型声明：request.ts、common.ts、global.d.ts
+└── utils/          # 基础设施：request.ts、auth.ts、date-format.ts、Chat.ts、option-items.ts
 ```
 
 ## 核心机制

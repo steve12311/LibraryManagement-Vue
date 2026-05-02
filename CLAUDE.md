@@ -37,9 +37,10 @@ Nuxt UI components are auto-imported (no explicit imports needed). Nuxt UI color
 | `src/store/modules/` | `auth-store.ts` (access token, persisted), `user-store.ts` (user info + roles), `permission-store.ts` (dynamic routes) |
 | `src/router/` | Static routes (`constantRoutes`) + dynamic route generation from backend |
 | `src/plugins/` | App plugin setup; `permission.ts` is the global navigation guard |
-| `src/enums/` | Typed enums: `api/code-enum.ts` (response codes), `system/menu-enum.ts`, `system/status-enum.ts`, `system/borrow-status-enum.ts` |
-| `src/types/` | Global TypeScript types: `global.d.ts`, `request.ts` (RetryRequestConfig, HttpRequestExecutor) |
-| `src/utils/` | Infrastructure: `request.ts` (axios instance), `auth.ts` (login redirect), `date-format.ts`, `EventManager.ts` (typed event bus), `Chat.ts`, chat-stream, borrow-status |
+| `src/constants/` | Shared constants: `file-constants.ts` (file upload limits, accept types) |
+| `src/enums/` | Typed enums: `api/code-enum.ts` (response codes), `system/menu-enum.ts`, `system/status-enum.ts` (status, gender, data scope, root role), `system/borrow-status-enum.ts` |
+| `src/types/` | Global TypeScript types: `global.d.ts`, `request.ts`, `common.ts` (ModalEditMode, BorrowDateValue, CoverFileModel, CategoryTreeNode) |
+| `src/utils/` | Infrastructure: `request.ts` (axios instance), `auth.ts` (login redirect), `date-format.ts`, `option-items.ts`, `EventManager.ts` (typed event bus), `Chat.ts`, chat-stream, borrow-status |
 
 ### Auth & Route Flow
 

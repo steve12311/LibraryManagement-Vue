@@ -8,7 +8,7 @@ Vite + Vue 3 + TypeScript admin frontend for library management.
 - `src/composables/`: view logic extracted into composables, mirroring the views structure. Views are thin; business logic lives here.
 - `src/api/`: API clients by domain (`system/`, `library/`, `file-api.ts`, `public-book-api.ts`).
 - `src/store/modules/`: Pinia stores (`auth-store`, `user-store`, `permission-store`).
-- `src/router/`, `src/plugins/`, `src/utils/`, `src/enums/`, `src/types/`: routing, app plugins, shared utilities, enums, and global types.
+- `src/router/`, `src/plugins/`, `src/utils/`, `src/enums/`, `src/types/`, `src/constants/`: routing, app plugins, shared utilities, enums, global types, and shared constants.
 
 ## Build, Test, and Development Commands
 - `pnpm install`: install dependencies.
@@ -42,4 +42,5 @@ No unit test framework is configured. Pre-commit gate: `pnpm typecheck && pnpm b
 - `.env.development` / `.env.production` for environment-specific values.
 - `VITE_APP_API_URL`: backend API base URL (default `http://localhost:8080`).
 - `VITE_APP_PORT`: dev server port (default `3000`).
+- `VITE_APP_BRAND_TITLE` / `VITE_APP_BRAND_SUBTITLE`: brand name shown in sidebar logo, login page, and web page title.
 - Never commit secrets; use `.env.*` files only for non-sensitive config.
