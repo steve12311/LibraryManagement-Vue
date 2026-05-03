@@ -35,6 +35,9 @@ export default defineConfig(({mode}: ConfigEnv): UserConfig => {
         },
         server: {
             port: +env.VITE_APP_PORT,
+        },
+        preview:{
+            port: +env.VITE_APP_PORT,
         }
     }
 })
