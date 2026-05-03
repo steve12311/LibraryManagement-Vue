@@ -6,17 +6,19 @@ Vite + Vue 3 + TypeScript 构建的图书馆管理后台，支持图书、借阅
 
 | 分类 | 技术 |
 |---|---|
-| 构建 | Vite 7 |
+| 构建 | Vite 8 |
 | UI 框架 | Vue 3 + TypeScript (`<script setup>`) |
-| 组件库 | @nuxt/ui 4（主）/ element-plus（辅） |
+| 组件库 | @nuxt/ui 4.7（主）/ element-plus（辅） |
 | 样式 | Tailwind CSS 4 |
 | 状态管理 | Pinia + pinia-plugin-persistedstate |
 | 路由 | vue-router 5（Hash 模式） |
 | HTTP | axios + qs |
 | 图表 | echarts |
-| AI 对话 | ai + markstream-vue |
+| AI 对话 | ai + markstream-vue + stream-markdown + stream-monaco |
+| 数学/图表渲染 | katex + mermaid + @terrastruct/d2 |
 | 表格 | @tanstack/vue-table |
 | 表单验证 | valibot |
+| 日期处理 | @internationalized/date |
 | 工具库 | @vueuse/core |
 
 ## 快速开始
@@ -47,11 +49,13 @@ pnpm format
 复制 `.env.development` 并按需修改：
 
 ```ini
-VITE_APP_PORT=3000
-VITE_APP_TITLE=system-management-admin
+VITE_APP_PORT=3000                           # 开发服务器端口
+VITE_APP_TITLE=system-management-admin       # 网页标题
 VITE_APP_BRAND_TITLE=校园图书馆              # 品牌名称（侧栏、登录页、网页标题）
 VITE_APP_BRAND_SUBTITLE=Campus Library       # 品牌副标题
 VITE_APP_API_URL=http://localhost:8080       # 后端接口地址
+# VITE_APP_WS_ENDPOINT=ws://localhost:8080/ws  # WebSocket 端点（可选）
+# VITE_MOCK_DEV_SERVER=false                 # Mock 服务开关（可选）
 ```
 
 生产环境在 `.env.production` 中配置同名变量。
@@ -61,11 +65,11 @@ VITE_APP_API_URL=http://localhost:8080       # 后端接口地址
 ```
 src/
 ├── pages/          # 页面骨架：Login、Home（主布局含侧边栏）、Me
-├── views/          # 业务视图：Dashboard、SysUser/Role/Menu/Dept、LibStock/Borrow/Category/Publish
+├── views/          # 业务视图：Index（首页公共图书浏览）、Dashboard、SysUser/Role/Menu/Dept、LibStock/Borrow/Category/Publish、error/404
 ├── components/     # 可复用组件，按业务分组（library/、dashboard/、me/、system/）
 ├── composables/    # 视图逻辑拆分，与 views 结构对应（system/user/、library/borrow/ 等）
 ├── constants/      # 共享常量（file-constants.ts）
-├── api/            # 接口客户端，按域划分（system/、library/、dashboard-api.ts）
+├── api/            # 接口客户端，按域划分（system/、library/、dashboard-api.ts、public-book-api.ts、file-api.ts）
 ├── store/modules/  # auth-store（token）、user-store（用户信息）、permission-store（动态路由）
 ├── router/         # 静态路由定义，动态路由由 permission-store 从后端生成
 ├── plugins/        # 应用插件：permission.ts（全局导航守卫）
@@ -101,6 +105,7 @@ src/
 
 - `docs/前端代码规范标准.md` — 命名、类型、组件、API、样式等完整规范
 - `docs/CodeReview-Checklist.md` — Code Review 检查清单
-- `docs/代码审查报告-2026-05-02.md` — 当前代码合理性、模块化、耦合、过度设计与死代码审查
+- `docs/代码审查报告-2026-05-02.md` — 代码合理性、模块化、耦合、过度设计与死代码审查
 - `docs/代码审查报告-2026-03-07.md` — 历史审查记录
-- `CLAUDE.md` — AI 编码助手上下文指引
+- `CLAUDE.md` — 项目编码上下文指引
+- `AGENTS.md` — 仓库规范与协作指引

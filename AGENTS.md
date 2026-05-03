@@ -3,10 +3,10 @@
 ## Project Structure & Module Organization
 Vite + Vue 3 + TypeScript admin frontend for library management.
 - `src/pages/`: shell pages (`Login.vue`, `Home.vue`, `Me.vue`).
-- `src/views/`: domain screens — system modules (`SysUser`, `SysRole`, `SysMenu`, `SysDept`) and library modules (`LibStock`, `LibBorrow`, `LibCategory`, `LibPublish`).
-- `src/components/`: reusable UI pieces and feature dialogs, grouped by domain.
-- `src/composables/`: view logic extracted into composables, mirroring the views structure. Views are thin; business logic lives here.
-- `src/api/`: API clients by domain (`system/`, `library/`, `file-api.ts`, `public-book-api.ts`).
+- `src/views/`: domain screens — `Index` (public book browsing), system modules (`SysUser`, `SysRole`, `SysMenu`, `SysDept`), library modules (`LibStock`, `LibBorrow`, `LibCategory`, `LibPublish`), and `error/404`.
+- `src/components/`: reusable UI pieces and feature dialogs, grouped by domain (`library/borrow/`, `library/stock/`, `library/publish/`, `dashboard/`, `me/`, `system/user/`, `system/role/`) + top-level components (`AISidebar`, `Logo`, `ActionGroup`, `SelectTreeMenu`, `WarningModal`).
+- `src/composables/`: view logic extracted into composables, mirroring the views structure (`system/user/`, `system/role/`, `system/menu/`, `library/stock/`, `library/borrow/`, `library/publish/`, `dashboard/`, `auth/`). Views are thin; business logic lives here.
+- `src/api/`: API clients by domain (`system/`, `library/`, `dashboard-api.ts`, `file-api.ts`, `public-book-api.ts`).
 - `src/store/modules/`: Pinia stores (`auth-store`, `user-store`, `permission-store`).
 - `src/router/`, `src/plugins/`, `src/utils/`, `src/enums/`, `src/types/`, `src/constants/`: routing, app plugins, shared utilities, enums, global types, and shared constants.
 

@@ -21,7 +21,7 @@ No unit test framework is configured. Pre-commit gate: `pnpm typecheck && pnpm b
 ## Architecture
 
 ### Tech Stack
-Vite + Vue 3 + TypeScript SFC (`<script setup lang="ts">`). Styling via **Tailwind CSS 4**. UI components via **@nuxt/ui** (primary) and **element-plus** (supplementary). Form validation via **valibot** (bundled with Nuxt UI). Tables via **@tanstack/vue-table**. State via **Pinia** with `pinia-plugin-persistedstate`. Routing via **vue-router** (hash history). HTTP via **axios** (`src/utils/request.ts`). Charts via **echarts**. AI chat via `ai` + `markstream-vue`. Utility composables from **@vueuse/core**.
+Vite + Vue 3 + TypeScript SFC (`<script setup lang="ts">`). Styling via **Tailwind CSS 4**. UI components via **@nuxt/ui** (primary) and **element-plus** (supplementary). Form validation via **valibot** (bundled with Nuxt UI). Tables via **@tanstack/vue-table**. State via **Pinia** with `pinia-plugin-persistedstate`. Routing via **vue-router** (hash history). HTTP via **axios** + `qs` (`src/utils/request.ts`). Charts via **echarts**. AI chat via `ai` + `markstream-vue` + `stream-markdown` + `stream-monaco`, with math rendering via **katex** and diagram rendering via **mermaid** + **@terrastruct/d2**. Date handling via **@internationalized/date**. Utility composables from **@vueuse/core**.
 
 Nuxt UI components are auto-imported (no explicit imports needed). Nuxt UI color mode (light/dark) is enabled.
 
@@ -30,9 +30,9 @@ Nuxt UI components are auto-imported (no explicit imports needed). Nuxt UI color
 | Path | Purpose |
 |---|---|
 | `src/pages/` | Shell pages: `Login.vue`, `Home.vue` (app layout/sidebar), `Me.vue` |
-| `src/views/` | Domain screens mounted as children of `Home.vue`: `Dashboard`, `SysUser`, `SysRole`, `SysMenu`, `SysDept`, `LibStock`, `LibBorrow`, `LibCategory`, `LibPublish` |
-| `src/components/` | Reusable dialogs and UI pieces, grouped by domain (e.g. `library/stock/`, `dashboard/`, `me/`) |
-| `src/composables/` | View logic extracted into composables, mirroring domain structure (`system/user/`, `library/stock/`, etc.) |
+| `src/views/` | Domain screens mounted as children of `Home.vue`: `Index` (public book browsing), `Dashboard`, `SysUser`, `SysRole`, `SysMenu`, `SysDept`, `LibStock`, `LibBorrow`, `LibCategory`, `LibPublish`, `error/404` |
+| `src/components/` | Reusable dialogs and UI pieces, grouped by domain (e.g. `library/stock/`, `dashboard/`, `me/`, `system/user/`, `system/role/`) + top-level: `AISidebar`, `Logo`, `ActionGroup`, `SelectTreeMenu`, `WarningModal` |
+| `src/composables/` | View logic extracted into composables, mirroring domain structure (`system/user/`, `system/menu/`, `system/role/`, `library/stock/`, `library/borrow/`, `library/publish/`, `dashboard/`, `auth/`) |
 | `src/api/` | Axios API clients by domain: `system/`, `library/`, `dashboard-api.ts`, `file-api.ts`, `public-book-api.ts` |
 | `src/store/modules/` | `auth-store.ts` (access token, persisted), `user-store.ts` (user info + roles), `permission-store.ts` (dynamic routes) |
 | `src/router/` | Static routes (`constantRoutes`) + dynamic route generation from backend |
@@ -64,7 +64,7 @@ The axios instance is typed as `request<Req, Res>(config)`. `Req` must never be 
 
 ### Build Chunking
 
-`vite.config.ts` manually splits large dependencies into named chunks: `vue-core`, `nuxt-ui`, `element-plus`, `ai-runtime`, `ai-markdown`, `ai-diagram-heavy`, `dashboard-echarts`, `dashboard-zrender`. When adding heavy new deps, consider adding a chunk entry.
+`vite.config.ts` uses Rolldown `advancedChunks` API (`rolldownOptions.output.codeSplitting.groups`) to split large dependencies into named chunks: `vue-core`, `nuxt-ui`, `element-plus`, `ai-runtime`, `ai-markdown`, `ai-diagram-heavy`, `dashboard-echarts`, `dashboard-zrender`. When adding heavy new deps, consider adding a chunk entry.
 
 ## Conventions
 
@@ -82,4 +82,4 @@ The axios instance is typed as `request<Req, Res>(config)`. `Req` must never be 
 - **Error handling**: every `catch` must have an explicit action (user toast, state rollback, re-throw, or controlled fallback). No bare `console.log`/`console.error` in production code.
 - **useToast** from Nuxt UI (`useToast().add({title, description, color})`) is the standard notification mechanism.
 - **EventManager** (`src/utils/EventManager.ts`) provides a typed event bus for cross-component communication. Prefer `props`/`emit`/composables/Pinia first; use EventManager only when those don't fit.
-- Reference `docs/前端代码规范标准.md` for the full coding standards; `docs/CodeReview-Checklist.md` for review checklist.
+- Reference `docs/前端代码规范标准.md` for the full coding standards; `docs/CodeReview-Checklist.md` for review checklist; `docs/代码审查报告-2026-05-02.md` for latest code review findings.
