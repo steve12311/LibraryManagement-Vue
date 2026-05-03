@@ -520,6 +520,7 @@ watch(tabActiveIndex, (value) => {
               loading-color="primary"
               loading-animation="carousel"
               virtualize
+              sticky
               @select="showMenuInfo"
               :ui="{
         base: 'border-separate border-spacing-0',

@@ -173,7 +173,7 @@ const columns = ref<TableColumn<BorrowPageVO>[]>([
     </div>
     <div class="system-page-shell__main">
       <div class="system-table-card">
-        <UTable class="h-full" ref="table" :data="pageData" :columns="columns" :loading="loadingPageData" loading-color="primary" loading-animation="carousel"/>
+        <UTable class="h-full" ref="table" sticky :data="pageData" :columns="columns" :loading="loadingPageData" loading-color="primary" loading-animation="carousel"/>
       </div>
     </div>
     <div class="system-page-shell__footer">

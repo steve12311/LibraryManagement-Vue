@@ -271,6 +271,7 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
           :columns="columns"
           :data="pageDate"
           :loading="loadingPageData"
+          sticky
           loading-color="primary"
           loading-animation="carousel"
           @select="showBookDetailInfo"
