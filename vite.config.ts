@@ -13,7 +13,7 @@ export default defineConfig(({mode}: ConfigEnv): UserConfig => {
         build: {
             rolldownOptions: {
                 output: {
-                    advancedChunks: {
+                    codeSplitting: {
                         groups: [
                             { name: "ai-diagram-heavy", test: /markstream-vue\/dist\/index8\.js/ },
                             { name: "ai-markdown", test: /markstream-vue/ },
