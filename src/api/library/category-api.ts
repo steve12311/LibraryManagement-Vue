@@ -8,6 +8,9 @@ const CategoryApi = {
     getList(queryParams?: CategoryQuery) {
         return request<unknown, CategoryVO[]>({url: `${CATEGORY_BASE_URL}`, method: "get", params: queryParams})
     },
+    getChildren(queryParams?: CategoryQuery) {
+        return request<unknown, CategoryVO[]>({url: `${CATEGORY_BASE_URL}/children`, method: "get", params: queryParams})
+    },
     getOptions() {
         return request<unknown, OptionType[]>({
             url: `${CATEGORY_BASE_URL}/options`,
@@ -37,10 +40,12 @@ export interface CategoryVO {
     parentId?: CategoryId;
     code?: string;
     treePath?: string;
+    hasChildren?: boolean;
     children?: CategoryVO[];
 }
 
 export interface CategoryQuery {
+    parentId?: CategoryId;
     categoryName?: string;
     status?: CategoryStatus;
 }
