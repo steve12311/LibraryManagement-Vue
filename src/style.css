@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+@import "markstream-vue/index.css" layer(components);
+@import "katex/dist/katex.min.css";
 
 :root {
   color-scheme: light;

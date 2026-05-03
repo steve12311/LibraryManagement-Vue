@@ -239,10 +239,6 @@ async function copy(_: MouseEvent, message: UIMessage) {
   </USlideover>
 </template>
 
-<style>
-@import "markstream-vue/index.css";
-</style>
-
 <style scoped>
 .ai-welcome {
   animation: slide-in 300ms ease-out both;
