@@ -1,6 +1,7 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+See also: `AGENTS.md` (repository guidelines) and `README.md` (project overview).
 
 ## Commands
 
@@ -82,4 +83,4 @@ The axios instance is typed as `request<Req, Res>(config)`. `Req` must never be 
 - **Error handling**: every `catch` must have an explicit action (user toast, state rollback, re-throw, or controlled fallback). No bare `console.log`/`console.error` in production code.
 - **useToast** from Nuxt UI (`useToast().add({title, description, color})`) is the standard notification mechanism.
 - **EventManager** (`src/utils/EventManager.ts`) provides a typed event bus for cross-component communication. Prefer `props`/`emit`/composables/Pinia first; use EventManager only when those don't fit.
-- Reference `docs/前端代码规范标准.md` for the full coding standards; `docs/CodeReview-Checklist.md` for review checklist; `docs/代码审查报告-2026-05-02.md` for latest code review findings.
+- Reference `docs/前端代码规范标准.md` for the full coding standards.

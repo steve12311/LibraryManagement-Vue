@@ -1,5 +1,7 @@
 # Repository Guidelines
 
+See also: `CLAUDE.md` (AI coding guide) and `README.md` (project overview).
+
 ## Project Structure & Module Organization
 Vite + Vue 3 + TypeScript admin frontend for library management.
 - `src/pages/`: shell pages (`Login.vue`, `Home.vue`, `Me.vue`).
@@ -43,4 +45,5 @@ No unit test framework is configured. Pre-commit gate: `pnpm typecheck && pnpm b
 - `VITE_APP_API_URL`: backend API base URL (default `http://localhost:8080`).
 - `VITE_APP_PORT`: dev server port (default `3000`).
 - `VITE_APP_BRAND_TITLE` / `VITE_APP_BRAND_SUBTITLE`: brand name shown in sidebar logo, login page, and web page title.
-- Never commit secrets; use `.env.*` files only for non-sensitive config.
+- Never commit secrets; use `.env.*` files only for non-sensitive config. `.env` and `.env.*.local` are covered by `.gitignore`.
+- After any code change, check whether `AGENTS.md`, `CLAUDE.md`, or `README.md` need updating.
