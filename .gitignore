@@ -11,11 +11,25 @@ node_modules
 dist
 dist-ssr
 *.local
+*.tgz
+*.cache
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Claude Code
+.claude/
+
+# Serena
+.serena/
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
+*.iml
 .DS_Store
 *.suo
 *.ntvs*
