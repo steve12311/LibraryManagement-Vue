@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {computed} from "vue";
 import type {UserProfileForm} from "@/api/system/user-api.ts";
+import FileApi from "@/api/file-api";
+import { AVATAR_UPLOAD_ACCEPT, AVATAR_UPLOAD_DESCRIPTION } from "@/constants/file-constants";
 
 const props = defineProps<{
   open: boolean
@@ -93,12 +95,12 @@ const emailModel = computed({
         </UFieldGroup>
         <UFormField class="w-full" label="头像">
           <UFieldGroup class="w-full items-center gap-3">
-            <UAvatar size="lg" :src="state.avatar" icon="i-lucide-user"/>
+            <UAvatar size="lg" :src="FileApi.resolveUrl(state.avatar)" icon="i-lucide-user"/>
             <UFileUpload
                 v-model="avatarModel"
-                accept="image/*"
+                :accept="AVATAR_UPLOAD_ACCEPT"
                 label="上传头像拖到此处"
-                description="图片会转为 Base64 存储"
+                :description="AVATAR_UPLOAD_DESCRIPTION"
                 class="w-full min-h-24"
             />
           </UFieldGroup>

@@ -1,6 +1,8 @@
 import type {Ref} from "vue";
 import UserAPI, {type UserForm} from "@/api/system/user-api";
 import type { ModalEditMode } from "@/types/common";
+import FileApi from "@/api/file-api";
+import { MAX_AVATAR_SIZE_BYTES } from "@/constants/file-constants";
 
 interface UseUserSubmitOptions {
   editModalMode: Ref<ModalEditMode>
@@ -16,15 +18,6 @@ interface UseUserSubmitOptions {
   getAvatarFile: () => File | undefined
 }
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result ?? ""))
-    reader.onerror = () => reject(reader.error)
-    reader.readAsDataURL(file)
-  })
-}
-
 /**
  * 用户编辑与角色分配提交逻辑。
  */
@@ -33,7 +26,7 @@ export function useUserSubmit(options: UseUserSubmitOptions) {
 
   /**
    * 提交用户新增/编辑。
-   * 流程：校验（ID/昵称/角色）→ 构建 payload → 头像 base64 转换 → API（新增/修改）→ 刷新列表
+   * 流程：校验（ID/昵称/角色）→ 构建 payload → 头像文件上传 → API（新增/修改）→ 刷新列表
    */
   async function submitEditUser() {
     // 编辑模式校验
@@ -63,10 +56,18 @@ export function useUserSubmit(options: UseUserSubmitOptions) {
 
     try {
       options.submittingEditUser.value = true
-      // 有头像文件时转 base64
       const file = options.getAvatarFile()
       if (file) {
-        payload.avatar = await fileToBase64(file)
+        if (!file.type.startsWith("image/")) {
+          toast.add({title: "错误", description: "头像文件必须为图片格式", color: "error"})
+          return
+        }
+        if (file.size > MAX_AVATAR_SIZE_BYTES) {
+          toast.add({title: "错误", description: "头像文件不能超过2MB", color: "error"})
+          return
+        }
+        const result = await FileApi.uploadFile(file)
+        payload.avatar = result.url
       }
       if (options.editModalMode.value === "add") {
         await UserAPI.create(payload)

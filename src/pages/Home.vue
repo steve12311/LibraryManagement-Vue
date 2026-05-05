@@ -4,6 +4,7 @@ import type {BreadcrumbItem, DropdownMenuItem} from "@nuxt/ui";
 import {useRouter} from "vue-router";
 import {useUserStore} from "@/store";
 import MenuAPI from "@/api/system/menu-api.ts";
+import FileApi from "@/api/file-api";
 import {ElMessageBox} from "element-plus";
 import authApi from "@/api/system/auth-api.ts";
 
@@ -122,7 +123,7 @@ watchEffect(() => {
             />
             <UDropdownMenu :items="dropItems">
               <UButton
-                  :avatar="{ src: userStore.userInfo.avatar }"
+                  :avatar="{ src: FileApi.resolveUrl(userStore.userInfo.avatar) }"
                   :label="userStore.userInfo.nickname || '当前账号'"
                   color="neutral"
                   variant="ghost"

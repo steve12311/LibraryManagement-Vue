@@ -8,6 +8,8 @@ import UserAPI, {
   type UserProfile,
   type UserProfileForm
 } from "@/api/system/user-api.ts";
+import FileApi from "@/api/file-api";
+import { MAX_AVATAR_SIZE_BYTES } from "@/constants/file-constants";
 import MeBorrowCard from "@/components/me/MeBorrowCard.vue";
 import MeOverviewCard from "@/components/me/MeOverviewCard.vue";
 import PasswordEditModal from "@/components/me/PasswordEditModal.vue";
@@ -19,7 +21,6 @@ import {useMyBorrowOrders} from "@/composables/system/user/useMyBorrowOrders";
 
 const PHONE_PATTERN = /^$|^1(3\d|4[5-9]|5[0-35-9]|6[2567]|7[0-8]|8\d|9[0-35-9])\d{8}$/;
 const EMAIL_PATTERN = /^$|^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
 
 const router = useRouter();
 const toast = useToast();
@@ -204,15 +205,6 @@ function getAvatarFileFromModel(model?: File): File | undefined {
   return void 0;
 }
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
 /**
  * 拉取个人资料。使用请求序号机制防止快速切换时的竞态条件：
  * 仅最近一次请求的结果会写入状态。
@@ -286,18 +278,19 @@ async function submitProfile() {
       mobile,
       email,
     };
-    // 头像文件 → base64
+    // 头像文件上传到文件服务
     const file = getAvatarFileFromModel(avatarModel.value);
     if (file) {
       if (!file.type.startsWith("image/")) {
         toast.add({title: "错误", description: "头像文件必须为图片格式", color: "error"});
         return;
       }
-      if (file.size > MAX_AVATAR_SIZE) {
+      if (file.size > MAX_AVATAR_SIZE_BYTES) {
         toast.add({title: "错误", description: "头像文件不能超过2MB", color: "error"});
         return;
       }
-      payload.avatar = await fileToBase64(file);
+      const result = await FileApi.uploadFile(file);
+      payload.avatar = result.url;
     }
     await UserAPI.updateProfile(payload);
     toast.add({title: "成功", description: "个人信息已更新", color: "success"});

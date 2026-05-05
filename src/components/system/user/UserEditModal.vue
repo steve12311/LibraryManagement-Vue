@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { SelectMenuItem } from "@nuxt/ui";
 import type { UserForm } from "@/api/system/user-api.ts";
+import FileApi from "@/api/file-api";
+import { AVATAR_UPLOAD_ACCEPT, AVATAR_UPLOAD_DESCRIPTION } from "@/constants/file-constants";
 
 const props = defineProps<{
   open: boolean
@@ -83,12 +85,12 @@ function updateAvatarModel(value: File | null | undefined) {
         </UFormField>
         <UFormField class="w-full" label="头像">
           <UFieldGroup class="w-full items-center gap-3">
-            <UAvatar size="lg" :src="state.avatar"/>
+            <UAvatar size="lg" :src="FileApi.resolveUrl(state.avatar)"/>
             <UFileUpload
                 :model-value="avatarModel"
-                accept="image/*"
+                :accept="AVATAR_UPLOAD_ACCEPT"
                 label="上传头像拖到此处"
-                description="图片会转为 Base64 存储"
+                :description="AVATAR_UPLOAD_DESCRIPTION"
                 class="w-full min-h-24"
                 @update:model-value="updateAvatarModel"
             />

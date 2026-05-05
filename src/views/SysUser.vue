@@ -17,6 +17,7 @@ import UserAssignRoleModal from "@/components/system/user/UserAssignRoleModal.vu
 import UserEditModal from "@/components/system/user/UserEditModal.vue";
 import UserImportModal from "@/components/system/user/UserImportModal.vue";
 import UserImportResultModal from "@/components/system/user/UserImportResultModal.vue";
+import FileApi from "@/api/file-api";
 import {useUserStore} from "@/store";
 
 onMounted(() => {
@@ -186,7 +187,7 @@ const columns = ref<TableColumn<UserPageVO>[]>([
       return h('div', {class: 'flex items-center gap-3'}, [
         h(UAvatar, {
           size: "lg",
-          src: row.original.avatar
+          src: FileApi.resolveUrl(row.original.avatar)
         }),
         h("div", undefined, [
           h('p', {class: 'font-medium text-highlighted'}, row.original.nickname),

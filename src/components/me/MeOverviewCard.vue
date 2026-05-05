@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import FileApi from "@/api/file-api";
+
 defineProps<{
   loading: boolean;
   avatar?: string;
@@ -22,7 +24,7 @@ const emit = defineEmits<{
     <template #header>
       <div class="overview-hero">
         <div class="identity-block">
-          <UAvatar :src="avatar" size="xl" icon="i-lucide-user" />
+          <UAvatar :src="FileApi.resolveUrl(avatar)" size="xl" icon="i-lucide-user" />
           <div class="identity-copy">
             <p class="identity-name">{{ displayName }}</p>
             <p class="identity-account">@{{ username || "未知账号" }}</p>
