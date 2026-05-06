@@ -122,8 +122,20 @@ const FileApi = {
         });
     },
 
-    /** 删除文件 */
-    delete(fileIdOrUrl?: string | number | null) {
+    /** 获取文件引用计数 */
+    getRefCount(fileIdOrUrl?: string | number | null) {
+        const fileId = extractFileId(fileIdOrUrl);
+        if (!fileId) {
+            return Promise.reject(new Error("文件标识不能为空"));
+        }
+        return request<unknown, number>({
+            url: `${FILE_BASE_URL}/${fileId}/refcount`,
+            method: "get",
+        });
+    },
+
+    /** 物理删除文件（需 sys:file:del 权限） */
+    deletePhysical(fileIdOrUrl?: string | number | null) {
         const fileId = extractFileId(fileIdOrUrl);
         if (!fileId) {
             return Promise.reject(new Error("文件标识不能为空"));

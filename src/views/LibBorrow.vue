@@ -18,6 +18,7 @@ import SystemPageHeader from "@/components/system/SystemPageHeader.vue"
 import SystemQueryCard from "@/components/system/SystemQueryCard.vue"
 import BorrowEditModal from "@/components/library/borrow/BorrowEditModal.vue"
 import BorrowDelayModal from "@/components/library/borrow/BorrowDelayModal.vue"
+import FileApi from "@/api/file-api.ts";
 
 const UAvatar = resolveComponent("UAvatar")
 const UBadge = resolveComponent("UBadge")
@@ -68,7 +69,7 @@ const columns = ref<TableColumn<BorrowPageVO>[]>([
     id: "userInfo",
     header: "借阅用户",
     cell: ({ row }) => h("div", { class: "flex items-center gap-3" }, [
-      h(UAvatar, { size: "lg", src: row.original.avatar }),
+      h(UAvatar, { size: "lg", src: FileApi.resolveUrl(row.original.avatar) }),
       h("div", undefined, [
         h("p", { class: "font-medium text-highlighted" }, row.original.nickname),
         h("p", undefined, `@${row.original.username}`),
