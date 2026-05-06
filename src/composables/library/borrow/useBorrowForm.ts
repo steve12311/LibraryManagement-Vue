@@ -4,6 +4,7 @@ import { CalendarDate } from "@internationalized/date"
 import type { BorrowForm } from "@/api/library/borrow-api"
 import userApi from "@/api/system/user-api"
 import bookApi from "@/api/library/book-api"
+import fileApi from "@/api/file-api"
 import * as v from "valibot"
 
 const initialBorrowFormData: BorrowForm = {
@@ -49,7 +50,14 @@ export function useBorrowForm() {
   }
 
   async function fetchUserOptions() {
-    userOptions.value = await userApi.getOptions()
+    const options = await userApi.getOptions()
+    userOptions.value = options.map((item) => {
+      if (typeof item !== "object" || item === null) return item
+      return {
+        ...item,
+        avatar: item.avatar ? { ...item.avatar, src: fileApi.resolveUrl(item.avatar.src) } : undefined,
+      }
+    })
   }
 
   async function fetchBookOptions() {
