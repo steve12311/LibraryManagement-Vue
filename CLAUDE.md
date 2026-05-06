@@ -34,7 +34,7 @@ Nuxt UI components are auto-imported (no explicit imports needed). Nuxt UI color
 | `src/views/` | Domain screens mounted as children of `Home.vue`: `Index` (public book browsing), `Dashboard`, `SysUser`, `SysRole`, `SysMenu`, `SysDept`, `LibStock`, `LibBorrow`, `LibCategory`, `LibPublish`, `error/404` |
 | `src/components/` | Reusable dialogs and UI pieces, grouped by domain (e.g. `library/stock/`, `dashboard/`, `me/`, `system/user/`, `system/role/`) + top-level: `AISidebar`, `Logo`, `ActionGroup`, `SelectTreeMenu`, `WarningModal` |
 | `src/composables/` | View logic extracted into composables, mirroring domain structure (`system/user/`, `system/menu/`, `system/role/`, `library/stock/`, `library/borrow/`, `library/publish/`, `dashboard/`, `auth/`) |
-| `src/api/` | Axios API clients by domain: `system/`, `library/`, `dashboard-api.ts`, `file-api.ts`, `public-book-api.ts` |
+| `src/api/` | Axios API clients by domain: `system/`, `library/`, `dashboard-api.ts`, `file-api.ts` (`resolveUrl`, `uploadFile`, `getRefCount`, `deletePhysical`, `download`), `public-book-api.ts` |
 | `src/store/modules/` | `auth-store.ts` (access token, persisted), `user-store.ts` (user info + roles), `permission-store.ts` (dynamic routes) |
 | `src/router/` | Static routes (`constantRoutes`) + dynamic route generation from backend |
 | `src/plugins/` | App plugin setup; `permission.ts` is the global navigation guard |
