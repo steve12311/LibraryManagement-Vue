@@ -101,6 +101,17 @@ src/
 
 视图文件只做编排，所有状态与业务逻辑拆到 `src/composables/` 对应目录下，每个 composable 单一职责（query / form / dialog / actions / submit）。新增视图时遵循相同模式。
 
+### 书架地图 (Shelf Map)
+
+`src/views/LibShelfMap.vue` 提供楼层轮廓绘制与书架位置管理功能：
+
+- **SVG 画布**（`src/components/lib/MapCanvas.vue`）：1000×640 viewBox，支持轮廓点绘制/拖拽、书架拖拽移动、旋转手柄
+- **拖拽交互**（`src/composables/useSvgDrag.ts`）：文档级 mousemove/mouseup 监听，`getScreenCTM().inverse()` 精确坐标映射，边界裁剪
+- **坐标工具**（`src/utils/svg-coords.ts`）：纯函数，屏幕-SVG 坐标转换、viewBox 裁剪、轮廓 JSON 解析
+- **API**（`src/api/library-map-api.ts`）：楼层/书架 CRUD、公开地图接口
+- **公开地图**：`src/views/Index.vue` 中按楼层查看馆藏位置，点击书架展示图书列表
+- **保存策略**：批量保存全部书架位置，避免逐条保存
+
 ## 文档
 
 - `docs/前端代码规范标准.md` — 命名、类型、组件、API、样式等完整规范
