@@ -5,6 +5,7 @@ import type {CalendarDate} from '@internationalized/date'
 import {ElDialog, ElTreeSelect} from 'element-plus'
 import type {BookForm} from '@/api/library/book-api'
 import type {CategoryLazyOption} from '@/api/library/category-api'
+import type {BookshelfOptionVO} from '@/api/library-map-api'
 import {SAFE_IMAGE_UPLOAD_ACCEPT, SAFE_IMAGE_UPLOAD_DESCRIPTION} from '@/api/file-api'
 import type { CategoryTreeNode } from '@/types/common'
 
@@ -15,6 +16,7 @@ const publishTime = defineModel<CalendarDate>('publishTime', {required: true})
 
 withDefaults(defineProps<{
   publishOptions: SelectMenuItem[]
+  shelfOptions: BookshelfOptionVO[]
   categoryTreeOptions: CategoryLazyOption[]
   categoryTreeCacheData: CategoryLazyOption[]
   loadCategoryNode: (node: CategoryTreeNode, resolve: (data: CategoryLazyOption[]) => void) => void
@@ -90,6 +92,15 @@ const editBookInputDate = useTemplateRef('editBookInputDate')
             />
           </UFormField>
         </UFieldGroup>
+        <UFormField class="w-full" label="书架">
+          <USelectMenu
+              virtualize
+              valueKey="value"
+              v-model="state.shelfId"
+              class="w-full"
+              :items="shelfOptions"
+          />
+        </UFormField>
         <UFormField class="w-full" label="价格">
           <UInputNumber v-model="state.price" :formatOptions="{
             style: 'currency',

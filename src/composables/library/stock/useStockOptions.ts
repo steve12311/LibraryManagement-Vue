@@ -1,18 +1,24 @@
 import {ref} from "vue";
 import type {SelectMenuItem} from "@nuxt/ui";
 import categoryApi, {type CategoryLazyOption} from "@/api/library/category-api.ts";
+import libraryMapApi, {type BookshelfOptionVO} from "@/api/library-map-api";
 import publishApi from "@/api/library/publish-api.ts";
 import type { CategoryTreeNode } from "@/types/common";
 
 export function useStockOptions() {
   const toast = useToast()
   const publishOptions = ref<SelectMenuItem[]>([])
+  const shelfOptions = ref<BookshelfOptionVO[]>([])
   const categoryTreeOptions = ref<CategoryLazyOption[]>([])
   const categoryTreeCacheData = ref<CategoryLazyOption[]>([])
   const loadingOptions = ref(false)
 
   async function fetchPublishOptions() {
     publishOptions.value = await publishApi.getOptions()
+  }
+
+  async function fetchShelfOptions() {
+    shelfOptions.value = await libraryMapApi.getShelfOptions(true)
   }
 
   function normalizeCategoryId(value: unknown): number | undefined {
@@ -68,15 +74,17 @@ export function useStockOptions() {
   }
 
   async function fetchEntryOptions() {
-    await Promise.all([fetchPublishOptions(), fetchCategoryRootOptions()])
+    await Promise.all([fetchPublishOptions(), fetchCategoryRootOptions(), fetchShelfOptions()])
   }
 
   return {
     publishOptions,
+    shelfOptions,
     categoryTreeOptions,
     categoryTreeCacheData,
     loadingOptions,
     fetchPublishOptions,
+    fetchShelfOptions,
     fetchCategoryRootOptions,
     ensureCategoryNodeCache,
     loadCategoryTreeNode,

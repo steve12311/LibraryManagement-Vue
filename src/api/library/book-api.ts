@@ -35,6 +35,8 @@ export interface BookForm {
     publishTime: Date;
     categoryId: string | number;
     price: number;
+    shelfId?: number;
+    shelfNo?: string;
 }
 
 export default BookApi;

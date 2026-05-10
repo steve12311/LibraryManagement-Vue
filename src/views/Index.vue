@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {computed, defineAsyncComponent, onMounted, reactive, ref, watch} from "vue";
 import publicBookApi, {type PublicBookPageVO, type PublicBookQuery} from "@/api/public-book-api";
+import LibraryMapApi, {type MapPoint, type PublicBookshelfVO, type PublicLibraryFloorDetailVO, type PublicLibraryFloorVO} from "@/api/library-map-api";
 import FileApi from "@/api/file-api.ts";
 
 interface HomeBookCard extends PublicBookPageVO {
@@ -17,6 +18,11 @@ const total = ref(0);
 const searchKeyword = ref("");
 const activeKeyword = ref("");
 const books = ref<HomeBookCard[]>([]);
+const publicFloors = ref<PublicLibraryFloorVO[]>([]);
+const publicFloorDetail = ref<PublicLibraryFloorDetailVO>();
+const selectedPublicFloorId = ref<number>();
+const selectedPublicShelfId = ref<number>();
+const loadingMap = ref(false);
 const fetchSerial = ref(0);
 const queryParams = reactive<PublicBookQuery>({
   pageNum: 1,
@@ -57,9 +63,16 @@ const resultText = computed(() => {
   }
   return `关键词“${activeKeyword.value}”共找到 ${total.value} 本图书`;
 });
+const publicOutlinePoints = computed(() => parseOutline(publicFloorDetail.value?.outlineJson));
+const publicOutlinePointString = computed(() => publicOutlinePoints.value.map((point) => `${point.x},${point.y}`).join(" "));
+const selectedPublicShelf = computed(() => {
+  return publicFloorDetail.value?.shelves.find((item) => item.shelfId === selectedPublicShelfId.value)
+      || publicFloorDetail.value?.shelves[0];
+});
 
 onMounted(() => {
   void fetchBooks();
+  void fetchPublicFloors();
 });
 
 watch(openAISidebar, (isOpen) => {
@@ -128,6 +141,40 @@ async function fetchBooks() {
   }
 }
 
+async function fetchPublicFloors() {
+  loadingMap.value = true;
+  try {
+    publicFloors.value = await LibraryMapApi.getPublicFloors();
+    const firstFloor = publicFloors.value[0];
+    if (firstFloor) {
+      await selectPublicFloor(firstFloor.id);
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    loadingMap.value = false;
+  }
+}
+
+async function selectPublicFloor(floorId: number) {
+  selectedPublicFloorId.value = floorId;
+  loadingMap.value = true;
+  try {
+    publicFloorDetail.value = await LibraryMapApi.getPublicFloorDetail(floorId);
+    selectedPublicShelfId.value = publicFloorDetail.value.shelves[0]?.shelfId;
+  } catch (error) {
+    console.error(error);
+    publicFloorDetail.value = void 0;
+    selectedPublicShelfId.value = void 0;
+  } finally {
+    loadingMap.value = false;
+  }
+}
+
+function selectPublicShelf(shelf: PublicBookshelfVO) {
+  selectedPublicShelfId.value = shelf.shelfId;
+}
+
 function fetchCover(coverUrl?: string) {
   if (!coverUrl) {
     return void 0;
@@ -142,6 +189,19 @@ function fetchCover(coverUrl?: string) {
   }
   imageCache.set(coverUrl, resolvedUrl);
   return resolvedUrl;
+}
+
+function parseOutline(outlineJson?: string): MapPoint[] {
+  if (!outlineJson) return [];
+  try {
+    const parsed = JSON.parse(outlineJson) as MapPoint[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+        .filter((item) => Number.isFinite(Number(item.x)) && Number.isFinite(Number(item.y)))
+        .map((item) => ({x: Number(item.x), y: Number(item.y)}));
+  } catch {
+    return [];
+  }
 }
 
 function formatDate(date?: Date | string) {
@@ -210,6 +270,84 @@ function getAvailabilityColor(book: HomeBookCard) {
                 <p class="summary-description">{{ item.description }}</p>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section v-if="publicFloors.length > 0" class="section-stack">
+          <div class="section-heading">
+            <p class="section-kicker">书架地图</p>
+            <h2 class="section-title">按楼层查看馆藏位置</h2>
+          </div>
+
+          <div class="public-map-grid">
+            <div class="public-floor-tabs">
+              <UButton
+                  v-for="floor in publicFloors"
+                  :key="floor.id"
+                  :label="floor.name"
+                  :variant="floor.id === selectedPublicFloorId ? 'solid' : 'ghost'"
+                  icon="i-lucide-layers"
+                  @click="selectPublicFloor(floor.id)"
+              />
+            </div>
+
+            <div class="public-map-frame" :class="{ loading: loadingMap }">
+              <svg class="public-map-canvas" viewBox="0 0 1000 640" role="img">
+                <polygon
+                    v-if="publicOutlinePoints.length >= 3"
+                    :points="publicOutlinePointString"
+                    class="public-floor-outline"
+                />
+                <g
+                    v-for="shelf in publicFloorDetail?.shelves || []"
+                    :key="shelf.shelfId"
+                    class="public-shelf"
+                    :transform="`rotate(${Number(shelf.angle || 0)} ${Number(shelf.x) + Number(shelf.width) / 2} ${Number(shelf.y) + Number(shelf.height) / 2})`"
+                    @click="selectPublicShelf(shelf)"
+                >
+                  <rect
+                      :x="shelf.x"
+                      :y="shelf.y"
+                      :width="shelf.width"
+                      :height="shelf.height"
+                      rx="6"
+                      :class="{ selected: shelf.shelfId === selectedPublicShelf?.shelfId }"
+                  />
+                  <text
+                      :x="Number(shelf.x) + Number(shelf.width) / 2"
+                      :y="Number(shelf.y) + Number(shelf.height) / 2 + 5"
+                      text-anchor="middle"
+                  >
+                    {{ shelf.shelfNo }}
+                  </text>
+                </g>
+              </svg>
+            </div>
+
+            <aside class="public-shelf-books">
+              <div class="public-shelf-head">
+                <p class="section-kicker">{{ selectedPublicShelf?.shelfNo || "未选择" }}</p>
+                <h3>{{ selectedPublicShelf?.name || "书架图书" }}</h3>
+                <p>{{ selectedPublicShelf?.usedStock || 0 }}/{{ selectedPublicShelf?.capacity || 0 }} 册</p>
+              </div>
+              <div class="public-shelf-book-list">
+                <div
+                    v-for="book in selectedPublicShelf?.books || []"
+                    :key="book.isbn"
+                    class="public-shelf-book"
+                >
+                  <div class="public-shelf-book-cover">
+                    <img v-if="book.coverUrl" :src="FileApi.resolveUrl(book.coverUrl)" :alt="book.name">
+                    <span v-else>暂无封面</span>
+                  </div>
+                  <div class="min-w-0">
+                    <p>{{ book.name }}</p>
+                    <span>ISBN {{ book.isbn }}</span>
+                  </div>
+                </div>
+                <p v-if="!selectedPublicShelf?.books?.length" class="public-shelf-empty">暂无绑定图书</p>
+              </div>
+            </aside>
           </div>
         </section>
 
@@ -431,3 +569,153 @@ function getAvailabilityColor(book: HomeBookCard) {
     />
     <AISidebar v-if="aiSidebarLoaded" v-model:open="openAISidebar" />
 </template>
+
+<style scoped>
+.public-map-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 200px) minmax(0, 1fr) minmax(260px, 320px);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.public-floor-tabs,
+.public-shelf-books {
+  border: 1px solid var(--library-border);
+  border-radius: 8px;
+  background: var(--library-card);
+  padding: 12px;
+}
+
+.public-floor-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.public-map-frame {
+  min-height: 420px;
+  padding: 12px;
+}
+
+.public-map-frame.loading {
+  opacity: 0.72;
+}
+
+.public-map-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 396px;
+  border: 2px solid color-mix(in srgb, var(--library-accent) 55%, var(--library-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--library-card) 82%, white);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--library-accent) 12%, transparent);
+}
+
+.public-floor-outline {
+  fill: color-mix(in srgb, var(--library-accent) 8%, transparent);
+  stroke: var(--library-accent);
+  stroke-width: 3;
+}
+
+.public-shelf rect {
+  fill: color-mix(in srgb, var(--library-accent) 20%, var(--library-card));
+  stroke: color-mix(in srgb, var(--library-accent) 70%, var(--library-border));
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+.public-shelf rect.selected {
+  fill: color-mix(in srgb, var(--library-accent) 42%, var(--library-card));
+  stroke-width: 4;
+}
+
+.public-shelf text {
+  pointer-events: none;
+  fill: var(--library-text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.public-shelf-books {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.public-shelf-head h3 {
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--library-text);
+}
+
+.public-shelf-head p:last-child {
+  margin-top: 6px;
+  color: var(--library-text-muted);
+  font-size: 13px;
+}
+
+.public-shelf-book-list {
+  display: flex;
+  max-height: 340px;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+}
+
+.public-shelf-book {
+  display: flex;
+  min-width: 0;
+  gap: 10px;
+  border-top: 1px solid var(--library-border);
+  padding-top: 10px;
+}
+
+.public-shelf-book-cover {
+  display: flex;
+  width: 52px;
+  height: 68px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--library-border);
+  border-radius: 6px;
+  background: var(--library-surface);
+  color: var(--library-text-muted);
+  font-size: 12px;
+}
+
+.public-shelf-book-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.public-shelf-book p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--library-text);
+}
+
+.public-shelf-book span,
+.public-shelf-empty {
+  margin-top: 4px;
+  display: block;
+  color: var(--library-text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 1024px) {
+  .public-map-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

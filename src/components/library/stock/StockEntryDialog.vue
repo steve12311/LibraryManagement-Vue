@@ -5,6 +5,7 @@ import {CalendarDate} from "@internationalized/date";
 import stockApi, {type StockForm} from "@/api/library/stock-api.ts";
 import FileApi, {SAFE_IMAGE_UPLOAD_ACCEPT, SAFE_IMAGE_UPLOAD_DESCRIPTION} from "@/api/file-api.ts";
 import type {CategoryLazyOption} from "@/api/library/category-api.ts";
+import type {BookshelfOptionVO} from "@/api/library-map-api";
 import {ElDialog, ElTreeSelect} from "element-plus";
 import type { CategoryTreeNode } from "@/types/common";
 import { getCoverFileFromModel } from "@/composables/library/stock/useStockEdit";
@@ -13,6 +14,7 @@ const open = defineModel<boolean>("open", {default: false})
 
 const props = defineProps<{
   publishOptions: SelectMenuItem[]
+  shelfOptions: BookshelfOptionVO[]
   categoryTreeOptions: CategoryLazyOption[]
   categoryTreeCacheData: CategoryLazyOption[]
   loadCategoryNode: (node: CategoryTreeNode, resolve: (data: CategoryLazyOption[]) => void) => void
@@ -44,7 +46,8 @@ const initialStockFormData: StockForm = {
   pressId: void 0,
   price: 0,
   publishTime: date,
-  stock: 0
+  stock: 0,
+  shelfId: void 0
 }
 const state = ref<StockForm>({...initialStockFormData})
 const coverModel = ref<File>()
@@ -81,6 +84,13 @@ function normalizePressId(value: unknown) {
   return pressId
 }
 
+function normalizeShelfId(value: unknown) {
+  if (value === void 0 || value === null || value === "") return void 0
+  const shelfId = Number(value)
+  if (!Number.isInteger(shelfId) || shelfId <= 0) return void 0
+  return shelfId
+}
+
 async function nextEntryStep() {
   if (!entryStepper.value?.hasNext) return
 
@@ -97,6 +107,7 @@ async function nextEntryStep() {
       isbnExists.value = !!formData
       state.value = {
         ...state.value,
+        shelfId: formData?.shelfId,
         stock: 0
       }
       publishTime.value = toCalendarDate(formData?.publishTime)
@@ -140,6 +151,12 @@ async function submitStock() {
     return
   }
   payload.pressId = normalizedPressId
+  const normalizedShelfId = normalizeShelfId(state.value.shelfId)
+  if (state.value.shelfId !== void 0 && state.value.shelfId !== null && normalizedShelfId === void 0) {
+    toast.add({title: "错误", description: "书架无效", color: "error"})
+    return
+  }
+  payload.shelfId = normalizedShelfId
 
   try {
     submittingStock.value = true
@@ -181,6 +198,15 @@ async function submitStock() {
                   <UAlert color="warning" variant="soft" title="已存在该 ISBN，只允许录入入库数量"/>
                   <UFormField class="w-full" label="数量">
                     <UInputNumber v-model="state.stock" :min="0" class="w-full"/>
+                  </UFormField>
+                  <UFormField class="w-full" label="书架">
+                    <USelectMenu
+                        virtualize
+                        valueKey="value"
+                        v-model="state.shelfId"
+                        class="w-full"
+                        :items="props.shelfOptions"
+                    />
                   </UFormField>
                 </template>
                 <template v-else>
@@ -234,6 +260,15 @@ async function submitStock() {
                       <UInputNumber v-model="state.stock" :min="0" class="w-full"/>
                     </UFormField>
                   </UFieldGroup>
+                  <UFormField class="w-full" label="书架">
+                    <USelectMenu
+                        virtualize
+                        valueKey="value"
+                        v-model="state.shelfId"
+                        class="w-full"
+                        :items="props.shelfOptions"
+                    />
+                  </UFormField>
                   <UFieldGroup class="w-full gap-2">
                     <UFormField class="w-full" label="价格">
                       <UInputNumber

@@ -49,6 +49,8 @@ export interface StockPageVO {
     categoryName: string
     stockNumber: number
     currentNumber: number
+    shelfId?: number
+    shelfNo?: string
     price: number
     createTime: StockDateValue
 }
@@ -69,6 +71,8 @@ export interface StockForm {
     publishTime?: StockDateValue;
     categoryId?: number;
     price?: number;
+    shelfId?: number;
+    shelfNo?: string;
 }
 
 export default StockApi

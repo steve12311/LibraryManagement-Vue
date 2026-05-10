@@ -28,6 +28,13 @@ function toCalendarDate(value?: Date | string) {
   return new CalendarDate(target.getFullYear(), target.getMonth() + 1, target.getDate())
 }
 
+function normalizeShelfId(value: unknown) {
+  if (value === void 0 || value === null || value === "") return void 0
+  const shelfId = Number(value)
+  if (!Number.isInteger(shelfId) || shelfId <= 0) return void 0
+  return shelfId
+}
+
 export function getCoverFileFromModel(model?: CoverFileModel): File | undefined {
   if (!model) return void 0
   if (model instanceof File) return model
@@ -108,6 +115,12 @@ export function useStockEdit(options: UseStockEditOptions) {
       isbn: options.editingIsbn.value,
       publishTime: new Date(options.editBookPublishTime.value.toString())
     }
+    const normalizedShelfId = normalizeShelfId(options.editBookState.value.shelfId)
+    if (options.editBookState.value.shelfId !== void 0 && options.editBookState.value.shelfId !== null && normalizedShelfId === void 0) {
+      toast.add({title: "错误", description: "书架无效", color: "error"})
+      return
+    }
+    payload.shelfId = normalizedShelfId
 
     try {
       options.submittingEditBook.value = true

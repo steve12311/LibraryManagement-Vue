@@ -55,6 +55,7 @@ const {
 const table = useTemplateRef("table")
 const {
   publishOptions,
+  shelfOptions,
   categoryTreeOptions,
   categoryTreeCacheData,
   loadingOptions,
@@ -103,6 +104,12 @@ const columns = ref<TableColumn<StockPageVO>[]>([
     id: "publishName",
     accessorKey: "publishName",
     header: "出版社"
+  },
+  {
+    id: "shelfNo",
+    accessorKey: "shelfNo",
+    header: "书架号",
+    cell: ({row}) => row.original.shelfNo || "未绑定"
   },
   {
     id: "stock",
@@ -158,6 +165,7 @@ const initialEditBookFormData: BookForm = {
   publishTime: date,
   categoryId: 0,
   price: 0,
+  shelfId: void 0,
 }
 const editBookState = ref<BookForm>({...initialEditBookFormData})
 const editBookCoverModel = ref<File>()
@@ -203,6 +211,7 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
       v-model:cover-model="editBookCoverModel"
       v-model:publish-time="editBookPublishTime"
       :publish-options="publishOptions"
+      :shelf-options="shelfOptions"
       :category-tree-options="categoryTreeOptions"
       :category-tree-cache-data="categoryTreeCacheData"
       :load-category-node="loadCategoryTreeNode"
@@ -212,6 +221,7 @@ function showBookDetailInfo(_: unknown, row: TableRow<StockPageVO>) {
   <StockEntryDialog
       v-model:open="openEntryStepper"
       :publish-options="publishOptions"
+      :shelf-options="shelfOptions"
       :category-tree-options="categoryTreeOptions"
       :category-tree-cache-data="categoryTreeCacheData"
       :load-category-node="loadCategoryTreeNode"
