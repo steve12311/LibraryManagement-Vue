@@ -66,7 +66,6 @@ const resultText = computed(() => {
   return `关键词“${activeKeyword.value}”共找到 ${total.value} 本图书`;
 });
 const publicOutlinePoints = computed(() => parseOutline(publicFloorDetail.value?.outlineJson));
-const publicOutlinePointString = computed(() => publicOutlinePoints.value.map((point) => `${point.x},${point.y}`).join(" "));
 const selectedPublicShelf = computed(() => {
   return publicFloorDetail.value?.shelves.find((item) => item.shelfId === selectedPublicShelfId.value)
       || publicFloorDetail.value?.shelves[0];

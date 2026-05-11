@@ -54,7 +54,7 @@ function handleMinimapClick(e: MouseEvent) {
   const rect = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
   const mx = (e.clientX - rect.left) / scaleX;
   const my = (e.clientY - rect.top) / scaleY;
-  emit("navigateTo", mx - 500 / (props.viewBoxH ? 640 / props.viewBoxH : 1));
+  emit("navigateTo", mx - 500 / (props.viewBoxH ? 640 / props.viewBoxH : 1), my);
 }
 </script>
 

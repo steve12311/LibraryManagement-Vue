@@ -46,6 +46,7 @@ const emit = defineEmits<{
   clearOutline: [];
   saveOutline: [];
   copyShelf: [shelfId: number, x: number, y: number];
+  "update:showGrid": [value: boolean];
 }>();
 
 const outlinePointString = computed(() =>
