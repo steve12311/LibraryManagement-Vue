@@ -9,6 +9,10 @@ import LibraryMapApi, {
 } from "@/api/library-map-api";
 import type { MapPoint } from "@/utils/svg-coords";
 import { parseOutline } from "@/utils/svg-coords";
+import { parseOutlineData, type OutlineData } from "@/utils/svg-coords";
+import { useUndoRedo, type UndoEntry, type UndoEntryMove } from "@/composables/useUndoRedo";
+import FileApi from "@/api/file-api";
+import type { ShelfRenderItem } from "@/components/lib/MapCanvas.vue";
 import SystemPageHeader from "@/components/system/SystemPageHeader.vue";
 import SystemQueryCard from "@/components/system/SystemQueryCard.vue";
 import MapCanvas from "@/components/lib/MapCanvas.vue";
@@ -23,6 +27,9 @@ const loadingShelves = ref(false);
 const savingFloor = ref(false);
 const savingAllShelves = ref(false);
 const drawingOutline = ref(false);
+const showGrid = ref(false);
+const undoRedo = useUndoRedo();
+const uploadingBg = ref(false);
 const outlinePoints = ref<MapPoint[]>([]);
 
 const statusItems = [
@@ -41,6 +48,27 @@ const totalCapacity = computed(() =>
 );
 const usedCapacity = computed(() =>
   shelves.value.reduce((sum, item) => sum + (item.usedStock || 0), 0),
+);
+
+const outlineData = computed<OutlineData>(() => {
+  const floor = floors.value.find((f) => f.id === selectedFloorId.value);
+  return parseOutlineData(floor?.outlineJson);
+});
+
+const shelfRenderItems = computed<ShelfRenderItem[]>(() =>
+  shelves.value.map((s) => ({
+    id: s.id,
+    shelfNo: s.shelfNo,
+    name: s.name,
+    x: Number(s.x),
+    y: Number(s.y),
+    width: Number(s.width),
+    height: Number(s.height),
+    angle: Number(s.angle || 0),
+    capacity: s.capacity,
+    usedStock: s.usedStock,
+    status: s.status,
+  })),
 );
 
 onMounted(() => {
@@ -249,6 +277,7 @@ async function saveAllShelves() {
     }
     toast.add({ title: "成功", description: "全部书架已保存", color: "success" });
     await fetchShelves();
+    undoRedo.clear();
   } catch (error) {
     toast.add({
       title: "错误",
@@ -262,8 +291,28 @@ async function saveAllShelves() {
 
 async function deleteShelf() {
   if (!shelfForm.id) return;
+  const shelfToDelete = shelves.value.find((s) => s.id === shelfForm.id);
   await ElMessageBox.confirm("确认删除当前书架吗？", "警告");
   try {
+    if (shelfToDelete) {
+      undoRedo.push({
+        type: "delete",
+        shelfId: shelfToDelete.id,
+        shelfData: {
+          floorId: shelfToDelete.floorId,
+          shelfNo: shelfToDelete.shelfNo,
+          name: shelfToDelete.name,
+          x: Number(shelfToDelete.x),
+          y: Number(shelfToDelete.y),
+          width: Number(shelfToDelete.width),
+          height: Number(shelfToDelete.height),
+          angle: Number(shelfToDelete.angle || 0),
+          capacity: shelfToDelete.capacity,
+          status: shelfToDelete.status,
+          remark: shelfToDelete.remark,
+        },
+      });
+    }
     await LibraryMapApi.deleteShelf(shelfForm.id);
     selectedShelfId.value = void 0;
     fillShelfForm();
@@ -315,19 +364,53 @@ function handleSelectShelf(shelfId: number) {
 
 function handleShelfMove(shelfId: number, x: number, y: number) {
   const shelf = shelves.value.find((s) => s.id === shelfId);
-  if (shelf) {
-    shelf.x = x;
-    shelf.y = y;
+  if (!shelf) return;
+  // Push undo entry only on first move of a drag sequence
+  const existing = undoRedo.undoStack.value.find(
+    (e) => e.type === "move" && (e as UndoEntryMove).shelfId === shelfId,
+  ) as UndoEntryMove | undefined;
+  if (!existing) {
+    undoRedo.push({
+      type: "move",
+      shelfId,
+      prevX: Number(shelf.x),
+      prevY: Number(shelf.y),
+      prevAngle: Number(shelf.angle || 0),
+      nextX: x,
+      nextY: y,
+      nextAngle: Number(shelf.angle || 0),
+    });
+  } else {
+    existing.nextX = x;
+    existing.nextY = y;
   }
+  shelf.x = x;
+  shelf.y = y;
   shelfForm.x = x;
   shelfForm.y = y;
 }
 
 function handleShelfRotate(shelfId: number, angle: number) {
   const shelf = shelves.value.find((s) => s.id === shelfId);
-  if (shelf) {
-    shelf.angle = angle;
+  if (!shelf) return;
+  const existing = undoRedo.undoStack.value.find(
+    (e) => e.type === "rotate" && (e as UndoEntryMove).shelfId === shelfId,
+  ) as UndoEntryMove | undefined;
+  if (!existing) {
+    undoRedo.push({
+      type: "rotate",
+      shelfId,
+      prevX: Number(shelf.x),
+      prevY: Number(shelf.y),
+      prevAngle: Number(shelf.angle || 0),
+      nextX: Number(shelf.x),
+      nextY: Number(shelf.y),
+      nextAngle: angle,
+    });
+  } else {
+    existing.nextAngle = angle;
   }
+  shelf.angle = angle;
   shelfForm.angle = angle;
 }
 
@@ -346,6 +429,199 @@ function handleCanvasClick(x: number, y: number) {
     shelfForm.x = x;
     shelfForm.y = y;
   }
+}
+
+function handleCopyShelf(shelfId: number, x: number, y: number) {
+  const source = shelves.value.find((s) => s.id === shelfId);
+  if (!source) return;
+  const formData: BookshelfForm = {
+    floorId: selectedFloorId.value || 0,
+    shelfNo: `${source.shelfNo}-copy`,
+    name: source.name ? `${source.name} (副本)` : "",
+    x,
+    y,
+    width: Number(source.width),
+    height: Number(source.height),
+    angle: Number(source.angle || 0),
+    capacity: source.capacity,
+    status: source.status,
+    remark: source.remark,
+  };
+  LibraryMapApi.createShelf(formData)
+    .then((result) => {
+      shelves.value.push(result);
+      undoRedo.push({ type: "create", shelfId: result.id });
+      toast.add({ title: "成功", description: "书架已复制", color: "success" });
+    })
+    .catch((error) => {
+      toast.add({
+        title: "错误",
+        description: error instanceof Error ? error.message : "复制书架失败",
+        color: "error",
+      });
+    });
+}
+
+function handleUndo() {
+  const entry = undoRedo.undo();
+  if (!entry) return;
+  applyUndoEntry(entry);
+}
+
+function handleRedo() {
+  const entry = undoRedo.redo();
+  if (!entry) return;
+  applyRedoEntry(entry);
+}
+
+function applyUndoEntry(entry: UndoEntry) {
+  switch (entry.type) {
+    case "move":
+    case "rotate": {
+      const shelf = shelves.value.find((s) => s.id === entry.shelfId);
+      if (shelf) {
+        shelf.x = entry.prevX;
+        shelf.y = entry.prevY;
+        shelf.angle = entry.prevAngle;
+        if (shelf.id === selectedShelfId.value) {
+          shelfForm.x = entry.prevX;
+          shelfForm.y = entry.prevY;
+          shelfForm.angle = entry.prevAngle;
+        }
+      }
+      break;
+    }
+    case "create": {
+      const idx = shelves.value.findIndex((s) => s.id === entry.shelfId);
+      if (idx !== -1) shelves.value.splice(idx, 1);
+      break;
+    }
+    case "delete": {
+      LibraryMapApi.createShelf(entry.shelfData)
+        .then((result) => {
+          shelves.value.push(result);
+        })
+        .catch((error) => {
+          toast.add({
+            title: "错误",
+            description: error instanceof Error ? error.message : "撤销删除失败",
+            color: "error",
+          });
+        });
+      break;
+    }
+    case "batch-move": {
+      for (const item of entry.shelves) {
+        const shelf = shelves.value.find((s) => s.id === item.shelfId);
+        if (shelf) {
+          shelf.x = item.x;
+          shelf.y = item.y;
+        }
+      }
+      break;
+    }
+  }
+}
+
+function applyRedoEntry(entry: UndoEntry) {
+  switch (entry.type) {
+    case "move":
+    case "rotate": {
+      const shelf = shelves.value.find((s) => s.id === entry.shelfId);
+      if (shelf) {
+        shelf.x = entry.nextX;
+        shelf.y = entry.nextY;
+        shelf.angle = entry.nextAngle;
+        if (shelf.id === selectedShelfId.value) {
+          shelfForm.x = entry.nextX;
+          shelfForm.y = entry.nextY;
+          shelfForm.angle = entry.nextAngle;
+        }
+      }
+      break;
+    }
+    case "create": {
+      const idx = shelves.value.findIndex((s) => s.id === entry.shelfId);
+      if (idx !== -1) shelves.value.splice(idx, 1);
+      break;
+    }
+  }
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  if (e.key === "Delete" && shelfForm.id) {
+    void deleteShelf();
+  }
+  if (e.key === "Escape") {
+    selectedShelfId.value = void 0;
+    fillShelfForm();
+    drawingOutline.value = false;
+  }
+  if (e.ctrlKey && e.key === "z" && !e.shiftKey) {
+    e.preventDefault();
+    handleUndo();
+  }
+  if (e.ctrlKey && e.key === "z" && e.shiftKey) {
+    e.preventDefault();
+    handleRedo();
+  }
+  if (e.ctrlKey && e.key === "s") {
+    e.preventDefault();
+    void saveAllShelves();
+  }
+}
+
+async function uploadBackgroundImage(file: File) {
+  if (!selectedFloorId.value) return;
+  uploadingBg.value = true;
+  try {
+    const result = await FileApi.uploadFile(file);
+    const payload = JSON.stringify({
+      imageUrl: result.url,
+      points: outlinePoints.value,
+    });
+    await LibraryMapApi.updateFloorOutline(selectedFloorId.value, payload);
+    await fetchFloors();
+    toast.add({ title: "成功", description: "背景图已上传", color: "success" });
+  } catch (error) {
+    toast.add({
+      title: "错误",
+      description: error instanceof Error ? error.message : "上传背景图失败",
+      color: "error",
+    });
+  } finally {
+    uploadingBg.value = false;
+  }
+}
+
+async function removeBackgroundImage() {
+  if (!selectedFloorId.value) return;
+  try {
+    await LibraryMapApi.updateFloorOutline(
+      selectedFloorId.value,
+      JSON.stringify({ points: outlinePoints.value }),
+    );
+    await fetchFloors();
+    toast.add({ title: "成功", description: "背景图已移除", color: "success" });
+  } catch (error) {
+    toast.add({
+      title: "错误",
+      description: error instanceof Error ? error.message : "移除背景图失败",
+      color: "error",
+    });
+  }
+}
+
+function triggerBgUpload() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/png,image/jpeg,image/jpg";
+  input.onchange = () => {
+    const file = input.files?.[0];
+    if (file) uploadBackgroundImage(file);
+  };
+  input.click();
 }
 
 watch(
@@ -370,7 +646,7 @@ watch(
 </script>
 
 <template>
-  <div class="system-page-shell">
+  <div class="system-page-shell" @keydown="onKeydown">
     <div class="system-page-shell__header">
       <SystemPageHeader
         kicker="SHELF MAP"
@@ -458,10 +734,12 @@ watch(
 
       <MapCanvas
         :outline-points="outlinePoints"
-        :shelves="shelves"
+        :outline-data="outlineData"
+        :shelves="shelfRenderItems"
         :selected-shelf-id="selectedShelfId"
         :selected-floor-id="selectedFloorId"
         :drawing-outline="drawingOutline"
+        :show-grid="showGrid"
         @select-shelf="handleSelectShelf"
         @update:shelf-position="handleShelfMove"
         @update:shelf-angle="handleShelfRotate"
@@ -471,6 +749,8 @@ watch(
         @remove-last-point="removeLastPoint"
         @clear-outline="clearOutline"
         @save-outline="saveOutline"
+        @copy-shelf="handleCopyShelf"
+        @update:show-grid="showGrid = $event"
       />
 
       <aside class="shelf-map-panel editor-panel">
@@ -495,6 +775,27 @@ watch(
                 :items="statusItems"
                 class="w-full"
               />
+            </UFormField>
+            <UFormField label="平面图">
+              <div class="flex gap-2">
+                <UButton
+                  icon="i-lucide-upload"
+                  variant="subtle"
+                  :loading="uploadingBg"
+                  :disabled="!selectedFloorId"
+                  label="上传"
+                  @click="triggerBgUpload"
+                />
+                <UButton
+                  v-if="outlineData.imageUrl"
+                  icon="i-lucide-trash-2"
+                  variant="ghost"
+                  color="error"
+                  :disabled="!selectedFloorId"
+                  label="移除"
+                  @click="removeBackgroundImage"
+                />
+              </div>
             </UFormField>
           </UForm>
         </div>
