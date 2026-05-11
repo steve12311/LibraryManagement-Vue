@@ -20,9 +20,9 @@ export function useSvgZoom(initialZoom = 1, initialPanX = 0, initialPanY = 0) {
   function zoomAt(svgCenterX: number, svgCenterY: number, delta: number) {
     const oldZoom = zoomLevel.value;
     const newZoom = Math.max(0.3, Math.min(3, oldZoom * (delta > 0 ? 1.15 : 0.85)));
-    const ratio = 1 / oldZoom - 1 / newZoom;
-    panX.value += svgCenterX * ratio;
-    panY.value += svgCenterY * ratio;
+    const ratio = 1 - oldZoom / newZoom;
+    panX.value += (svgCenterX - panX.value) * ratio;
+    panY.value += (svgCenterY - panY.value) * ratio;
     zoomLevel.value = newZoom;
   }
 
@@ -37,11 +37,12 @@ export function useSvgZoom(initialZoom = 1, initialPanX = 0, initialPanY = 0) {
     const padding = 40;
     const zx = 1000 / (contentW + padding * 2);
     const zy = 640 / (contentH + padding * 2);
-    zoomLevel.value = Math.max(0.3, Math.min(3, Math.min(zx, zy) * 0.9));
+    const newZoom = Math.max(0.3, Math.min(3, Math.min(zx, zy) * 0.9));
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
-    panX.value = centerX - 500 / zoomLevel.value;
-    panY.value = centerY - 320 / zoomLevel.value;
+    zoomLevel.value = newZoom;
+    panX.value = centerX - 500 / newZoom;
+    panY.value = centerY - 320 / newZoom;
   }
 
   function resetZoom() {
