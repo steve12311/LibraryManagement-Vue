@@ -115,7 +115,10 @@ export function useSvgDrag(options: UseSvgDragOptions) {
     shelfW: number,
     shelfH: number,
   ) {
-    if (options.isReadonly?.()) return;
+    if (options.isReadonly?.()) {
+      options.onSelectShelf(shelfId);
+      return;
+    }
     if (!svgRef.value) return;
     if (event.button === 1) return;
     const { x, y } = svgPoint(svgRef.value, event.clientX, event.clientY);
