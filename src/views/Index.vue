@@ -594,7 +594,6 @@ function getAvailabilityColor(book: HomeBookCard) {
 
 .public-map-frame {
   min-height: 420px;
-  padding: 12px;
 }
 
 .public-map-frame.loading {
