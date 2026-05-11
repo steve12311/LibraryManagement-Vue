@@ -105,11 +105,18 @@ src/
 
 `src/views/LibShelfMap.vue` 提供楼层轮廓绘制与书架位置管理功能：
 
-- **SVG 画布**（`src/components/lib/MapCanvas.vue`）：1000×640 viewBox，支持轮廓点绘制/拖拽、书架拖拽移动、旋转手柄
-- **拖拽交互**（`src/composables/useSvgDrag.ts`）：文档级 mousemove/mouseup 监听，`getScreenCTM().inverse()` 精确坐标映射，边界裁剪
-- **坐标工具**（`src/utils/svg-coords.ts`）：纯函数，屏幕-SVG 坐标转换、viewBox 裁剪、轮廓 JSON 解析
+- **SVG 画布**（`src/components/lib/MapCanvas.vue`）：1000×640 逻辑空间，支持动态缩放（鼠标中心缩放 0.3x–3x）、中键平移、轮廓点绘制/拖拽、书架拖拽移动、旋转手柄、Alt+拖拽复制书架
+- **拖拽交互**（`src/composables/useSvgDrag.ts`）：文档级 mousemove/mouseup 监听，`getScreenCTM().inverse()` 精确坐标映射，智能参考线对齐（6px 阈值）、Shift 网格吸附（20px）、Shift 旋转吸附（15°步进）、中键平移
+- **缩放平移**（`src/composables/useSvgZoom.ts`）：鼠标中心缩放，viewBox 动态计算，自动适配楼层边界
+- **撤销重做**（`src/composables/useUndoRedo.ts`）：20 步操作历史栈，支持 Ctrl+Z/Ctrl+Shift+Z，覆盖移动、旋转、新增、删除
+- **小地图**（`src/components/lib/MapMinimap.vue`）：左下角 140×100 缩略图，蓝色视口框可拖拽导航，书架热力着色，可折叠
+- **悬浮提示**（`src/components/lib/ShelfTooltip.vue`）：悬停 300ms 弹出书架编号与容量占用
+- **热力着色**：按容量使用率着色（绿 <50% / 黄 50–80% / 红 >80% / 灰 停用）
+- **楼层背景图**：支持上传 PNG/JPG 平面图作为画布背景
+- **坐标工具**（`src/utils/svg-coords.ts`）：纯函数，屏幕-SVG 坐标转换、viewBox 裁剪、轮廓 JSON 解析（兼容新旧格式）
 - **API**（`src/api/library-map-api.ts`）：楼层/书架 CRUD、公开地图接口
-- **公开地图**：`src/views/Index.vue` 中按楼层查看馆藏位置，点击书架展示图书列表
+- **公开地图**：`src/views/Index.vue` 中共享同一 MapCanvas（readonly 模式），支持缩放平移、热力着色、Tooltip、小地图，点击书架查看图书列表
+- **键盘快捷键**：Delete 删除 / Escape 取消 / Ctrl+Z 撤销 / Ctrl+Shift+Z 重做 / Ctrl+S 保存
 - **保存策略**：批量保存全部书架位置，避免逐条保存
 
 ## 文档
