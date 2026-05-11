@@ -545,6 +545,21 @@ function applyRedoEntry(entry: UndoEntry) {
       if (idx !== -1) shelves.value.splice(idx, 1);
       break;
     }
+    case "delete": {
+      const idx = shelves.value.findIndex((s) => s.id === entry.shelfId);
+      if (idx !== -1) shelves.value.splice(idx, 1);
+      break;
+    }
+    case "batch-move": {
+      for (const item of entry.shelves) {
+        const shelf = shelves.value.find((s) => s.id === item.shelfId);
+        if (shelf) {
+          shelf.x = item.x;
+          shelf.y = item.y;
+        }
+      }
+      break;
+    }
   }
 }
 

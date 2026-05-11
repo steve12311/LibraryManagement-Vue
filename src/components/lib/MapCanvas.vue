@@ -107,7 +107,9 @@ function handleWheel(e: WheelEvent) {
   const pt = svgRef.value.createSVGPoint();
   pt.x = e.clientX;
   pt.y = e.clientY;
-  const svgPt = pt.matrixTransform(svgRef.value.getScreenCTM()!.inverse());
+  const ctm = svgRef.value.getScreenCTM();
+  if (!ctm) return;
+  const svgPt = pt.matrixTransform(ctm.inverse());
   zoomAt(svgPt.x, svgPt.y, e.deltaY);
 }
 
@@ -158,8 +160,9 @@ const viewBoxParts = computed(() => {
   return { x: parts[0], y: parts[1], w: parts[2], h: parts[3] };
 });
 
-function onMinimapNavigate(x: number, _y: number) {
+function onMinimapNavigate(x: number, y: number) {
   panX.value = x;
+  panY.value = y;
 }
 </script>
 

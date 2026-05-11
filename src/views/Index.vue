@@ -601,41 +601,6 @@ function getAvailabilityColor(book: HomeBookCard) {
   opacity: 0.72;
 }
 
-.public-map-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-height: 396px;
-  border: 2px solid color-mix(in srgb, var(--library-accent) 55%, var(--library-border));
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--library-card) 82%, white);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--library-accent) 12%, transparent);
-}
-
-.public-floor-outline {
-  fill: color-mix(in srgb, var(--library-accent) 8%, transparent);
-  stroke: var(--library-accent);
-  stroke-width: 3;
-}
-
-.public-shelf rect {
-  fill: color-mix(in srgb, var(--library-accent) 20%, var(--library-card));
-  stroke: color-mix(in srgb, var(--library-accent) 70%, var(--library-border));
-  stroke-width: 2;
-  cursor: pointer;
-}
-
-.public-shelf rect.selected {
-  fill: color-mix(in srgb, var(--library-accent) 42%, var(--library-card));
-  stroke-width: 4;
-}
-
-.public-shelf text {
-  pointer-events: none;
-  fill: var(--library-text);
-  font-size: 18px;
-  font-weight: 700;
-}
 
 .public-shelf-books {
   display: flex;
