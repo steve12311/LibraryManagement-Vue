@@ -379,9 +379,8 @@ function onMinimapNavigate(x: number, y: number) {
 }
 
 .map-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 12px;
   border: 2px solid color-mix(in srgb, var(--library-accent) 55%, var(--library-border));
   border-radius: 8px;
   background: color-mix(in srgb, var(--library-card) 82%, white);
