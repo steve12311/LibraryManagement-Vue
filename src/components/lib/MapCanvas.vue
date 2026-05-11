@@ -1,16 +1,39 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import type { BookshelfVO } from "@/api/library-map-api";
+import { computed, ref } from "vue";
 import { useSvgDrag } from "@/composables/useSvgDrag";
-import type { MapPoint } from "@/utils/svg-coords";
+import { useSvgZoom } from "@/composables/useSvgZoom";
+import { type MapPoint, type OutlineData } from "@/utils/svg-coords";
+import ShelfTooltip from "@/components/lib/ShelfTooltip.vue";
+import MapMinimap from "@/components/lib/MapMinimap.vue";
+import type { MinimapShelf } from "@/components/lib/MapMinimap.vue";
 
-const props = defineProps<{
+export interface ShelfRenderItem {
+  id: number;
+  shelfNo: string;
+  name?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  angle: number;
+  capacity: number;
+  usedStock: number;
+  status: number;
+}
+
+const props = withDefaults(defineProps<{
   outlinePoints: MapPoint[];
-  shelves: BookshelfVO[];
+  outlineData?: OutlineData;
+  shelves: ShelfRenderItem[];
   selectedShelfId?: number;
   selectedFloorId?: number;
   drawingOutline: boolean;
-}>();
+  readonly?: boolean;
+  showGrid?: boolean;
+}>(), {
+  readonly: false,
+  showGrid: false,
+});
 
 const emit = defineEmits<{
   selectShelf: [shelfId: number];
@@ -22,18 +45,31 @@ const emit = defineEmits<{
   removeLastPoint: [];
   clearOutline: [];
   saveOutline: [];
+  copyShelf: [shelfId: number, x: number, y: number];
 }>();
 
 const outlinePointString = computed(() =>
   props.outlinePoints.map((point) => `${point.x},${point.y}`).join(" "),
 );
 
+const tooltipVisible = ref(false);
+const tooltipShelf = ref<ShelfRenderItem>();
+const tooltipX = ref(0);
+const tooltipY = ref(0);
+const minimapCollapsed = ref(false);
+let tooltipTimer: ReturnType<typeof setTimeout> | undefined;
+
+const { zoomLevel, panX, panY, viewBox, zoomAt, panBy } = useSvgZoom();
+
 const {
   svgRef,
   draggingShelfId,
+  alignmentLines,
+  panning,
   handleShelfMouseDown,
   handleOutlinePointMouseDown,
   handleRotateMouseDown,
+  handleSvgMouseDown,
   handleMapClick,
 } = useSvgDrag({
   onShelfMove(shelfId, x, y) {
@@ -51,15 +87,90 @@ const {
   onSelectShelf(shelfId) {
     emit("selectShelf", shelfId);
   },
+  onCopyShelf(shelfId, x, y) {
+    emit("copyShelf", shelfId, x, y);
+  },
+  onPan(dx, dy) {
+    panBy(dx, dy);
+  },
+  getZoomState: () => ({ zoomLevel: zoomLevel.value, panX: panX.value, panY: panY.value }),
+  getAllShelves: () => props.shelves.map((s) => ({ id: s.id, x: s.x, y: s.y, width: s.width, height: s.height })),
+  isReadonly: () => props.readonly,
 });
 
-// svgRef is used as template ref on <svg>
 void svgRef;
+
+function handleWheel(e: WheelEvent) {
+  e.preventDefault();
+  if (!svgRef.value) return;
+  const pt = svgRef.value.createSVGPoint();
+  pt.x = e.clientX;
+  pt.y = e.clientY;
+  const svgPt = pt.matrixTransform(svgRef.value.getScreenCTM()!.inverse());
+  zoomAt(svgPt.x, svgPt.y, e.deltaY);
+}
+
+function shelfColor(status: number, usedStock: number, capacity: number): string {
+  if (status !== 1) return "#6c7086";
+  const ratio = capacity > 0 ? usedStock / capacity : 0;
+  if (ratio < 0.5) return "#a6e3a1";
+  if (ratio < 0.8) return "#f9e2af";
+  return "#f38ba8";
+}
+
+function onShelfMouseEnter(event: MouseEvent, shelf: ShelfRenderItem) {
+  tooltipX.value = event.clientX;
+  tooltipY.value = event.clientY;
+  tooltipTimer = setTimeout(() => {
+    tooltipShelf.value = shelf;
+    tooltipVisible.value = true;
+  }, 300);
+}
+
+function onShelfMouseMove(event: MouseEvent) {
+  if (tooltipVisible.value) {
+    tooltipX.value = event.clientX;
+    tooltipY.value = event.clientY;
+  }
+}
+
+function onShelfMouseLeave() {
+  if (tooltipTimer) clearTimeout(tooltipTimer);
+  tooltipVisible.value = false;
+  tooltipShelf.value = undefined;
+}
+
+const minimapShelves = computed<MinimapShelf[]>(() =>
+  props.shelves.map((s) => ({
+    x: s.x,
+    y: s.y,
+    width: s.width,
+    height: s.height,
+    angle: s.angle,
+    usageRatio: s.capacity > 0 ? s.usedStock / s.capacity : 0,
+    status: s.status,
+  })),
+);
+
+const viewBoxParts = computed(() => {
+  const parts = viewBox.value.split(" ").map(Number);
+  return { x: parts[0], y: parts[1], w: parts[2], h: parts[3] };
+});
+
+function onMinimapNavigate(x: number, _y: number) {
+  panX.value = x;
+}
 </script>
 
 <template>
   <section class="map-workspace">
-    <div class="map-toolbar">
+    <div v-if="!readonly" class="map-toolbar">
+      <UButton
+        icon="i-lucide-grid-3x3"
+        :variant="showGrid ? 'solid' : 'ghost'"
+        label="网格"
+        @click="emit('update:showGrid', !showGrid)"
+      />
       <UButton
         :icon="drawingOutline ? 'i-lucide-pencil-off' : 'i-lucide-pencil'"
         :variant="drawingOutline ? 'solid' : 'subtle'"
@@ -90,14 +201,47 @@ void svgRef;
       />
     </div>
 
-    <div class="map-canvas-frame">
+    <div class="map-canvas-frame" :class="{ panning }">
       <svg
         ref="svgRef"
         class="map-canvas"
-        viewBox="0 0 1000 640"
+        :viewBox="viewBox"
         role="img"
+        tabindex="0"
         @click="handleMapClick"
+        @mousedown="handleSvgMouseDown"
+        @wheel.prevent="handleWheel"
       >
+        <!-- Grid layer -->
+        <defs>
+          <pattern
+            id="map-grid"
+            width="20"
+            height="20"
+            patternUnits="userSpaceOnUse"
+          >
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#6c7086" stroke-width="0.3" opacity="0.3" />
+          </pattern>
+        </defs>
+        <rect
+          v-if="showGrid && !readonly"
+          x="0"
+          y="0"
+          width="1000"
+          height="640"
+          fill="url(#map-grid)"
+        />
+
+        <!-- Background image layer -->
+        <image
+          v-if="outlineData?.imageUrl"
+          :href="outlineData.imageUrl"
+          :width="outlineData.imageWidth || 1000"
+          :height="outlineData.imageHeight || 640"
+          opacity="0.4"
+        />
+
+        <!-- Floor outline -->
         <polygon
           v-if="outlinePoints.length >= 3"
           :points="outlinePointString"
@@ -108,23 +252,48 @@ void svgRef;
           :points="outlinePointString"
           class="floor-outline-line"
         />
-        <circle
-          v-for="(point, index) in outlinePoints"
-          :key="`${point.x}-${point.y}-${index}`"
-          :cx="point.x"
-          :cy="point.y"
-          r="6"
-          class="outline-point"
-          :class="{ 'cursor-move': !drawingOutline, 'pointer-pass': drawingOutline }"
-          @mousedown.prevent="!drawingOutline && handleOutlinePointMouseDown($event, index)"
+
+        <!-- Outline points (admin only) -->
+        <template v-if="!readonly">
+          <circle
+            v-for="(point, index) in outlinePoints"
+            :key="`${point.x}-${point.y}-${index}`"
+            :cx="point.x"
+            :cy="point.y"
+            r="6"
+            class="outline-point"
+            :class="{ 'cursor-move': !drawingOutline, 'pointer-pass': drawingOutline }"
+            @mousedown.prevent="!drawingOutline && handleOutlinePointMouseDown($event, index)"
+          />
+        </template>
+
+        <!-- Alignment lines -->
+        <line
+          v-for="(line, i) in alignmentLines"
+          :key="`al-${i}`"
+          :x1="line.type === 'h' ? 0 : line.pos"
+          :y1="line.type === 'h' ? line.pos : 0"
+          :x2="line.type === 'h' ? 1000 : line.pos"
+          :y2="line.type === 'h' ? line.pos : 640"
+          stroke="#f38ba8"
+          stroke-width="1"
+          stroke-dasharray="6 4"
         />
+
+        <!-- Shelves -->
         <g
           v-for="shelf in shelves"
           :key="shelf.id"
           class="shelf-shape"
-          :class="{ 'cursor-grab': !drawingOutline, 'cursor-grabbing': draggingShelfId === shelf.id }"
+          :class="{
+            'cursor-grab': !readonly && !drawingOutline,
+            'cursor-grabbing': draggingShelfId === shelf.id,
+          }"
           :transform="`rotate(${Number(shelf.angle || 0)} ${Number(shelf.x) + Number(shelf.width) / 2} ${Number(shelf.y) + Number(shelf.height) / 2})`"
           @mousedown.prevent="!drawingOutline && handleShelfMouseDown($event, shelf.id, Number(shelf.x), Number(shelf.y), Number(shelf.width), Number(shelf.height))"
+          @mouseenter="onShelfMouseEnter($event, shelf)"
+          @mousemove="onShelfMouseMove"
+          @mouseleave="onShelfMouseLeave"
         >
           <rect
             :x="shelf.x"
@@ -132,10 +301,11 @@ void svgRef;
             :width="shelf.width"
             :height="shelf.height"
             rx="6"
+            :fill="shelfColor(shelf.status, shelf.usedStock, shelf.capacity)"
             :class="{ selected: shelf.id === selectedShelfId, disabled: shelf.status !== 1 }"
           />
           <circle
-            v-if="shelf.id === selectedShelfId"
+            v-if="!readonly && shelf.id === selectedShelfId"
             :cx="Number(shelf.x) + Number(shelf.width) / 2"
             :cy="Number(shelf.y) - 14"
             r="8"
@@ -151,7 +321,28 @@ void svgRef;
           </text>
         </g>
       </svg>
+
+      <MapMinimap
+        :outline-points="outlinePoints"
+        :shelves="minimapShelves"
+        :view-box-x="viewBoxParts.x"
+        :view-box-y="viewBoxParts.y"
+        :view-box-w="viewBoxParts.w"
+        :view-box-h="viewBoxParts.h"
+        :collapsed="minimapCollapsed"
+        @update:collapsed="minimapCollapsed = $event"
+        @navigate-to="onMinimapNavigate"
+      />
     </div>
+
+    <ShelfTooltip
+      :visible="tooltipVisible"
+      :x="tooltipX"
+      :y="tooltipY"
+      :shelf-no="tooltipShelf?.shelfNo || ''"
+      :used-stock="tooltipShelf?.usedStock || 0"
+      :capacity="tooltipShelf?.capacity || 0"
+    />
   </section>
 </template>
 
@@ -167,12 +358,20 @@ void svgRef;
   justify-content: flex-start;
   border-bottom: 1px solid var(--library-border);
   padding: 10px;
+  display: flex;
+  gap: 4px;
 }
 
 .map-canvas-frame {
   min-height: 500px;
   flex: 1;
   padding: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.map-canvas-frame.panning {
+  cursor: grabbing;
 }
 
 .map-canvas {
@@ -214,20 +413,18 @@ void svgRef;
 }
 
 .shelf-shape rect {
-  fill: color-mix(in srgb, var(--library-accent) 22%, var(--library-card));
   stroke: color-mix(in srgb, var(--library-accent) 72%, var(--library-border));
   stroke-width: 2;
   cursor: pointer;
+  transition: fill 0.2s;
 }
 
 .shelf-shape rect.selected {
-  fill: color-mix(in srgb, var(--library-accent) 44%, var(--library-card));
   stroke-width: 4;
 }
 
 .shelf-shape rect.disabled {
-  fill: color-mix(in srgb, var(--library-text-muted) 18%, var(--library-card));
-  stroke: var(--library-border);
+  opacity: 0.5;
 }
 
 .shelf-shape text {
