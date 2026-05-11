@@ -2,6 +2,8 @@
 import {computed, defineAsyncComponent, onMounted, reactive, ref, watch} from "vue";
 import publicBookApi, {type PublicBookPageVO, type PublicBookQuery} from "@/api/public-book-api";
 import LibraryMapApi, {type MapPoint, type PublicBookshelfVO, type PublicLibraryFloorDetailVO, type PublicLibraryFloorVO} from "@/api/library-map-api";
+import MapCanvas from "@/components/lib/MapCanvas.vue";
+import type { ShelfRenderItem } from "@/components/lib/MapCanvas.vue";
 import FileApi from "@/api/file-api.ts";
 
 interface HomeBookCard extends PublicBookPageVO {
@@ -69,6 +71,22 @@ const selectedPublicShelf = computed(() => {
   return publicFloorDetail.value?.shelves.find((item) => item.shelfId === selectedPublicShelfId.value)
       || publicFloorDetail.value?.shelves[0];
 });
+
+const publicShelfItems = computed<ShelfRenderItem[]>(() =>
+  (publicFloorDetail.value?.shelves || []).map((s) => ({
+    id: s.shelfId,
+    shelfNo: s.shelfNo,
+    name: s.name,
+    x: Number(s.x),
+    y: Number(s.y),
+    width: Number(s.width),
+    height: Number(s.height),
+    angle: Number(s.angle || 0),
+    capacity: s.capacity,
+    usedStock: s.usedStock,
+    status: 1,
+  })),
+);
 
 onMounted(() => {
   void fetchBooks();
@@ -173,6 +191,11 @@ async function selectPublicFloor(floorId: number) {
 
 function selectPublicShelf(shelf: PublicBookshelfVO) {
   selectedPublicShelfId.value = shelf.shelfId;
+}
+
+function selectPublicShelfById(shelfId: number) {
+  const shelf = publicFloorDetail.value?.shelves.find((s) => s.shelfId === shelfId);
+  if (shelf) selectPublicShelf(shelf);
 }
 
 function fetchCover(coverUrl?: string) {
@@ -292,36 +315,14 @@ function getAvailabilityColor(book: HomeBookCard) {
             </div>
 
             <div class="public-map-frame" :class="{ loading: loadingMap }">
-              <svg class="public-map-canvas" viewBox="0 0 1000 640" role="img">
-                <polygon
-                    v-if="publicOutlinePoints.length >= 3"
-                    :points="publicOutlinePointString"
-                    class="public-floor-outline"
-                />
-                <g
-                    v-for="shelf in publicFloorDetail?.shelves || []"
-                    :key="shelf.shelfId"
-                    class="public-shelf"
-                    :transform="`rotate(${Number(shelf.angle || 0)} ${Number(shelf.x) + Number(shelf.width) / 2} ${Number(shelf.y) + Number(shelf.height) / 2})`"
-                    @click="selectPublicShelf(shelf)"
-                >
-                  <rect
-                      :x="shelf.x"
-                      :y="shelf.y"
-                      :width="shelf.width"
-                      :height="shelf.height"
-                      rx="6"
-                      :class="{ selected: shelf.shelfId === selectedPublicShelf?.shelfId }"
-                  />
-                  <text
-                      :x="Number(shelf.x) + Number(shelf.width) / 2"
-                      :y="Number(shelf.y) + Number(shelf.height) / 2 + 5"
-                      text-anchor="middle"
-                  >
-                    {{ shelf.shelfNo }}
-                  </text>
-                </g>
-              </svg>
+              <MapCanvas
+                :outline-points="publicOutlinePoints"
+                :shelves="publicShelfItems"
+                :selected-shelf-id="selectedPublicShelfId"
+                :drawing-outline="false"
+                :readonly="true"
+                @select-shelf="selectPublicShelfById"
+              />
             </div>
 
             <aside class="public-shelf-books">
