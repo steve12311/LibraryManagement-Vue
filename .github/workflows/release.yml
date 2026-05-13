@@ -26,6 +26,9 @@ jobs:
 
       - run: pnpm build
 
+      - name: Archive dist
+        run: tar -czf release.tar.gz dist/
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -33,5 +36,4 @@ jobs:
             ## Changes
 
             See [commits](${{ github.event.repository.html_url }}/compare/${{ github.event.before }}...${{ github.event.after }}) for details.
-          files: |
-            dist/**/*
+          files: release.tar.gz
