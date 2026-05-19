@@ -3,6 +3,7 @@ import { h, resolveComponent } from "vue";
 import type {AcceptableValue, SelectItem, TableColumn} from "@nuxt/ui";
 import type { ReservationPageVO } from "@/api/library/reservation-api.ts";
 import type {ReservationStatusColor, ReservationStatusFilterValue} from "@/enums/system/reservation-status-enum";
+import FileApi from "@/api/file-api.ts";
 
 const props = defineProps<{
   loading: boolean
@@ -38,7 +39,7 @@ const reservationColumns = [
     id: "book",
     header: "图书信息",
     cell: ({ row }: { row: { original: ReservationPageVO } }) => {
-      const cover = row.original.cover
+      const cover = FileApi.resolveUrl(row.original.cover)
       return h("div", { class: "flex min-w-0 items-center gap-3" }, [
         cover
             ? h("img", {
