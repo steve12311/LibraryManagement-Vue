@@ -4,8 +4,9 @@ export const ReservationStatusEnum = {
   FULFILLED: 2,
   EXPIRED: 3,
   CANCELLED: 4,
-} as const
+} as const;
 
-export type ReservationStatusValue = typeof ReservationStatusEnum[keyof typeof ReservationStatusEnum]
-export type ReservationStatusFilterValue = ReservationStatusValue | -1
-export type ReservationStatusColor = "warning" | "success" | "neutral" | "error"
+export type ReservationStatusValue =
+  (typeof ReservationStatusEnum)[keyof typeof ReservationStatusEnum];
+export type ReservationStatusFilterValue = ReservationStatusValue | -1;
+export type ReservationStatusColor = "warning" | "success" | "neutral" | "error";
