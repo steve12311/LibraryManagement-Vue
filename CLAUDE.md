@@ -41,7 +41,7 @@ Nuxt UI components are auto-imported (no explicit imports needed). Nuxt UI color
 | `src/constants/` | Shared constants: `file-constants.ts` (file upload limits, accept types) |
 | `src/enums/` | Typed enums: `api/code-enum.ts` (response codes), `system/menu-enum.ts`, `system/status-enum.ts` (status, gender, data scope, root role), `system/borrow-status-enum.ts`, `system/reservation-status-enum.ts` |
 | `src/types/` | Global TypeScript types: `global.d.ts`, `request.ts`, `common.ts` (ModalEditMode, BorrowDateValue, CoverFileModel, CategoryTreeNode) |
-| `src/utils/` | Infrastructure: `request.ts` (axios instance), `auth.ts` (login redirect), `date-format.ts`, `option-items.ts`, `EventManager.ts` (typed event bus), `Chat.ts`, chat-stream, borrow-status |
+| `src/utils/` | Infrastructure: `request.ts` (axios instance), `auth.ts` (login redirect), `date-format.ts`, `option-items.ts`, `EventManager.ts` (typed event bus), `Chat.ts`, chat-stream, borrow-status (status label/color helpers; status values are server-computed in `BorrowPageVO.status`) |
 
 ### Auth & Route Flow
 

@@ -1,6 +1,6 @@
 # 图书管理系统 · 管理端前端
 
-Vite + Vue 3 + TypeScript 构建的图书馆管理后台，支持图书、借阅、预约、分类、出版社、库存管理，以及系统用户/角色/菜单权限配置，并集成 AI 阅读助手。
+Vite + Vue 3 + TypeScript 构建的图书馆管理后台，支持图书、借阅（含逾期提醒）、预约、分类、出版社、库存管理，以及系统用户/角色/菜单权限配置，集成 AI 阅读助手，支持个人通知偏好设置。
 
 ## 技术栈
 
@@ -100,6 +100,14 @@ src/
 ### 视图与 Composable 分离
 
 视图文件只做编排，所有状态与业务逻辑拆到 `src/composables/` 对应目录下，每个 composable 单一职责（query / form / dialog / actions / submit）。新增视图时遵循相同模式。
+
+### 借阅状态
+
+借阅状态（`BorrowPageVO.status`）由后端 SQL CASE 表达式在查询时计算，取值：0=已归还、1=借阅中、2=已逾期。前端仅展示，不再做客户端时间比较。
+
+### 通知偏好
+
+用户可在个人中心设置通知偏好（`notificationPreference`，JSON 格式如 `{"email":true,"sms":false}`），选择通过邮件或短信接收借阅到期、预约取书等提醒。设置入口在 `ProfileEditModal.vue`，概览卡片同步展示当前偏好。
 
 ### 书架地图 (Shelf Map)
 
