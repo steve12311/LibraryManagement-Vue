@@ -12,8 +12,12 @@ import FileApi from "@/api/file-api";
 import { MAX_AVATAR_SIZE_BYTES } from "@/constants/file-constants";
 import MeBorrowCard from "@/components/me/MeBorrowCard.vue";
 import MeOverviewCard from "@/components/me/MeOverviewCard.vue";
+import MeReservation from "@/components/me/MeReservation.vue";
 import PasswordEditModal from "@/components/me/PasswordEditModal.vue";
 import ProfileEditModal from "@/components/me/ProfileEditModal.vue";
+import { useMyReservations } from "@/composables/system/user/useMyReservations";
+import reservationApi from "@/api/library/reservation-api";
+import { ElMessageBox } from "element-plus";
 import {useUserStore} from "@/store";
 import { UserGenderTypeEnum } from "@/enums/system/status-enum.ts";
 import { createGenderOptions } from "@/utils/option-items";
@@ -84,6 +88,14 @@ const {
   getBorrowStatusColor,
   formatBorrowReturnTime,
 } = useMyBorrowOrders();
+
+const {
+  myReservations, totalMyReservations, loadingMyReservations,
+  myReservationQueryParams, myReservationStatusFilter, myReservationStatusItems,
+  fetchMyReservations, handleReservationQuery, resetReservationQuery,
+  getReservationStatusLabel, getReservationStatusColor,
+  formatReservationDateTime, getDaysRemaining, isReservationCancellable,
+} = useMyReservations();
 
 onMounted(() => {
   void refreshPage();
@@ -239,6 +251,7 @@ async function refreshPage() {
   await Promise.all([
     fetchProfile(),
     fetchMyBorrowOrders(),
+    fetchMyReservations(),
   ]);
 }
 
@@ -352,6 +365,19 @@ async function submitPassword() {
   }
 }
 
+async function handleCancelReservation(id: string) {
+  try {
+    await ElMessageBox.confirm("取消后不可恢复，确认取消该预约？", "取消预约")
+  } catch { return }
+  try {
+    await reservationApi.cancel(id)
+    toast.add({ title: "成功", description: "取消成功", color: "success" })
+    await fetchMyReservations()
+  } catch {
+    toast.add({ title: "错误", description: "取消失败", color: "error" })
+  }
+}
+
 function normalizeRoleNames(value?: string) {
   if (!value) return [];
   return value
@@ -415,7 +441,7 @@ function getGenderLabel(gender?: UserGender) {
             icon="i-lucide-refresh-cw"
             variant="soft"
             color="neutral"
-            :loading="loadingProfile || loadingMyBorrowOrders"
+            :loading="loadingProfile || loadingMyBorrowOrders || loadingMyReservations"
             @click="refreshPage"
         >
           刷新信息
@@ -467,6 +493,27 @@ function getGenderLabel(gender?: UserGender) {
             fetchMyBorrowOrders();
           }
         "
+    />
+
+    <MeReservation
+        :loading="loadingMyReservations"
+        :reservations="myReservations"
+        :total="totalMyReservations"
+        :page="myReservationQueryParams.pageNum"
+        :page-size="myReservationQueryParams.pageSize"
+        :status-filter="myReservationStatusFilter"
+        :status-items="myReservationStatusItems"
+        :get-reservation-status-label="getReservationStatusLabel"
+        :get-reservation-status-color="getReservationStatusColor"
+        :format-date-time="formatReservationDateTime"
+        :get-days-remaining="getDaysRemaining"
+        :is-cancellable="isReservationCancellable"
+        @update:status-filter="myReservationStatusFilter = $event"
+        @query="handleReservationQuery"
+        @reset="resetReservationQuery"
+        @refresh="fetchMyReservations"
+        @page-change="(p) => { myReservationQueryParams.pageNum = p; fetchMyReservations() }"
+        @cancel="handleCancelReservation"
     />
   </div>
 </template>
