@@ -5,6 +5,7 @@ import LibraryMapApi, {type MapPoint, type PublicBookshelfVO, type PublicLibrary
 import MapCanvas from "@/components/lib/MapCanvas.vue";
 import type { ShelfRenderItem } from "@/components/lib/MapCanvas.vue";
 import FileApi from "@/api/file-api.ts";
+import ReservationApi from "@/api/library/reservation-api";
 
 interface HomeBookCard extends PublicBookPageVO {
   coverPreview?: string;
@@ -26,6 +27,8 @@ const selectedPublicFloorId = ref<number>();
 const selectedPublicShelfId = ref<number>();
 const loadingMap = ref(false);
 const fetchSerial = ref(0);
+const reservingIsbn = ref<string | null>(null);
+const reservedIsbns = ref<Set<string>>(new Set());
 const queryParams = reactive<PublicBookQuery>({
   pageNum: 1,
   pageSize: 9,
@@ -90,6 +93,7 @@ const publicShelfItems = computed<ShelfRenderItem[]>(() =>
 onMounted(() => {
   void fetchBooks();
   void fetchPublicFloors();
+  void fetchReservedIsbns();
 });
 
 watch(openAISidebar, (isOpen) => {
@@ -195,6 +199,30 @@ function selectPublicShelf(shelf: PublicBookshelfVO) {
 function selectPublicShelfById(shelfId: number) {
   const shelf = publicFloorDetail.value?.shelves.find((s) => s.shelfId === shelfId);
   if (shelf) selectPublicShelf(shelf);
+}
+
+async function fetchReservedIsbns() {
+  try {
+    const data = await ReservationApi.getPage({ pageNum: 1, pageSize: 100 });
+    reservedIsbns.value = new Set(data.list.map((r) => r.isbn));
+  } catch {
+    // silently ignore — user may not be logged in
+  }
+}
+
+async function handleReserve(isbn: string) {
+  if (reservingIsbn.value) return;
+  try {
+    reservingIsbn.value = isbn;
+    await ReservationApi.create(isbn);
+    reservedIsbns.value = new Set([...reservedIsbns.value, isbn]);
+    toast.add({title: "预约成功", description: "请在「我的预约」中查看预约状态", color: "success"});
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "预约失败";
+    toast.add({title: "预约失败", description: message, color: "error"});
+  } finally {
+    reservingIsbn.value = null;
+  }
 }
 
 function fetchCover(coverUrl?: string) {
@@ -413,8 +441,20 @@ function getAvailabilityColor(book: HomeBookCard) {
                       </div>
                     </div>
 
-                    <div class="featured-footnote">
-                      仅展示书目信息与可借状态
+                    <div class="featured-footnote flex items-center justify-between">
+                      <span>仅展示书目信息与可借状态</span>
+                      <UBadge v-if="featuredBook && reservedIsbns.has(featuredBook.isbn)" color="success" variant="subtle">
+                        已预约
+                      </UBadge>
+                      <UButton
+                          v-else-if="featuredBook"
+                          size="sm"
+                          icon="i-lucide-calendar-plus"
+                          :loading="reservingIsbn === featuredBook.isbn"
+                          @click="handleReserve(featuredBook.isbn)"
+                      >
+                        预约
+                      </UButton>
                     </div>
                   </div>
                 </div>
@@ -451,6 +491,19 @@ function getAvailabilityColor(book: HomeBookCard) {
                       <p class="truncate text-sm text-[var(--library-text-muted)]">
                         {{ book.author || "未知作者" }} · {{ book.publishName || "未知出版社" }}
                       </p>
+                      <UBadge v-if="reservedIsbns.has(book.isbn)" size="xs" color="success" variant="subtle">
+                        已预约
+                      </UBadge>
+                      <UButton
+                          v-else
+                          size="xs"
+                          variant="soft"
+                          icon="i-lucide-calendar-plus"
+                          :loading="reservingIsbn === book.isbn"
+                          @click="handleReserve(book.isbn)"
+                      >
+                        预约
+                      </UButton>
                     </div>
                   </div>
                 </UCard>
@@ -500,6 +553,19 @@ function getAvailabilityColor(book: HomeBookCard) {
                       <p class="truncate">作者：{{ book.author || "未知" }}</p>
                       <p class="truncate">出版社：{{ book.publishName || "未知" }}</p>
                     </div>
+                    <UBadge v-if="reservedIsbns.has(book.isbn)" size="xs" color="success" variant="subtle">
+                      已预约
+                    </UBadge>
+                    <UButton
+                        v-else
+                        size="xs"
+                        variant="soft"
+                        icon="i-lucide-calendar-plus"
+                        :loading="reservingIsbn === book.isbn"
+                        @click="handleReserve(book.isbn)"
+                    >
+                      预约
+                    </UButton>
                   </div>
                 </div>
 
