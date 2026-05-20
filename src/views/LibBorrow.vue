@@ -7,9 +7,7 @@ import {
   getBorrowStatusColor,
   getBorrowStatusLabel,
   isBorrowReturned,
-  resolveBorrowStatus,
 } from "@/utils/borrow-status"
-import type { BorrowStatusValue } from "@/enums/system/borrow-status-enum"
 import { useBorrowQuery } from "@/composables/library/borrow/useBorrowQuery"
 import { useBorrowForm } from "@/composables/library/borrow/useBorrowForm"
 import { useBorrowDialog } from "@/composables/library/borrow/useBorrowDialog"
@@ -44,7 +42,7 @@ const { open, openConfirm, selectedDelayBorrowId, selectedDelayReturnTime, delay
   parseDate,
 })
 
-const { submitForm, submitDelayDay, confirmReturnBorrow } = useBorrowActions({
+const { submitForm, submitDelayDay, sendReminder, confirmReturnBorrow } = useBorrowActions({
   state, returnTime, open, openConfirm,
   selectedDelayBorrowId, selectedDelayReturnTime, delayDay,
   submittingBorrow, submittingDelay, returningBorrowId,
@@ -56,10 +54,6 @@ const table = useTemplateRef("table")
 onMounted(() => {
   void handleQuery()
 })
-
-function getRowBorrowStatus(row: BorrowPageVO): BorrowStatusValue {
-  return resolveBorrowStatus(row.returnTime, row.realityReturnTime)
-}
 
 const columns = ref<TableColumn<BorrowPageVO>[]>([
   { accessorKey: "borrowId", header: "借阅订单" },
@@ -85,7 +79,7 @@ const columns = ref<TableColumn<BorrowPageVO>[]>([
     id: "status",
     header: "状态",
     cell: ({ row }) => {
-      const s = getRowBorrowStatus(row.original)
+      const s = row.original.status
       return h(UBadge, { class: "capitalize", variant: "subtle", color: getBorrowStatusColor(s) }, () => getBorrowStatusLabel(s))
     },
   },
@@ -93,8 +87,15 @@ const columns = ref<TableColumn<BorrowPageVO>[]>([
     id: "action",
     header: "操作",
     cell: ({ row }) => {
-      if (isBorrowReturned(getRowBorrowStatus(row.original))) return
+      if (isBorrowReturned(row.original.status)) return
       return h(UFieldGroup, undefined, () => [
+        h(UTooltip, { text: "发送提醒", delayDuration: 0 }, () => [
+          h(UButton, {
+            icon: "i-lucide-bell-ring",
+            variant: "ghost",
+            onClick: (ev: Event) => { ev.stopPropagation(); void sendReminder(row.original.borrowId) },
+          }),
+        ]),
         h(UTooltip, { text: "延长时间", delayDuration: 0 }, () => [
           h(UButton, {
             icon: "i-lucide-calendar-clock",

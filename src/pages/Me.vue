@@ -63,12 +63,21 @@ const profileStats = computed(() => [
   {label: "角色数量", value: `${roleItems.value.length}`},
   {label: "已绑定信息", value: `${boundContactCount.value}/2`}
 ]);
+const notificationLabel = computed(() => {
+  const pref = parseNotificationPreference(profileInfo.value.notificationPreference);
+  const parts: string[] = [];
+  if (pref.email) parts.push("邮件");
+  if (pref.sms) parts.push("短信");
+  return parts.length > 0 ? parts.join("、") : "未开启";
+});
+
 const overviewDetails = computed(() => [
   {label: "用户 ID", value: String(profileInfo.value.id || "-")},
   {label: "登录账号", value: profileInfo.value.username || "-"},
   {label: "性别", value: getGenderLabel(profileInfo.value.gender)},
   {label: "手机号", value: profileInfo.value.mobile || "-"},
   {label: "电子邮箱", value: profileInfo.value.email || "-"},
+  {label: "通知偏好", value: notificationLabel.value},
   {label: "创建时间", value: createTimeText.value},
 ]);
 const hasPasswordValue = computed(() => {
@@ -111,7 +120,8 @@ function createProfile(): UserProfile {
     mobile: "",
     email: "",
     roleNames: "",
-    createTime: ""
+    createTime: "",
+    notificationPreference: undefined,
   };
 }
 
@@ -133,6 +143,16 @@ function createPasswordForm(): PasswordUpdateForm {
     newPassword: "",
     confirmPassword: ""
   };
+}
+
+function parseNotificationPreference(json?: string): { email: boolean; sms: boolean } {
+  if (!json) return { email: true, sms: false };
+  try {
+    const parsed = JSON.parse(json) as Record<string, unknown>;
+    return { email: parsed.email !== false, sms: parsed.sms === true };
+  } catch {
+    return { email: true, sms: false };
+  }
 }
 
 function normalizeText(value?: string) {
@@ -158,6 +178,7 @@ function normalizeProfile(raw?: Partial<UserProfile>): UserProfile {
     email: normalizeText(raw?.email),
     roleNames: normalizeText(raw?.roleNames),
     createTime: raw?.createTime ?? "",
+    notificationPreference: raw?.notificationPreference,
   };
 }
 
@@ -170,6 +191,7 @@ function toProfileForm(profile: UserProfile): UserProfileForm {
     gender: profile.gender,
     mobile: profile.mobile,
     email: profile.email,
+    notificationPreference: profile.notificationPreference,
   };
 }
 
@@ -290,6 +312,7 @@ async function submitProfile() {
       gender: normalizeGender(profileForm.gender),
       mobile,
       email,
+      notificationPreference: profileForm.notificationPreference,
     };
     // 头像文件上传到文件服务
     const file = getAvatarFileFromModel(avatarModel.value);

@@ -58,6 +58,24 @@ const emailModel = computed({
   get: () => props.state.email,
   set: value => updateState({email: value})
 })
+
+function parseNotificationPreference(json?: string): { email: boolean; sms: boolean } {
+  if (!json) return { email: true, sms: false }
+  try {
+    const parsed = JSON.parse(json) as Record<string, unknown>
+    return { email: parsed.email !== false, sms: parsed.sms === true }
+  } catch {
+    return { email: true, sms: false }
+  }
+}
+
+const notificationPref = computed(() => parseNotificationPreference(props.state.notificationPreference))
+
+function toggleNotification(channel: "email" | "sms") {
+  const current = notificationPref.value
+  const next = { ...current, [channel]: !current[channel] }
+  updateState({ notificationPreference: JSON.stringify(next) })
+}
 </script>
 
 <template>
@@ -93,6 +111,32 @@ const emailModel = computed({
             <UInput v-model="emailModel" type="email" class="w-full" placeholder="请输入电子邮箱"/>
           </UFormField>
         </UFieldGroup>
+        <div class="modal-copy">
+          <p class="modal-title">通知偏好</p>
+          <p class="modal-description">选择接收提醒的方式</p>
+        </div>
+        <div class="notification-prefs">
+          <div class="pref-row">
+            <div class="pref-info">
+              <p class="pref-label">邮件通知</p>
+              <p class="pref-hint">通过邮箱接收借阅到期、预约取书等提醒</p>
+            </div>
+            <USwitch
+              :model-value="notificationPref.email"
+              @update:model-value="toggleNotification('email')"
+            />
+          </div>
+          <div class="pref-row">
+            <div class="pref-info">
+              <p class="pref-label">短信通知</p>
+              <p class="pref-hint">通过手机号接收借阅到期、预约取书等提醒</p>
+            </div>
+            <USwitch
+              :model-value="notificationPref.sms"
+              @update:model-value="toggleNotification('sms')"
+            />
+          </div>
+        </div>
         <UFormField class="w-full" label="头像">
           <UFieldGroup class="w-full items-center gap-3">
             <UAvatar size="lg" :src="FileApi.resolveUrl(state.avatar)" icon="i-lucide-user"/>
@@ -158,5 +202,42 @@ const emailModel = computed({
   justify-content: flex-end;
   gap: 8px;
   padding-top: 8px;
+}
+
+.notification-prefs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--library-border);
+  border-radius: 16px;
+  padding: 8px 16px;
+}
+
+.pref-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.pref-row + .pref-row {
+  border-top: 1px solid var(--library-border);
+}
+
+.pref-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pref-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--library-text);
+}
+
+.pref-hint {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--library-text-muted);
 }
 </style>

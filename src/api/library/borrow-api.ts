@@ -8,51 +8,57 @@ export type BorrowId = string;
 export type BorrowQueryField = "username" | "isbn" | "status";
 
 const BorrowApi = {
-    getPage(queryParams?: BorrowQuery) {
-        return request<unknown, PageResult<BorrowPageVO[]>>({
-            url: `${BORROW_BASE_URL}/page`,
-            method: "get",
-            params: queryParams,
-        })
-    },
-    create(borrowForm: BorrowForm) {
-        return request<BorrowForm, string>({
-            url: `${BORROW_BASE_URL}`,
-            method: "post",
-            data: borrowForm,
-        })
-    },
-    update(borrowId: BorrowId, borrowForm: BorrowForm) {
-        return request<BorrowForm, string>({
-            url: `${BORROW_BASE_URL}/${borrowId}`,
-            method: "put",
-            data: borrowForm,
-        })
-    }
-}
+  getPage(queryParams?: BorrowQuery) {
+    return request<unknown, PageResult<BorrowPageVO[]>>({
+      url: `${BORROW_BASE_URL}/page`,
+      method: "get",
+      params: queryParams,
+    });
+  },
+  create(borrowForm: BorrowForm) {
+    return request<BorrowForm, string>({
+      url: `${BORROW_BASE_URL}`,
+      method: "post",
+      data: borrowForm,
+    });
+  },
+  update(borrowId: BorrowId, borrowForm: BorrowForm) {
+    return request<BorrowForm, string>({
+      url: `${BORROW_BASE_URL}/${borrowId}`,
+      method: "put",
+      data: borrowForm,
+    });
+  },
+  remind(borrowId: BorrowId) {
+    return request<unknown, string>({
+      url: `${BORROW_BASE_URL}/${borrowId}/remind`,
+      method: "post",
+    });
+  },
+};
 
 export interface BorrowForm {
-    isbn?: string;
-    userId?: number | string;
-    returnTime?: BorrowDateValue;
-    realityReturnTime?: BorrowDateValue;
+  isbn?: string;
+  userId?: number | string;
+  returnTime?: BorrowDateValue;
+  realityReturnTime?: BorrowDateValue;
 }
 
 export interface BorrowPageVO {
-    borrowId: BorrowId;
-    isbn: string;
-    bookName: string;
-    userId: number;
-    nickname: string;
-    username: string;
-    avatar?: string;
-    returnTime: BorrowDateValue;
-    realityReturnTime?: BorrowDateValue | null;
+  borrowId: BorrowId;
+  isbn: string;
+  bookName: string;
+  userId: number;
+  nickname: string;
+  username: string;
+  avatar?: string;
+  returnTime: BorrowDateValue;
+  status: BorrowStatusValue;
 }
 
 export interface BorrowQuery extends PageQuery {
-    field?: BorrowQueryField;
-    keyword?: string | BorrowStatusValue;
+  field?: BorrowQueryField;
+  keyword?: string | BorrowStatusValue;
 }
 
 export default BorrowApi;
