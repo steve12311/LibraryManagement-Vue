@@ -1,6 +1,6 @@
 # 图书管理系统 · 管理端前端
 
-Vite + Vue 3 + TypeScript 构建的图书馆管理后台，支持图书、借阅、分类、出版社、库存管理，以及系统用户/角色/菜单权限配置，并集成 AI 阅读助手。
+Vite + Vue 3 + TypeScript 构建的图书馆管理后台，支持图书、借阅、预约、分类、出版社、库存管理，以及系统用户/角色/菜单权限配置，并集成 AI 阅读助手。
 
 ## 技术栈
 
@@ -65,15 +65,15 @@ VITE_APP_API_URL=http://localhost:8080       # 后端接口地址
 ```
 src/
 ├── pages/          # 页面骨架：Login、Home（主布局含侧边栏）、Me
-├── views/          # 业务视图：Index（首页公共图书浏览）、Dashboard、SysUser/Role/Menu/Dept、LibStock/Borrow/Category/Publish、error/404
+├── views/          # 业务视图：Index（首页公共图书浏览）、Dashboard、SysUser/Role/Menu/Dept、LibStock/Borrow/Reservation/Category/Publish、error/404
 ├── components/     # 可复用组件，按业务分组（library/、dashboard/、me/、system/）
-├── composables/    # 视图逻辑拆分，与 views 结构对应（system/user/、library/borrow/ 等）
+├── composables/    # 视图逻辑拆分，与 views 结构对应（system/user/、library/borrow/、library/reservation/ 等）
 ├── constants/      # 共享常量（file-constants.ts）
 ├── api/            # 接口客户端，按域划分（system/、library/、dashboard-api.ts、public-book-api.ts、file-api.ts）
 ├── store/modules/  # auth-store（token）、user-store（用户信息）、permission-store（动态路由）
 ├── router/         # 静态路由定义，动态路由由 permission-store 从后端生成
 ├── plugins/        # 应用插件：permission.ts（全局导航守卫）
-├── enums/          # 枚举：API 状态码、菜单类型、借阅状态、系统状态
+├── enums/          # 枚举：API 状态码、菜单类型、借阅状态、预约状态、系统状态
 ├── types/          # 全局类型声明：request.ts、common.ts、global.d.ts
 └── utils/          # 基础设施：request.ts、auth.ts、date-format.ts、Chat.ts、option-items.ts
 ```

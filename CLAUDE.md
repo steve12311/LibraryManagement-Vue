@@ -31,15 +31,15 @@ Nuxt UI components are auto-imported (no explicit imports needed). Nuxt UI color
 | Path | Purpose |
 |---|---|
 | `src/pages/` | Shell pages: `Login.vue`, `Home.vue` (app layout/sidebar), `Me.vue` |
-| `src/views/` | Domain screens mounted as children of `Home.vue`: `Index` (public book browsing + shelf map), `Dashboard`, `SysUser`, `SysRole`, `SysMenu`, `SysDept`, `LibStock` (with shelf binding), `LibBorrow`, `LibCategory`, `LibPublish`, `LibShelfMap` (floor outline + shelf position management), `error/404` |
+| `src/views/` | Domain screens mounted as children of `Home.vue`: `Index` (public book browsing + shelf map), `Dashboard`, `SysUser`, `SysRole`, `SysMenu`, `SysDept`, `LibStock` (with shelf binding), `LibBorrow`, `LibReservation`, `LibCategory`, `LibPublish`, `LibShelfMap` (floor outline + shelf position management), `error/404` |
 | `src/components/` | Reusable dialogs and UI pieces, grouped by domain (e.g. `library/stock/`, `dashboard/`, `me/`, `system/user/`, `system/role/`) + top-level: `AISidebar`, `Logo`, `ActionGroup`, `SelectTreeMenu`, `WarningModal` + `lib/MapCanvas.vue` (SVG canvas for shelf map), `lib/MapMinimap.vue` (minimap with viewport navigation), `lib/ShelfTooltip.vue` (hover tooltip) |
-| `src/composables/` | View logic extracted into composables, mirroring domain structure (`system/user/`, `system/menu/`, `system/role/`, `library/stock/`, `library/borrow/`, `library/publish/`, `dashboard/`, `auth/`) + `useSvgDrag.ts` (drag/rotate/copy/snap/alignment for SVG canvas), `useSvgZoom.ts` (mouse-centered zoom/pan), `useUndoRedo.ts` (operation history stack) |
+| `src/composables/` | View logic extracted into composables, mirroring domain structure (`system/user/`, `system/menu/`, `system/role/`, `library/stock/`, `library/borrow/`, `library/publish/`, `library/reservation/`, `dashboard/`, `auth/`) + `useSvgDrag.ts` (drag/rotate/copy/snap/alignment for SVG canvas), `useSvgZoom.ts` (mouse-centered zoom/pan), `useUndoRedo.ts` (operation history stack) |
 | `src/api/` | Axios API clients by domain: `system/`, `library/`, `dashboard-api.ts`, `file-api.ts` (`resolveUrl`, `uploadFile`, `getRefCount`, `deletePhysical`, `download`), `public-book-api.ts`, `library-map-api.ts` (floor/shelf CRUD) |
 | `src/store/modules/` | `auth-store.ts` (access token, persisted), `user-store.ts` (user info + roles), `permission-store.ts` (dynamic routes) |
 | `src/router/` | Static routes (`constantRoutes`) + dynamic route generation from backend |
 | `src/plugins/` | App plugin setup; `permission.ts` is the global navigation guard |
 | `src/constants/` | Shared constants: `file-constants.ts` (file upload limits, accept types) |
-| `src/enums/` | Typed enums: `api/code-enum.ts` (response codes), `system/menu-enum.ts`, `system/status-enum.ts` (status, gender, data scope, root role), `system/borrow-status-enum.ts` |
+| `src/enums/` | Typed enums: `api/code-enum.ts` (response codes), `system/menu-enum.ts`, `system/status-enum.ts` (status, gender, data scope, root role), `system/borrow-status-enum.ts`, `system/reservation-status-enum.ts` |
 | `src/types/` | Global TypeScript types: `global.d.ts`, `request.ts`, `common.ts` (ModalEditMode, BorrowDateValue, CoverFileModel, CategoryTreeNode) |
 | `src/utils/` | Infrastructure: `request.ts` (axios instance), `auth.ts` (login redirect), `date-format.ts`, `option-items.ts`, `EventManager.ts` (typed event bus), `Chat.ts`, chat-stream, borrow-status |
 
