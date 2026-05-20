@@ -60,7 +60,7 @@ const reservationColumns = [
     accessorKey: "status",
     header: "状态",
     cell: ({ row }: { row: { original: ReservationPageVO } }) => {
-      const children = []
+      const children: string[] = []
       children.push(props.getReservationStatusLabel(row.original.status))
       if (row.original.status === 1) {
         const days = props.getDaysRemaining(row.original.pickupDeadline)

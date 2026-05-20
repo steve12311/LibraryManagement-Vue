@@ -83,7 +83,7 @@ const columns = ref<TableColumn<AdminReservationPageVO>[]>([
     header: "操作",
     cell: ({ row }) => {
       const status = row.original.status as ReservationStatusValue
-      const buttons = []
+      const buttons: ReturnType<typeof h>[] = []
 
       if (isReservationPickupable(status)) {
         buttons.push(
